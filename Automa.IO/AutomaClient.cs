@@ -216,6 +216,7 @@ namespace Automa.IO
                 Cookies = Automa.Cookies;
                 CookiesFlush();
             }
+            catch (Exception e) { _logger(e.Message); throw; }
             finally
             {
                 if (closeAfter)
