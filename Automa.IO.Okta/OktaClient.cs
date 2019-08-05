@@ -7,9 +7,13 @@ namespace Automa.IO.Okta
 {
     public partial class OktaClient : AutomaClient
     {
-        //const string WorkdayUri = "https://wd3.myworkday.com/dentsuaegis";
         readonly string _oktaId;
 
+        /// <summary>
+        /// Initializes a new instance of the <see cref="OktaClient"/> class.
+        /// </summary>
+        /// <param name="oktaUri">The okta URI.</param>
+        /// <param name="oktaId">The okta identifier.</param>
         public OktaClient(Uri oktaUri, string oktaId)
             : base(x => new Automa(x, (ctx, driver) => new OktaAutomation(x, ctx, driver, oktaUri), driverOptions: DriverOptions)) => _oktaId = oktaId;
 
