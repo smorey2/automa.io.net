@@ -32,9 +32,9 @@ namespace Automa.IO.Okta
         {
             _driver.Navigate().GoToUrl(url);
             var newUrl = _driver.Url;
-            if (url.StartsWith($"{_oktaUri}/login/login.htm"))
+            if (newUrl.StartsWith($"{_oktaUri}/login/login.htm"))
                 throw new LoginRequiredException();
-            //if (url != WorkdayUri + "/public/index.htm")
+            //if (newUrl != WorkdayUri + "/public/index.htm")
             //    throw new LoginRequiredException();
             return newUrl;
         }
