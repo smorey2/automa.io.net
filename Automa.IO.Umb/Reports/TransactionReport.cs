@@ -20,8 +20,12 @@ namespace Automa.IO.Umb.Reports
         public string Supplier { get; set; }
         public decimal? Amount { get; set; }
 
-        public static Task<bool> ExportFileAsync(UmbClient umb, string sourceFolder, DateTime? beginDate = null, DateTime? endDate = null) =>
-            Task.Run(() => umb.RunReport("Reports/report2_1010c.asp", f =>
+        public static Task<bool> ExportFileAsync(UmbClient umb, string sourceFolder, DateTime? beginDate = null, DateTime? endDate = null)
+        {
+            var filePath = Path.Combine(sourceFolder, "TransactionReport.xls");
+            if (File.Exists(filePath))
+                File.Delete(filePath);
+            return Task.Run(() => umb.RunReport("Reports/report2_1010c.asp", f =>
             {
                 f.Values["xs_d_st"] = "-1";
                 f.Values["xs_d_s_f"] = "i11";
@@ -49,15 +53,15 @@ namespace Automa.IO.Umb.Reports
                 f.Checked["xs_umt"] = true; // Include Unmapped Transactions
                 f.Checked["xs_m_f"] = false; // Group Results
                 f.FromSelectByKey("xs_m_s", "0"); // Transaction List
-                // additional fields
-                f.FromMultiCheckbox("xs_d_f", new[] {
-                    "i91", // Issuer Reference
-                    "i85", // Authorization Number
-                }, merge: HtmlFormPost.Merge.Include);
+                f.FromMultiCheckbox("xs_d_f", new[] { // additional fields
+                        "i91", // Issuer Reference
+                        "i85", // Authorization Number
+                    }, merge: HtmlFormPost.Merge.Include);
                 // submit
                 f.Add("xsl_outmode", "text", "20");
                 f.Add("xsl_outname", "text", "TransactionReport.xls");
             }, sourceFolder));
+        }
 
         public static IEnumerable<TransactionReport> Read(UmbClient umb, string sourceFolder)
         {

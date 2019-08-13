@@ -19,12 +19,17 @@ namespace Automa.IO.Unanet.Exports
         //
         public string key { get; set; }
 
-        public static Task<bool> ExportFile(UnanetClient una, string sourceFolder) =>
-            Task.Run(() => una.GetEntitiesByExport(una.Exports["labor category master"].Item1, f =>
+        public static Task<bool> ExportFile(UnanetClient una, string sourceFolder)
+        {
+            var filePath = Path.Combine(sourceFolder, $"{una.Exports["labor category master"].Item2}.csv");
+            if (File.Exists(filePath))
+                File.Delete(filePath);
+            return Task.Run(() => una.GetEntitiesByExport(una.Exports["labor category master"].Item1, f =>
             {
                 f.Checked["suppressOutput"] = true;
                 f.FromSelect("dateRange", "Today");
             }, sourceFolder));
+        }
 
         public static IEnumerable<LaborCategoryModel> Read(UnanetClient una, string sourceFolder)
         {

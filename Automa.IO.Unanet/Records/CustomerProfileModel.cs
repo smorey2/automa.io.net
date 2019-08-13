@@ -30,15 +30,20 @@ namespace Automa.IO.Unanet.Records
         //
         public string organization_codeKey { get; set; }
 
-        public static Task<bool> ExportFileAsync(UnanetClient una, string sourceFolder, string legalEntityKey = "2845") =>
-            Task.Run(() => una.GetEntitiesByExport(una.Exports["customer profile"].Item1, f =>
-              {
-                  f.Checked["suppressOutput"] = true;
-                  f.Checked["includeALL"] = true;
-                  f.Checked["includeSELECTED"] = false;
-                  f.Checked["suppress"] = false;
-                  //f.Values["legalEntities"] = legalEntityKey;
-              }, sourceFolder));
+        public static Task<bool> ExportFileAsync(UnanetClient una, string sourceFolder, string legalEntityKey = "2845")
+        {
+            var filePath = Path.Combine(sourceFolder, $"{una.Exports["customer profile"].Item2}.csv");
+            if (File.Exists(filePath))
+                File.Delete(filePath);
+            return Task.Run(() => una.GetEntitiesByExport(una.Exports["customer profile"].Item1, f =>
+            {
+                f.Checked["suppressOutput"] = true;
+                f.Checked["includeALL"] = true;
+                f.Checked["includeSELECTED"] = false;
+                f.Checked["suppress"] = false;
+                //f.Values["legalEntities"] = legalEntityKey;
+            }, sourceFolder));
+        }
 
         public static Dictionary<string, Tuple<string, string>[]> GetList(UnanetClient ctx, string orgKey) =>
             ctx.GetEntitiesBySubList("organizations/customer_org", $"orgKey={orgKey}").Single();

@@ -41,8 +41,12 @@ namespace Automa.IO.Unanet.Reports
         public string AccountTypeOrderBy { get; set; }
         public string ArrangeBy { get; set; }
 
-        public static Task<bool> ExportFileAsync(UnanetClient una, string sourceFolder, DateTime? beginDate = null, DateTime? endDate = null, string legalEntity = "75-00-DEG-00 - Digital Evolution Group, LLC") =>
-            Task.Run(() => una.RunReport("financials/detail/general_ledger", f =>
+        public static Task<bool> ExportFileAsync(UnanetClient una, string sourceFolder, DateTime? beginDate = null, DateTime? endDate = null, string legalEntity = "75-00-DEG-00 - Digital Evolution Group, LLC")
+        {
+            var filePath = Path.Combine(sourceFolder, "report.csv");
+            if (File.Exists(filePath))
+                File.Delete(filePath);
+            return Task.Run(() => una.RunReport("financials/detail/general_ledger", f =>
             {
                 f.FromSelect("legalEntity", legalEntity);
                 f.FromSelect("accountType", "Revenue");
@@ -52,6 +56,7 @@ namespace Automa.IO.Unanet.Reports
                 f.FromSelect("fpRange", "custom");
                 f.FromSelect("orgHierarchy", "Organization");
             }, sourceFolder));
+        }
 
         public static IEnumerable<GLDetailsReport> Read(UnanetClient una, string sourceFolder)
         {

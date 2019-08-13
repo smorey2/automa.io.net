@@ -29,7 +29,8 @@ namespace Automa.IO.Unanet.Records
                     null,
                     out last, (z, f) =>
                 {
-                    var customer = Unanet.Una.GetAutoComplete("CP_CUSTOMER", $"{s.OrganizationCode} -", legalEntityKey: legalEntityKey).Single();
+                    var customers = Unanet.Una.GetAutoComplete("CP_CUSTOMER", $"{s.OrganizationCode} -", legalEntityKey: legalEntityKey);
+                    var customer = customers.Single();
                     f.FromSelect("legalEntity", legalEntity);
                     // customer payment
                     f.Values["bankAcct"] = bankAcct; f.Values["bankAcctKey"] = bankAcctKey;

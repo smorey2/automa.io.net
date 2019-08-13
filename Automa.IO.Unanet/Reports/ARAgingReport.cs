@@ -30,12 +30,17 @@ namespace Automa.IO.Unanet.Reports
         public decimal? PastDue61 { get; set; } // PastDue(61-90)
         public decimal? PastDue90 { get; set; } // PastDue(Over90)
 
-        public static Task<bool> ExportFileAsync(UnanetClient una, string sourceFolder, DateTime? beginDate = null, DateTime? endDate = null, string legalEntity = "75-00-DEG-00 - Digital Evolution Group, LLC") =>
-            Task.Run(() => una.RunReport("financials/detail/accounts_receivable", f =>
+        public static Task<bool> ExportFileAsync(UnanetClient una, string sourceFolder, DateTime? beginDate = null, DateTime? endDate = null, string legalEntity = "75-00-DEG-00 - Digital Evolution Group, LLC")
+        {
+            var filePath = Path.Combine(sourceFolder, "report.csv");
+            if (File.Exists(filePath))
+                File.Delete(filePath);
+            return Task.Run(() => una.RunReport("financials/detail/accounts_receivable", f =>
             {
                 f.FromSelect("legalEntity", legalEntity);
                 f.FromSelect("arrangeBy", "Customer");
             }, sourceFolder));
+        }
 
         public static IEnumerable<ARAgingReport> Read(UnanetClient una, string sourceFolder)
         {

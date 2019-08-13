@@ -122,7 +122,7 @@ namespace Automa.IO.Unanet
         /// <param name="matchStr">The match string.</param>
         /// <returns>Dictionary&lt;System.String, System.String&gt;.</returns>
         /// <exception cref="InvalidOperationException">Autocomplete Exceeded</exception>
-        public Dictionary<string, string> GetAutoComplete(string field, string matchStr = null, string legalEntityKey = null)
+        public Dictionary<string, string> GetAutoComplete(string field, string matchStr = null, bool startsWith = true, string legalEntityKey = null)
         {
             var d0 = this.TryFunc(() => this.DownloadData(HttpMethod.Get, $"{UnanetUri}/autocomplete?field={field}&matchStr={HttpUtility.UrlEncode(matchStr)}&leKey={legalEntityKey}"));
             var data = JsonConvert.DeserializeObject<AutoCompleteResult>(d0)?.Data;
@@ -130,7 +130,10 @@ namespace Automa.IO.Unanet
                 throw new InvalidOperationException(data.Error);
             if (data.Exceeded)
                 throw new InvalidOperationException("Autocomplete Exceeded");
-            return data.Results.ToDictionary(x => x.Key, x => x.Label);
+            var results = data.Results;
+            if (matchStr != null && startsWith)
+                results = results.Where(x => x.Label.StartsWith(matchStr, StringComparison.OrdinalIgnoreCase)).ToArray();
+            return results.ToDictionary(x => x.Key, x => x.Label);
         }
 
         /// <summary>

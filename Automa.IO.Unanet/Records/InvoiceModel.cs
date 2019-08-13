@@ -19,8 +19,12 @@ namespace Automa.IO.Unanet.Records
         public string memo { get; set; }
         public decimal? quantity { get; set; }
 
-        public static Task<bool> ExportFileAsync(UnanetClient una, string sourceFolder, int window, string legalEntity = "75-00-DEG-00 - Digital Evolution Group, LLC") =>
-            Task.Run(() => una.GetEntitiesByExport(una.Exports["invoice"].Item1, f =>
+        public static Task<bool> ExportFileAsync(UnanetClient una, string sourceFolder, int window, string legalEntity = "75-00-DEG-00 - Digital Evolution Group, LLC")
+        {
+            var filePath = Path.Combine(sourceFolder, $"{una.Exports["invoice"].Item2}.csv");
+            if (File.Exists(filePath))
+                File.Delete(filePath);
+            return Task.Run(() => una.GetEntitiesByExport(una.Exports["invoice"].Item1, f =>
             {
                 GetWindowDates(nameof(InvoiceModel), window, out var beginDate, out var endDate);
                 f.Values["filename"] = $"{una.Exports["invoice"].Item2}.csv";
@@ -31,6 +35,7 @@ namespace Automa.IO.Unanet.Records
                 f.Values["prange_bDate"] = "BOT"; f.Values["prange_eDate"] = "EOT";
                 f.FromSelectByKey("prange", "bot_eot");
             }, sourceFolder));
+        }
 
         public static IEnumerable<InvoiceModel> Read(UnanetClient una, string sourceFolder)
         {

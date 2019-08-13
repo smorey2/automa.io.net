@@ -37,17 +37,22 @@ namespace Automa.IO.Unanet.Records
         public string assign_code { get; set; }
         public string project_codeKey { get; set; }
 
-        public static Task<bool> ExportFileAsync(UnanetClient una, string sourceFolder) =>
-            Task.Run(() => una.GetEntitiesByExport(una.Exports["assignment"].Item1, f =>
-              {
-                  f.Checked["suppressOutput"] = true;
-                  f.Checked["person_outputActive"] = true; f.Checked["person_outputInactive"] = true;
-                  f.Values["drange_bDate"] = "BOT"; f.Values["drRange_eDate"] = "EOT";
-                  f.Values["drange"] = "bot_eot";
-                  f.Checked["organizationAssignment"] = true;
-                  f.Checked["projectAssignment"] = false;
-                  f.Checked["taskAssignment"] = false;
-              }, sourceFolder));
+        public static Task<bool> ExportFileAsync(UnanetClient una, string sourceFolder)
+        {
+            var filePath = Path.Combine(sourceFolder, $"{una.Exports["assignment"].Item2}.csv");
+            if (File.Exists(filePath))
+                File.Delete(filePath);
+            return Task.Run(() => una.GetEntitiesByExport(una.Exports["assignment"].Item1, f =>
+            {
+                f.Checked["suppressOutput"] = true;
+                f.Checked["person_outputActive"] = true; f.Checked["person_outputInactive"] = true;
+                f.Values["drange_bDate"] = "BOT"; f.Values["drRange_eDate"] = "EOT";
+                f.Values["drange"] = "bot_eot";
+                f.Checked["organizationAssignment"] = true;
+                f.Checked["projectAssignment"] = false;
+                f.Checked["taskAssignment"] = false;
+            }, sourceFolder));
+        }
 
         public static IEnumerable<AssignmentModel> Read(UnanetClient una, string sourceFolder)
         {

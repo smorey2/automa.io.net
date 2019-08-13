@@ -14,11 +14,16 @@ namespace Automa.IO.Unanet.Exports
         //
         public string key { get; set; } //NEED
 
-        public static Task<bool> ExportFile(UnanetClient una, string sourceFolder) =>
-            Task.Run(() => una.GetEntitiesByExport(una.Exports["location master"].Item1, f =>
+        public static Task<bool> ExportFile(UnanetClient una, string sourceFolder)
+        {
+            var filePath = Path.Combine(sourceFolder, $"{una.Exports["location master"].Item2}.csv");
+            if (File.Exists(filePath))
+                File.Delete(filePath);
+            return Task.Run(() => una.GetEntitiesByExport(una.Exports["location master"].Item1, f =>
             {
                 f.Checked["suppressOutput"] = true;
             }, sourceFolder));
+        }
 
         public static IEnumerable<LocationModel> Read(UnanetClient una, string sourceFolder)
         {

@@ -5,7 +5,7 @@
   </PropertyGroup>
 
   <ItemGroup>
-    <PackageReference Include="Google.AdWords" Version="24.7.0" />
+    <PackageReference Include="Google.AdWords" Version="24.7.1" />
   </ItemGroup>
 
   <ItemGroup>

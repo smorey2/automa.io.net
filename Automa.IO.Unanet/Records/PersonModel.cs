@@ -92,13 +92,18 @@ namespace Automa.IO.Unanet.Records
         //
         public string key { get; set; }
 
-        public static Task<bool> ExportFileAsync(UnanetClient una, string sourceFolder, string legalEntity = "75-00-DEG-00 - Digital Evolution Group, LLC") =>
-            Task.Run(() => una.GetEntitiesByExport(una.Exports["person"].Item1, f =>
-              {
-                  f.Checked["suppressOutput"] = true;
-                  f.FromSelect("legalEntity", legalEntity);
-                  f.Checked["exempt"] = true; f.Checked["nonExempt"] = true; f.Checked["nonEmployee"] = true;
-              }, sourceFolder));
+        public static Task<bool> ExportFileAsync(UnanetClient una, string sourceFolder, string legalEntity = "75-00-DEG-00 - Digital Evolution Group, LLC")
+        {
+            var filePath = Path.Combine(sourceFolder, $"{una.Exports["person"].Item2}.csv");
+            if (File.Exists(filePath))
+                File.Delete(filePath);
+            return Task.Run(() => una.GetEntitiesByExport(una.Exports["person"].Item1, f =>
+            {
+                f.Checked["suppressOutput"] = true;
+                f.FromSelect("legalEntity", legalEntity);
+                f.Checked["exempt"] = true; f.Checked["nonExempt"] = true; f.Checked["nonEmployee"] = true;
+            }, sourceFolder));
+        }
 
         public static IEnumerable<PersonModel> Read(UnanetClient una, string sourceFolder)
         {

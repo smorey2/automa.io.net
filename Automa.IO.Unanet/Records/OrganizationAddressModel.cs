@@ -27,12 +27,17 @@ namespace Automa.IO.Unanet.Records
         //
         public string organization_codeKey { get; set; }
 
-        public static Task<bool> ExportFileAsync(UnanetClient una, string sourceFolder, string type = "CUSTOMER") =>
-            Task.Run(() => una.GetEntitiesByExport(una.Exports["organization address"].Item1, f =>
-              {
-                  f.Checked["suppressOutput"] = true;
-                  f.FromSelect("organizationtype", type);
-              }, sourceFolder));
+        public static Task<bool> ExportFileAsync(UnanetClient una, string sourceFolder, string type = "CUSTOMER")
+        {
+            var filePath = Path.Combine(sourceFolder, $"{una.Exports["organization address"].Item2}.csv");
+            if (File.Exists(filePath))
+                File.Delete(filePath);
+            return Task.Run(() => una.GetEntitiesByExport(una.Exports["organization address"].Item1, f =>
+            {
+                f.Checked["suppressOutput"] = true;
+                f.FromSelect("organizationtype", type);
+            }, sourceFolder));
+        }
 
         public static Dictionary<string, Tuple<string, string>[]> GetList(UnanetClient ctx, string orgKey) =>
             ctx.GetEntitiesBySubList("organizations/addresses", $"orgKey={orgKey}").Single();

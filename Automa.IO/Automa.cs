@@ -100,7 +100,8 @@ namespace Automa.IO
         /// <param name="disposing"><c>true</c> to release both managed and unmanaged resources; <c>false</c> to release only unmanaged resources.</param>
         protected virtual void Dispose(bool disposing)
         {
-            _client.Automa = AutomaClient.EmptyAutoma;
+            if (_client != null)
+                _client.Automa = AutomaClient.EmptyAutoma;
             if (!_disposed)
             {
                 if (disposing) { }

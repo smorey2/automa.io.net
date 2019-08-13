@@ -216,11 +216,17 @@ namespace Automa.IO
                 Cookies = Automa.Cookies;
                 CookiesFlush();
             }
-            catch (Exception e) { _logger(e.Message); throw; }
+            catch (Exception e)
+            {
+                _logger(e.Message);
+                if (e.Message.StartsWith("session not created:")) throw new WebDriverException(e.Message, e);
+                else throw;
+            }
             finally
             {
                 if (closeAfter)
-                    Automa.Dispose();
+                    try { Automa.Dispose(); }
+                    catch { }
             }
             _logger("AutomaClient::Done");
         }

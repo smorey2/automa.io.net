@@ -28,8 +28,15 @@ namespace Automa.IO.Unanet.Records
         public bool posted { get; set; }
         public string project_codeKey { get; set; }
 
-        public static Task<bool> ExportFileAsync(UnanetClient una, string sourceFolder) =>
-            Task.Run(() =>
+        public static Task<bool> ExportFileAsync(UnanetClient una, string sourceFolder)
+        {
+            var filePath = Path.Combine(sourceFolder, $"{una.Exports["fixed price item"].Item2}.csv");
+            var filePath2 = Path.Combine(sourceFolder, $"{una.Exports["fixed price item [post]"].Item2}.csv");
+            if (File.Exists(filePath))
+                File.Delete(filePath);
+            if (File.Exists(filePath2))
+                File.Delete(filePath2);
+            return Task.Run(() =>
                 una.GetEntitiesByExport(una.Exports["fixed price item"].Item1, f =>
                 {
                     f.Checked["suppressOutput"] = true;
@@ -48,12 +55,13 @@ namespace Automa.IO.Unanet.Records
                     f.Checked["includePosted"] = false;
                     f.Checked["includeRevSchedules"] = false;
                 }, sourceFolder));
+        }
 
         public static IEnumerable<FixedPriceModel> Read(UnanetClient una, string sourceFolder)
         {
             var filePath = Path.Combine(sourceFolder, $"{una.Exports["fixed price item"].Item2}.csv");
-            var filePath1 = Path.Combine(sourceFolder, $"{una.Exports["fixed price item [post]"].Item2}.csv");
-            using (var sr1 = File.OpenRead(filePath1))
+            var filePath2 = Path.Combine(sourceFolder, $"{una.Exports["fixed price item [post]"].Item2}.csv");
+            using (var sr1 = File.OpenRead(filePath2))
             {
                 var post = new HashSet<string>(CsvReader.Read(sr1, x => x.Count > 9 ? x[9] : null, 1).ToList());
                 using (var sr = File.OpenRead(filePath))
