@@ -113,12 +113,12 @@ namespace Automa.IO.Unanet.Records
 
         public static ManageFlags ManageRecord(UnanetClient una, p_Assignment1 s, out string last)
         {
-            if (ManageRecordBase(null, s.XCF, 1, out var cf, out var add, out last))
+            if (ManageRecordBase(null, s.XCF, 1, out var cf, out var add, out last, canDelete: true))
                 return ManageFlags.AssignmentChanged;
             Unanet.OrganizationLookup.CostCenters.TryGetValue(s.assign_code, out var assign_codeKey);
             var method = !cf.Contains("delete") ? add ? HttpMethod.Post : HttpMethod.Put : HttpMethod.Delete;
-            var r = una.SubmitSubManage("E", add ? HttpMethod.Post : HttpMethod.Put, $"projects/orgs",
-                $"key={assign_codeKey}", $"projectkey={s.project_codeKey}", null,
+            var r = una.SubmitSubManage("E", method, $"projects/orgs",
+                $"key={assign_codeKey}&nextKey=0", $"projectkey={s.project_codeKey}", null,
                 out last, (z, f) =>
                 {
                     if (cf.Contains("insert")) f.Values["assign"] = assign_codeKey ?? throw new System.ArgumentOutOfRangeException(nameof(s.assign_code), s.assign_code); // LOOKUP

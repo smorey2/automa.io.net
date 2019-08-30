@@ -14,14 +14,14 @@ namespace Automa.IO.Unanet
         protected static XAttribute XAttribute(string name, string value) => !string.IsNullOrEmpty(value) ? new XAttribute(name, value) : null;
         protected static XAttribute XAttribute<T>(string name, T? value) where T : struct => value != null ? new XAttribute(name, value.Value) : null;
 
-        protected static bool ManageRecordBase(string key, string xcf, int mode, out HashSet<string> cf, out bool add, out string last)
+        protected static bool ManageRecordBase(string key, string xcf, int mode, out HashSet<string> cf, out bool add, out string last, bool canDelete = false)
         {
             cf = new HashSet<string>((xcf ?? string.Empty).Split(new[] { ',' }, StringSplitOptions.RemoveEmptyEntries));
             add = mode == 1 ? cf.Contains("insert") : key == "-1";
             if (!add && cf.Count == 0) { last = "no-changes"; return true; }
             else if (cf.Contains("INFO")) { last = $"INFO: {xcf}"; return true; }
             else if (!add && cf.Contains("insert")) { last = $"manual: {xcf}"; return true; }
-            else if (cf.Contains("delete")) { last = $"not implemented: {xcf}"; return true; }
+            else if (!canDelete && cf.Contains("delete")) { last = $"not implemented: {xcf}"; return true; }
             last = null; return false;
         }
 

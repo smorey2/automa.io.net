@@ -57,13 +57,15 @@ namespace Automa.IO
         /// <param name="s">The s.</param>
         /// <param name="marker">The marker.</param>
         /// <exception cref="InvalidOperationException">unable to find marker</exception>
-        public HtmlFormPost(Mode mode, string s, string marker = null)
+        public HtmlFormPost(Mode mode, string s = null, string marker = null)
         {
             Values = new Dictionary<string, string>();
             Types = new Dictionary<string, string>();
             Checked = new Dictionary<string, bool>();
             Selects = new Dictionary<string, Dictionary<string, string>>();
             Files = new Dictionary<string, Stream>();
+            if (s == null)
+                return;
             // advance
             var markerIdx = 0;
             if (marker != null)

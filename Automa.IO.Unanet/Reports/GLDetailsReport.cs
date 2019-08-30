@@ -41,15 +41,24 @@ namespace Automa.IO.Unanet.Reports
         public string AccountTypeOrderBy { get; set; }
         public string ArrangeBy { get; set; }
 
-        public static Task<bool> ExportFileAsync(UnanetClient una, string sourceFolder, DateTime? beginDate = null, DateTime? endDate = null, string legalEntity = "75-00-DEG-00 - Digital Evolution Group, LLC")
+        public static Task<bool> ExportFileAsync(UnanetClient una, string accountType, string sourceFolder, DateTime? beginDate = null, DateTime? endDate = null, string legalEntity = "75-00-DEG-00 - Digital Evolution Group, LLC", string wipAcct = "1420")
         {
+            string account = null;
+            if (accountType == "Wip")
+            {
+                var options = una.GetOptions("AccountMenu", "account", wipAcct);
+                if (options.Count != 1)
+                    throw new InvalidOperationException($"Can not find: {wipAcct}");
+                account = options.First().Key;
+            }
             var filePath = Path.Combine(sourceFolder, "report.csv");
             if (File.Exists(filePath))
                 File.Delete(filePath);
             return Task.Run(() => una.RunReport("financials/detail/general_ledger", f =>
             {
                 f.FromSelect("legalEntity", legalEntity);
-                f.FromSelect("accountType", "Revenue");
+                if (accountType == "Wip") f.Values["account"] = account;
+                else f.FromSelect("accountType", accountType); // "Revenue"
                 string fpBegin = (beginDate ?? BeginFinanceDate).ToString("yyyy-MM"), fpEnd = (endDate ?? DateTime.Today).ToString("yyyy-MM");
                 f.Values["fpRange_fpBegin"] = f.Selects["fpRange_fpBegin"].Single(x => x.Value == fpBegin).Key;
                 f.Values["fpRange_fpEnd"] = f.Selects["fpRange_fpEnd"].Single(x => x.Value == fpEnd).Key;
@@ -58,7 +67,7 @@ namespace Automa.IO.Unanet.Reports
             }, sourceFolder));
         }
 
-        public static IEnumerable<GLDetailsReport> Read(UnanetClient una, string sourceFolder)
+        public static IEnumerable<GLDetailsReport> Read(UnanetClient una, string accountType, string sourceFolder)
         {
             var filePath = Path.Combine(sourceFolder, "report.csv");
             using (var s1 = File.OpenRead(filePath))
@@ -97,9 +106,9 @@ namespace Automa.IO.Unanet.Reports
                 }, 1).ToList();
         }
 
-        public static string GetReadXml(UnanetClient una, string sourceFolder, string syncFileA = null)
+        public static string GetReadXml(UnanetClient una, string accountType, string sourceFolder, string syncFileA = null)
         {
-            var xml = new XElement("r", Read(una, sourceFolder).Select(x => new XElement("p",
+            var xml = new XElement("r", Read(una, accountType, sourceFolder).Select(x => new XElement("p",
                 XAttribute("oc", x.OrgCode), XAttribute("on", x.OrgName), XAttribute("at", x.AccountType), new XAttribute("ac", x.AccountCode), XAttribute("ad", x.AccountDesc),
                 XAttribute("pd", x.PostedDate), XAttribute("s", x.Source), XAttribute("dt", x.DocumentType), XAttribute("dn", x.DocumentNumber), XAttribute("dd", x.DocumentDate), XAttribute("fp", x.FiscalPeriod), XAttribute("d", x.Description),
                 XAttribute("cc", x.CustomerCode), XAttribute("cn", x.CustomerName), XAttribute("pn", x.PersonName), XAttribute("r", x.Reference), XAttribute("po", x.ProjectOrg), XAttribute("pc", x.ProjectCode), XAttribute("pt", x.ProjectTitle),
@@ -108,7 +117,7 @@ namespace Automa.IO.Unanet.Reports
             )).ToArray()).ToString();
             if (syncFileA == null)
                 return xml;
-            var syncFile = string.Format(syncFileA, ".r_g.xml");
+            var syncFile = string.Format(syncFileA, $".r_g{accountType[0]}.xml");
             if (!Directory.Exists(Path.GetDirectoryName(syncFileA)))
                 Directory.CreateDirectory(Path.GetDirectoryName(syncFileA));
             File.WriteAllText(syncFile, xml);

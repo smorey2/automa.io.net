@@ -137,6 +137,33 @@ namespace Automa.IO.Unanet
         }
 
         /// <summary>
+        /// Gets the options.
+        /// </summary>
+        /// <param name="menuClass">The menu class.</param>
+        /// <param name="menuName">Name of the menu.</param>
+        /// <param name="value">The value.</param>
+        /// <returns>Dictionary&lt;System.String, System.String&gt;.</returns>
+        public Dictionary<string, string> GetOptions(string menuClass, string menuName, string value)
+        {
+            var htmlForm = new HtmlFormPost(HtmlFormPost.Mode.Form);
+            htmlForm.Add("menuClass", "value", $"com.unanet.page.criteria.{menuClass}");
+            htmlForm.Add("menuName", "value", menuName);
+            htmlForm.Add("multiple", "value", "true");
+            if (menuName == "account")
+            {
+                htmlForm.Add("account_mod", "value", "true");
+                htmlForm.Add("account_acctCode_fltr", "value", value);
+                htmlForm.Add("account_acctDesc_fltr", "value", string.Empty);
+            }
+            var body = htmlForm.ToString();
+            var d0 = this.TryFunc(() => this.DownloadData(HttpMethod.Post, $"{UnanetUri}/options", body));
+            var htmlSelect = d0.ToHtmlDocument();
+            var rows = htmlSelect.DocumentNode.Descendants("option")
+                .ToDictionary(x => x.Attributes["value"].Value, x => x.Attributes["text"].Value);
+            return rows;
+        }
+
+        /// <summary>
         /// Gets the entities by export.
         /// </summary>
         /// <param name="exportKey">The export key.</param>
