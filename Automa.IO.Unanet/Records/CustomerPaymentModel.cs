@@ -94,6 +94,7 @@ namespace Automa.IO.Unanet.Records
                         f.Types[$"w_amounti{postfix0}"] = "text";
                     }
                     f.Values["submitButton"] = "button_submit_next";
+                    return f.ToString();
                 });
             return ManageFlags.None;
         }

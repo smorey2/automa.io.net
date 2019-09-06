@@ -23,6 +23,14 @@ namespace Automa.IO.Unanet
 
         public static class OrganizationLookup
         {
+            public readonly static (string, string) DefaultOrg = ("75-00-DEG-00", "2845");
+
+            public static bool TryGetCostCentersAndDefault(string key, out string value)
+            {
+                if (key == DefaultOrg.Item1) { value = DefaultOrg.Item2; return true; }
+                return CostCenters.TryGetValue(key, out value);
+            }
+
             public readonly static Dictionary<string, string> CostCenters = OrganizationModel.GetList(Una, "COST CENTER").ToDictionary(x => x.Key, x => x.Value.Item1);
             public readonly static Dictionary<string, string> Vendors = OrganizationModel.GetList(Una, "VENDOR").ToDictionary(x => x.Key, x => x.Value.Item1);
         }

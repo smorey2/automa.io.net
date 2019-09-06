@@ -116,6 +116,7 @@ namespace Automa.IO.Unanet.Records
                 $"aaa={s.Id}", "", null,
                 out last, (z, f) =>
             {
+                return f.ToString();
             });
             return r != null ?
                 ManageFlags.OrganizationContactChanged :

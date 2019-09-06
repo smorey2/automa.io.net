@@ -117,6 +117,7 @@ namespace Automa.IO.Unanet.Records
                 if (add || cf.Contains("dbt")) f.Checked["billTo"] = s.default_bill_to == "Y";
                 if (add || cf.Contains("dst")) f.Checked["shipTo"] = s.default_ship_to == "Y";
                 if (add || cf.Contains("drt")) f.Checked["remitTo"] = s.default_remit_to == "Y";
+                return f.ToString();
             });
             return r != null ?
                 ManageFlags.OrganizationAddressChanged :

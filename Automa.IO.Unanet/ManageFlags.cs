@@ -1,6 +1,6 @@
 ﻿using System;
 
-namespace Automa.IO.Unanet.Records
+namespace Automa.IO.Unanet
 {
     [Flags]
     public enum ManageFlags
@@ -12,7 +12,7 @@ namespace Automa.IO.Unanet.Records
         Export = 0x1,
         Sync = 0x2,
 
-        //AllEntity = Invoice,
+        //AllEntity = Assignment,
         AllEntity = OrganizationAll | ProjectAll | PersonAll | TimeInvoiceAll,
         // Entity:Organization
         OrganizationMask = 0x1F0,

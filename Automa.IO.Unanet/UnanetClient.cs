@@ -56,7 +56,7 @@ namespace Automa.IO.Unanet
             {
                 var d0 = this.TryFunc(() => this.DownloadData(HttpMethod.Get, $"{UnanetUri}/reports/{report}/search"));
                 var d1 = d0.ExtractSpan("<form method=\"post\" name=\"search\"", "</form>");
-                var htmlForm = new HtmlFormPost(HtmlFormPost.Mode.Form, d1);
+                var htmlForm = new HtmlFormPost(d1);
                 action(htmlForm);
                 body = htmlForm.ToString();
                 if (!htmlForm.Action.StartsWith("/roundarch/action"))
@@ -145,7 +145,7 @@ namespace Automa.IO.Unanet
         /// <returns>Dictionary&lt;System.String, System.String&gt;.</returns>
         public Dictionary<string, string> GetOptions(string menuClass, string menuName, string value)
         {
-            var htmlForm = new HtmlFormPost(HtmlFormPost.Mode.Form);
+            var htmlForm = new HtmlFormPost();
             htmlForm.Add("menuClass", "value", $"com.unanet.page.criteria.{menuClass}");
             htmlForm.Add("menuName", "value", menuName);
             htmlForm.Add("multiple", "value", "true");
@@ -178,7 +178,7 @@ namespace Automa.IO.Unanet
             {
                 var d0 = this.TryFunc(() => this.DownloadData(HttpMethod.Get, $"{UnanetUri}/admin/export/template/criteria?xtKey={exportKey}"));
                 var d1 = d0.ExtractSpan("<form method=\"post\" name=\"search\"", "</form>");
-                var htmlForm = new HtmlFormPost(HtmlFormPost.Mode.Form, d1);
+                var htmlForm = new HtmlFormPost(d1);
                 action(htmlForm);
                 body = htmlForm.ToString();
             }
@@ -192,7 +192,7 @@ namespace Automa.IO.Unanet
                     var exportError = d0.ExtractSpanInner("<pre class=\"export-error\">", "</pre>")?.Trim();
                     return false;
                 }
-                var htmlForm = new HtmlFormPost(HtmlFormPost.Mode.Form, d1);
+                var htmlForm = new HtmlFormPost(d1);
                 body = htmlForm.ToString();
             }
             // download
@@ -218,7 +218,7 @@ namespace Automa.IO.Unanet
             {
                 var d0 = this.TryFunc(() => this.DownloadData(HttpMethod.Get, $"{UnanetUri}/{entity}/list"));
                 var d1 = d0.ExtractSpan("<form name=\"search\" method=\"post\"", "</form>");
-                var htmlForm = new HtmlFormPost(HtmlFormPost.Mode.Form, d1);
+                var htmlForm = new HtmlFormPost(d1);
                 action(htmlForm);
                 body = htmlForm.ToString();
             }
@@ -274,7 +274,7 @@ namespace Automa.IO.Unanet
             {
                 var d0 = this.TryFunc(() => this.DownloadData(HttpMethod.Get, $"{UnanetUri}/admin/import?importType={importType}"));
                 var d1 = d0.ExtractSpan("<form method=\"post\" ", "</form>");
-                var htmlForm = new HtmlFormPost(HtmlFormPost.Mode.Form, d1);
+                var htmlForm = new HtmlFormPost(d1);
                 action(htmlForm);
                 body = htmlForm.ToContent();
                 url = $"{UnanetUri}/admin/import/{importType}";
@@ -297,7 +297,7 @@ namespace Automa.IO.Unanet
             {
                 var d0 = this.TryFunc(() =>
                     this.DownloadData(HttpMethod.Get, $"{UnanetUri}/{entity}/{(method == HttpMethod.Post ? "add" : "edit?" + entitySelect)}"));
-                var htmlForm = new HtmlFormPost(HtmlFormPost.Mode.Form, d0, marker: marker);
+                var htmlForm = new HtmlFormPost(d0);
                 try { action(d0, htmlForm); }
                 catch (Exception e) { last = e.Message; throw; }
                 body = htmlForm.ToString();
@@ -319,13 +319,12 @@ namespace Automa.IO.Unanet
             }
         }
 
-        public object SubmitSubManage(string type, HttpMethod method, string entity, string entitySelect, string parentSelect, string defaults, out string last, Action<string, HtmlFormPost> action = null, string marker = null, Func<string, object> valueFunc = null)
+        public object SubmitSubManage(string type, HttpMethod method, string entity, string entitySelect, string parentSelect, string defaults, out string last, Func<string, HtmlFormPost, string> func = null, Func<string, object> valueFunc = null, HtmlFormSettings formSettings = null)
         {
-            string body, url = null;
+            string body, url = null, d0 = null;
             // parse
             if (method != HttpMethod.Delete)
             {
-                string d0;
                 switch (type)
                 {
                     case "A":
@@ -334,8 +333,7 @@ namespace Automa.IO.Unanet
                             this.DownloadData(HttpMethod.Post, $"{UnanetUri}/{entity}/edit?{parentSelect}", $"{entitySelect}"));
                         break;
                     case "B":
-                        d0 = this.TryFunc(() =>
-                            this.DownloadData(HttpMethod.Post, $"{UnanetUri}/{entity}/edit", $"{entitySelect}&restore=true&isCopy=false&editAll=false&{parentSelect}"));
+                        d0 = this.TryFunc(() => this.DownloadData(HttpMethod.Post, $"{UnanetUri}/{entity}/edit", $"{entitySelect}&restore=true&isCopy=false&editAll=false&{parentSelect}"));
                         break;
                     case "C":
                         d0 = this.TryFunc(() => method == HttpMethod.Post ?
@@ -343,13 +341,16 @@ namespace Automa.IO.Unanet
                             this.DownloadData(HttpMethod.Post, $"{UnanetUri}/{entity}/list", $"{entitySelect}&addNext=false&edit=true&copy=false&nextKey=&{parentSelect}&{defaults}"));
                         break;
                     case "D": d0 = this.TryFunc(() => this.DownloadData(HttpMethod.Get, $"{UnanetUri}/{entity}?{parentSelect}")); break;
-                    case "E": d0 = this.TryFunc(() => this.DownloadData(HttpMethod.Get, $"{UnanetUri}/{entity}/add?{parentSelect}")); break;
+                    case "E":
+                        d0 = this.TryFunc(() => method == HttpMethod.Put ?
+                            this.DownloadData(HttpMethod.Get, $"{UnanetUri}/{entity}/add?{parentSelect}") :
+                            this.DownloadData(HttpMethod.Post, $"{UnanetUri}/{entity}/add", parentSelect)); break;
+                    case "F": d0 = this.TryFunc(() => this.DownloadData(HttpMethod.Post, $"{UnanetUri}/{entity}", $"{parentSelect}&{defaults}")); break;
                     default: throw new ArgumentOutOfRangeException(nameof(type), type);
                 }
-                var htmlForm = new HtmlFormPost(HtmlFormPost.Mode.Form, d0, marker: marker);
-                try { action(d0, htmlForm); }
+                var htmlForm = new HtmlFormPost(d0, formOptions: formSettings);
+                try { body = func(d0, htmlForm); }
                 catch (Exception e) { last = e.Message; throw; }
-                body = htmlForm.ToString();
                 if (htmlForm.Action == null || !htmlForm.Action.StartsWith("/roundarch/action"))
                     throw new InvalidOperationException("unexpected form action returned from unanet");
                 url = UnanetUri + htmlForm.Action.Substring(17);
@@ -363,12 +364,16 @@ namespace Automa.IO.Unanet
                     case "C": body = $"{entitySelect}&addNext=false&edit=false&copy=false&nextKey={entitySelect}&{parentSelect}&{defaults}"; break;
                     case "D": body = $"{entitySelect}"; break;
                     case "E": body = $"{entitySelect}"; break;
+                    case "F":
+                        d0 = this.TryFunc(() => this.DownloadData(HttpMethod.Post, $"{UnanetUri}/{entity}", $"{parentSelect}&{defaults}"));
+                        body = func(d0, null);
+                        break;
                     default: throw new ArgumentOutOfRangeException(nameof(type), type);
                 }
             }
             // submit
             {
-                var d0 = this.TryFunc(() => this.DownloadData(HttpMethod.Post, url, body));
+                d0 = this.TryFunc(() => this.DownloadData(HttpMethod.Post, url, body));
                 var d1 = d0.ExtractSpanInner("<div class=\"error\">", "</div>");
                 if (d1 != null)
                 {

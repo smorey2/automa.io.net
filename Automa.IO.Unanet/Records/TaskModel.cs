@@ -241,6 +241,7 @@ namespace Automa.IO.Unanet.Records
                 //if (add || cf.Contains("lrtf")) f.Checked["limitRevToFunded"] = s.limit_rev_to_funded == "Y";
                 if (add || cf.Contains("oo")) f.Values["tOOMenu"] = s.owning_organization != null &&
                     organizations.TryGetValue(s.owning_organization, out var organizationKey) ? organizationKey : "-1"; // LOOKUP
+                return f.ToString();
             });
             return r != null ?
                 ManageFlags.TaskChanged :

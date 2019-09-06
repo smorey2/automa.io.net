@@ -86,6 +86,7 @@ namespace Automa.IO.Unanet.Records
                 out last, (z, f) =>
             {
                 if (add || cf.Contains("p")) f.Values["primary"] = s.usernameKey;
+                return f.ToString();
             });
             return r != null ?
                 ManageFlags.ProjectAdministratorChanged :

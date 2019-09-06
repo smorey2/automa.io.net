@@ -109,7 +109,8 @@ namespace Automa.IO.Unanet.Records
                     }
                     if (add) f.Add("button_save", "action", null);
                     else f.Action = f.Action.Replace("/list", "/save");
-                }, marker: add ? null : "<form name=\"simpleList\"");
+                    return f.ToString();
+                }, formSettings: new HtmlFormSettings { Marker = add ? null : "<form name=\"simpleList\"" });
             return r != null ?
                 ManageFlags.ProjectLaborCategoryChanged :
                 ManageFlags.None;

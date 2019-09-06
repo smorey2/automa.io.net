@@ -1,4 +1,3 @@
-using Newtonsoft.Json.Linq;
 using System;
 using System.Collections.Generic;
 using System.IO;
@@ -14,21 +13,6 @@ namespace Automa.IO
     /// </summary>
     public class HtmlFormPost
     {
-        /// <summary>
-        /// Enum Mode
-        /// </summary>
-        public enum Mode
-        {
-            /// <summary>
-            /// The form
-            /// </summary>
-            Form,
-            /// <summary>
-            /// The json
-            /// </summary>
-            Json,
-        }
-
         /// <summary>
         /// Enum Merge
         /// </summary>
@@ -53,122 +37,124 @@ namespace Automa.IO
         /// <summary>
         /// Initializes a new instance of the <see cref="HtmlFormPost" /> class.
         /// </summary>
-        /// <param name="mode">The mode.</param>
         /// <param name="s">The s.</param>
-        /// <param name="marker">The marker.</param>
+        /// <param name="formOptions">The options.</param>
+        /// <exception cref="System.InvalidOperationException">unable to find marker</exception>
         /// <exception cref="InvalidOperationException">unable to find marker</exception>
-        public HtmlFormPost(Mode mode, string s = null, string marker = null)
+        public HtmlFormPost(string s = null, HtmlFormSettings formOptions = null)
         {
-            Values = new Dictionary<string, string>();
-            Types = new Dictionary<string, string>();
-            Checked = new Dictionary<string, bool>();
-            Selects = new Dictionary<string, Dictionary<string, string>>();
-            Files = new Dictionary<string, Stream>();
             if (s == null)
                 return;
-            // advance
+            if (formOptions == null)
+                formOptions = HtmlFormSettings.Default;
+            
+            // marker
             var markerIdx = 0;
-            if (marker != null)
+            if (formOptions.Marker != null)
             {
-                markerIdx = s.IndexOf(marker);
+                markerIdx = s.IndexOf(formOptions.Marker);
                 if (markerIdx < 0)
                     throw new InvalidOperationException("unable to find marker");
             }
-            //
-            switch (mode)
+            
+            // strip <form.../form>
+            var endIdx = s.IndexOfSkip("</form>", markerIdx);
+            s = endIdx == -1 ? s.Substring(markerIdx) : s.Substring(markerIdx, endIdx - markerIdx);
+            s = s.Replace("\"", "'");
+
+            // parse action
+            var start_formIdx = s.IndexOfSkip("<form");
+            if (start_formIdx != -1)
             {
-                case Mode.Json:
-                    {
-                        var endIdx = s.IndexOfSkip("}", markerIdx);
-                        s = s.Substring(markerIdx, endIdx - markerIdx);
-                        var r = JObject.Parse(s);
-                        foreach (var v in r)
-                            Values.Add(v.Key, (string)v.Value);
-                        return;
-                    }
-                case Mode.Form:
-                    {
-                        var endIdx = s.IndexOfSkip("</form>", markerIdx);
-                        s = endIdx == -1 ? s.Substring(markerIdx) : s.Substring(markerIdx, endIdx - markerIdx);
-                        s = s.Replace("\"", "'");
-                        // parse form element
-                        var start_formIdx = s.IndexOfSkip("<form");
-                        if (start_formIdx != -1)
-                        {
-                            endIdx = s.IndexOfSkip(">", start_formIdx);
-                            Action = s.ExtractSpanInner(" action='", "'", start_formIdx, endIdx) ?? s.ExtractSpanInner(" action=", " ", start_formIdx, endIdx);
-                        }
-                        // parse
-                        while (true)
-                        {
-                            var start_inputIdx = s.IndexOfSkip("<input");
-                            var start_textareaIdx = s.IndexOfSkip("<textarea");
-                            var start_selectIdx = s.IndexOfSkip("<select");
-                            var start_optionIdx = s.IndexOfSkip("<option");
-                            var start_buttonIdx = s.IndexOfSkip("<button");
-                            var startIdx = new[] {
-                                start_inputIdx != -1 ? start_inputIdx : int.MaxValue,
-                                start_textareaIdx != -1 ? start_textareaIdx : int.MaxValue,
-                                start_selectIdx != -1 ? start_selectIdx : int.MaxValue,
-                                start_optionIdx != -1 ? start_optionIdx : int.MaxValue,
-                                start_buttonIdx != -1 ? start_buttonIdx : int.MaxValue }.Min();
-                            if (startIdx == int.MaxValue)
-                                break;
-                            endIdx = s.IndexOfSkip(">", startIdx);
-                            var endIdx2 = s.IndexOfSkip("<", endIdx);
-
-                            // common attributes
-                            string type;
-                            var @checked = false;
-                            var name = HttpUtility.HtmlDecode(s.ExtractSpanInner(" name='", "'", startIdx, endIdx) ?? s.ExtractSpanInner(" name=", " ", startIdx, endIdx));
-                            var value = HttpUtility.HtmlDecode(s.ExtractSpanInner(" value='", "'", startIdx, endIdx) ?? s.ExtractSpanInner(" value=", " ", startIdx, endIdx));
-                            var text = endIdx2 != -1 ? HttpUtility.HtmlDecode(s.Substring(endIdx, endIdx2 - endIdx - 1).Trim()) : null;
-
-                            // input element
-                            if (startIdx == start_inputIdx)
-                            {
-                                type = HttpUtility.HtmlDecode(s.ExtractSpanInner(" type='", "'", startIdx, endIdx) ?? s.ExtractSpanInner(" type=", " ", startIdx, endIdx));
-                                var checkedIdx = s.IndexOf(" checked", startIdx, StringComparison.OrdinalIgnoreCase); @checked = checkedIdx != -1 && checkedIdx < endIdx;
-                                var multipleIdx = s.IndexOf(" multiple", startIdx, StringComparison.OrdinalIgnoreCase); var multiple = multipleIdx != -1 && multipleIdx < endIdx;
-                                type = !multiple ? type : type + "Multiple";
-                            }
-                            // input element
-                            else if (startIdx == start_textareaIdx)
-                                type = "text";
-                            // select element
-                            else if (startIdx == start_selectIdx)
-                            {
-                                var multipleIdx = s.IndexOf(" multiple", startIdx, StringComparison.OrdinalIgnoreCase); var multiple = multipleIdx != -1 && multipleIdx < endIdx;
-                                type = !multiple ? "select" : "selectMultiple";
-                            }
-                            // option element
-                            else if (startIdx == start_optionIdx)
-                            {
-                                type = "option";
-                                var checkedIdx = s.IndexOf(" selected", startIdx, StringComparison.OrdinalIgnoreCase); @checked = checkedIdx != -1 && checkedIdx < endIdx;
-                            }
-                            // button element
-                            else if (startIdx == start_buttonIdx)
-                                type = "button";
-                            // unknown element
-                            else
-                                type = "unknown";
-
-                            // add   
-                            Add(name, type, value, @checked, text);
-                            // apply disabled
-                            if (type != "option")
-                            {
-                                var disabledIdx = s.IndexOf(" disabled", startIdx, StringComparison.OrdinalIgnoreCase); var disabled = disabledIdx != -1 && disabledIdx < endIdx;
-                                if (disabled)
-                                    Types[name] = "disabled";
-                            }
-                            // advance
-                            s = s.Substring(endIdx);
-                        }
-                        return;
-                    }
+                endIdx = s.IndexOfSkip(">", start_formIdx);
+                Action = s.ExtractSpanInner(" action='", "'", start_formIdx, endIdx) ?? s.ExtractSpanInner(" action=", " ", start_formIdx, endIdx);
             }
+
+            // parse fields
+            var parseIdx = 0;
+            var start_inputIdx = s.IndexOfSkip("<input", parseIdx);
+            var start_textareaIdx = s.IndexOfSkip("<textarea", parseIdx);
+            var start_selectIdx = s.IndexOfSkip("<select", parseIdx);
+            var start_optionIdx = formOptions.ParseOptions ? s.IndexOfSkip("<option", parseIdx) : -1;
+            var start_buttonIdx = formOptions.ParseButtons ? s.IndexOfSkip("<button", parseIdx) : -1;
+            while (true)
+            {
+                // minimum
+                var startIdx = int.MaxValue;
+                if (start_inputIdx != -1 && startIdx > start_inputIdx) startIdx = start_inputIdx;
+                if (start_textareaIdx != -1 && startIdx > start_textareaIdx) startIdx = start_textareaIdx;
+                if (start_selectIdx != -1 && startIdx > start_selectIdx) startIdx = start_selectIdx;
+                if (start_optionIdx != -1 && startIdx > start_optionIdx) startIdx = start_optionIdx;
+                if (start_buttonIdx != -1 && startIdx > start_buttonIdx) startIdx = start_buttonIdx;
+                if (startIdx == int.MaxValue)
+                    break;
+
+                // tag
+                endIdx = s.IndexOfSkip(">", startIdx);
+                var endIdx2 = s.IndexOfSkip("<", endIdx);
+
+                // common attributes
+                string type;
+                var @checked = false;
+                var name = HttpUtility.HtmlDecode(s.ExtractSpanInner(" name='", "'", startIdx, endIdx) ?? s.ExtractSpanInner(" name=", " ", startIdx, endIdx));
+                var value = HttpUtility.HtmlDecode(s.ExtractSpanInner(" value='", "'", startIdx, endIdx) ?? s.ExtractSpanInner(" value=", " ", startIdx, endIdx));
+                var text = endIdx2 != -1 ? HttpUtility.HtmlDecode(s.Substring(endIdx, endIdx2 - endIdx - 1).Trim()) : null;
+
+                // input element
+                if (startIdx == start_inputIdx)
+                {
+                    type = HttpUtility.HtmlDecode(s.ExtractSpanInner(" type='", "'", startIdx, endIdx) ?? s.ExtractSpanInner(" type=", " ", startIdx, endIdx));
+                    var checkedIdx = s.IndexOf(" checked", startIdx, StringComparison.OrdinalIgnoreCase); @checked = checkedIdx != -1 && checkedIdx < endIdx;
+                    var multipleIdx = s.IndexOf(" multiple", startIdx, StringComparison.OrdinalIgnoreCase); var multiple = multipleIdx != -1 && multipleIdx < endIdx;
+                    type = !multiple ? type : type + "Multiple";
+                    // advance
+                    start_inputIdx = s.IndexOfSkip("<input", start_inputIdx);
+                }
+                // textarea element
+                else if (startIdx == start_textareaIdx)
+                {
+                    type = "text";
+                    // advance
+                    start_textareaIdx = s.IndexOfSkip("<textarea", start_textareaIdx);
+                }
+                // select element
+                else if (startIdx == start_selectIdx)
+                {
+                    var multipleIdx = s.IndexOf(" multiple", startIdx, StringComparison.OrdinalIgnoreCase); var multiple = multipleIdx != -1 && multipleIdx < endIdx;
+                    type = !multiple ? "select" : "selectMultiple";
+                    // advance
+                    start_selectIdx = s.IndexOfSkip("<select", start_selectIdx);
+                }
+                // option element
+                else if (startIdx == start_optionIdx)
+                {
+                    type = "option";
+                    var checkedIdx = s.IndexOf(" selected", startIdx, StringComparison.OrdinalIgnoreCase); @checked = checkedIdx != -1 && checkedIdx < endIdx;
+                    // advance
+                    start_optionIdx = formOptions.ParseOptions ? s.IndexOfSkip("<option", start_optionIdx) : -1;
+                }
+                // button element
+                else if (startIdx == start_buttonIdx)
+                {
+                    type = "button";
+                    // advance
+                    start_buttonIdx = formOptions.ParseButtons ? s.IndexOfSkip("<button", start_buttonIdx) : -1;
+                }
+                // unknown element
+                else throw new InvalidOperationException("should not reach");
+
+                // add   
+                Add(name, type, value, @checked, text);
+
+                // apply disabled
+                if (type != "option")
+                {
+                    var disabledIdx = s.IndexOf(" disabled", startIdx, StringComparison.OrdinalIgnoreCase); var disabled = disabledIdx != -1 && disabledIdx < endIdx;
+                    if (disabled)
+                        Types[name] = "disabled";
+                }
+            }
+            return;
         }
 
         /// <summary>
@@ -260,37 +246,37 @@ namespace Automa.IO
         /// Gets the values.
         /// </summary>
         /// <value>The values.</value>
-        public Dictionary<string, string> Values { get; private set; }
+        public readonly Dictionary<string, string> Values = new Dictionary<string, string>();
 
         /// <summary>
         /// Gets the types.
         /// </summary>
         /// <value>The types.</value>
-        public Dictionary<string, string> Types { get; private set; }
+        public readonly Dictionary<string, string> Types = new Dictionary<string, string>();
 
         /// <summary>
         /// Gets the checkboxs.
         /// </summary>
         /// <value>The checkboxs.</value>
-        public Dictionary<string, bool> Checked { get; private set; }
+        public readonly Dictionary<string, bool> Checked = new Dictionary<string, bool>();
 
         /// <summary>
         /// Gets the options.
         /// </summary>
         /// <value>The options.</value>
-        public Dictionary<string, Dictionary<string, string>> Selects { get; private set; }
+        public readonly Dictionary<string, Dictionary<string, string>> Selects = new Dictionary<string, Dictionary<string, string>>();
 
         /// <summary>
         /// Gets the buttons.
         /// </summary>
         /// <value>The buttons.</value>
-        public Dictionary<string, bool> Buttons { get; private set; }
+        public readonly Dictionary<string, bool> Buttons = new Dictionary<string, bool>();
 
         /// <summary>
         /// Gets the files.
         /// </summary>
         /// <value>The files.</value>
-        public Dictionary<string, Stream> Files { get; private set; }
+        public readonly Dictionary<string, Stream> Files = new Dictionary<string, Stream>();
 
         /// <summary>
         /// Froms the select by predicate.

@@ -119,6 +119,7 @@ namespace Automa.IO.Unanet.Records
                 //if (add || cf.Contains("u8")) f.Values("udf_7", s.user08);
                 //if (add || cf.Contains("u9")) f.Values["udf_8"] = s.user09;
                 //if (add || cf.Contains("u10")) f.Values["udf_9"] = s.user10;
+                return f.ToString();
             });
             return r != null ?
                 ManageFlags.CustomerProfileChanged :

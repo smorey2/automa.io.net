@@ -53,7 +53,7 @@ namespace Automa.IO.Umb
             {
                 var d0 = this.TryFunc(() => this.DownloadData(HttpMethod.Get, $"{UmbUri}/{report}"));
                 var d1 = d0.ExtractSpan("<form name=\"parameterForm\"", "</form>");
-                var htmlForm = new HtmlFormPost(HtmlFormPost.Mode.Form, d1);
+                var htmlForm = new HtmlFormPost(d1);
                 action(htmlForm);
                 body = htmlForm.ToString();
                 url = $"{UmbUri}/{Path.GetDirectoryName(report)}/{htmlForm.Action}";

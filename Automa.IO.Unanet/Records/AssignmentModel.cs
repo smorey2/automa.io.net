@@ -1,4 +1,5 @@
 ﻿using ExcelTrans.Services;
+using System;
 using System.Collections.Generic;
 using System.IO;
 using System.Linq;
@@ -35,7 +36,9 @@ namespace Automa.IO.Unanet.Records
         // custom
         public string assignment_type { get; set; }
         public string assign_code { get; set; }
+        public string assign { get; set; }
         public string project_codeKey { get; set; }
+        public string usernameKey { get; set; }
 
         public static Task<bool> ExportFileAsync(UnanetClient una, string sourceFolder)
         {
@@ -49,7 +52,7 @@ namespace Automa.IO.Unanet.Records
                 f.Values["drange_bDate"] = "BOT"; f.Values["drRange_eDate"] = "EOT";
                 f.Values["drange"] = "bot_eot";
                 f.Checked["organizationAssignment"] = true;
-                f.Checked["projectAssignment"] = false;
+                f.Checked["projectAssignment"] = true;
                 f.Checked["taskAssignment"] = false;
             }, sourceFolder));
         }
@@ -115,18 +118,66 @@ namespace Automa.IO.Unanet.Records
         {
             if (ManageRecordBase(null, s.XCF, 1, out var cf, out var add, out last, canDelete: true))
                 return ManageFlags.AssignmentChanged;
-            Unanet.OrganizationLookup.CostCenters.TryGetValue(s.assign_code, out var assign_codeKey);
             var method = !cf.Contains("delete") ? add ? HttpMethod.Post : HttpMethod.Put : HttpMethod.Delete;
-            var r = una.SubmitSubManage("E", method, $"projects/orgs",
-                $"key={assign_codeKey}&nextKey=0", $"projectkey={s.project_codeKey}", null,
-                out last, (z, f) =>
-                {
-                    if (cf.Contains("insert")) f.Values["assign"] = assign_codeKey ?? throw new System.ArgumentOutOfRangeException(nameof(s.assign_code), s.assign_code); // LOOKUP
-                    f.Add("button_save", "action", null);
-                });
-            return r != null ?
-                ManageFlags.AssignmentChanged :
-                ManageFlags.None;
+            switch (s.assignment_type)
+            {
+                case "1":
+                    {
+                        if (!Unanet.OrganizationLookup.TryGetCostCentersAndDefault(s.assign, out var assignKey))
+                            throw new InvalidOperationException($"unable to find org {s.assign}");
+                        var r = una.SubmitSubManage("E", method, $"projects/orgs",
+                            $"key={assignKey}&nextKey=0", $"projectkey={s.project_codeKey}", null,
+                            out last, (z, f) =>
+                            {
+                                if (add)
+                                {
+                                    f.Values["assign"] = assignKey ?? throw new ArgumentOutOfRangeException(nameof(s.assign), s.assign); // LOOKUP
+                                    f.Add("button_save", "action", null);
+                                }
+                                return f.ToString();
+                            }, formSettings: new HtmlFormSettings { ParseOptions = false });
+                        return r != null ?
+                        ManageFlags.AssignmentChanged :
+                        ManageFlags.None;
+                    }
+                case "2":
+                    {
+                        var r = una.SubmitSubManage(add ? "E" : "F", method, $"projects/assignment",
+                            null, $"projectkey={s.project_codeKey}",
+                            "savedCriteria=&person_mod=false&personClass=com.unanet.page.projects.ScheduledPeopleMenu%24ScheduleListPeopleMenu&person_dbValue=&person_personOrgCode_fltr=&person_lastname_fltr=&person_outputActive=true&location_mod=false&locationClass=com.unanet.page.criteria.FilteredLocationMenu&location_dbValue=&location_location_fltr=&dateRange_bDate=BOT&dateRange_eDate=EOT&dateRange=bot_eot&unit=HOUR&showEstimates=true&savedListName=&criteriaClass=com.unanet.page.projects.AssignmentListCriteria&loadValues=true&restore=false&list=true",
+                            out last, (z, f) =>
+                            {
+                                if (add)
+                                {
+                                    f.Values["assign"] = s.usernameKey ?? throw new ArgumentNullException(nameof(s.usernameKey));
+                                    f.Values["costStructLabor"] = "-1";
+                                    f.Values["beginDate"] = "BOT"; f.Types["beginDate"] = "text";
+                                    f.Values["endDate"] = "EOT"; f.Types["endDate"] = "text";
+                                    f.Checked["useWbsDates"] = false;
+                                    f.Add("button_save", "action", null);
+                                    return f.ToString();
+                                }
+                                else if (cf.Contains("delete"))
+                                {
+                                    var doc = z.ToHtmlDocument();
+                                    var rows = doc.DocumentNode.Descendants("tr")
+                                        .Where(x => x.Attributes["id"] != null && x.Attributes["id"].Value.StartsWith("r"))
+                                        .ToDictionary(
+                                            x => x.Attributes["id"].Value.Substring(1).Trim(),
+                                            x => x.Descendants("td").ToArray());
+                                    var row = rows.SingleOrDefault(x => x.Value[3].InnerText.Contains($"({s.assign.ToLowerInvariant()})"));
+                                    var key = row.Key ?? throw new ArgumentNullException(nameof(row.Key));
+                                    var keysListed = string.Join(",", rows.Keys.ToArray());
+                                    return $"projectkey={s.project_codeKey}&restore=true&key={key}&keysListed={keysListed}";
+                                }
+                                return null;
+                            });
+                        return r != null ?
+                        ManageFlags.AssignmentChanged :
+                        ManageFlags.None;
+                    }
+                default: throw new ArgumentOutOfRangeException(nameof(s.assignment_type), s.assignment_type);
+            }
         }
     }
 }

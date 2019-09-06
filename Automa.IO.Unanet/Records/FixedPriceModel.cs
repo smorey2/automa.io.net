@@ -133,8 +133,8 @@ namespace Automa.IO.Unanet.Records
                     : s.revenue_recognition_method == "CUSTOM_SCHEDULE" ? "3"
                     : throw new ArgumentOutOfRangeException(nameof(s.revenue_recognition_method), s.revenue_recognition_method);
                 if (add || cf.Contains("rrm")) f.FromSelectByKey("revRecMethod", recMethod);
-                //
                 f.Add("button_save", "action", null);
+                return f.ToString();
             });
             return r != null ?
                 ManageFlags.FixedPriceChanged :
