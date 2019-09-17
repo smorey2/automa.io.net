@@ -6,7 +6,7 @@ namespace Automa.IO.Unanet
     public enum ManageFlags
     {
         None = 0x0,
-        Default = AllEntity | Export,
+        Default = AllEntity | Export, // | Sync,
 
         // OPERATIONS
         Export = 0x1,
