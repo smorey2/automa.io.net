@@ -36,7 +36,18 @@ namespace Automa.IO.Unanet.Records
         public string user08 { get; set; }
         public string user09 { get; set; }
         public string user10 { get; set; }
-        //
+        // NEW
+        public string user11 { get; set; }
+        public string user12 { get; set; }
+        public string user13 { get; set; }
+        public string user14 { get; set; }
+        public string user15 { get; set; }
+        public string user16 { get; set; }
+        public string user17 { get; set; }
+        public string user18 { get; set; }
+        public string user19 { get; set; }
+        public string user20 { get; set; }
+        // custom
         public string organization_codeKey { get; set; }
 
         public static Task<bool> ExportFileAsync(UnanetClient una, string sourceFolder, string type = "CUSTOMER")
@@ -83,6 +94,17 @@ namespace Automa.IO.Unanet.Records
                     user08 = x[21],
                     user09 = x[22],
                     user10 = x[23],
+                    // NEW
+                    user11 = x[24],
+                    user12 = x[25],
+                    user13 = x[26],
+                    user14 = x[27],
+                    user15 = x[28],
+                    user16 = x[29],
+                    user17 = x[30],
+                    user18 = x[31],
+                    user19 = x[32],
+                    user20 = x[33],
                 }, 1).ToList();
         }
 

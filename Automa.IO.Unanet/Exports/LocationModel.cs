@@ -8,11 +8,11 @@ namespace Automa.IO.Unanet.Exports
 {
     public class LocationModel : ModelBase
     {
+        public string key { get; set; }
+        //
         public string location { get; set; }
         public string active { get; set; }
         public string delete { get; set; }
-        //
-        public string key { get; set; } //NEED
 
         public static Task<bool> ExportFile(UnanetClient una, string sourceFolder)
         {
@@ -31,10 +31,11 @@ namespace Automa.IO.Unanet.Exports
             using (var sr = File.OpenRead(filePath))
                 return CsvReader.Read(sr, x => new LocationModel
                 {
-                    location = x[0],
-                    active = x[1],
-                    delete = x[2],
-                    key = x.Count > 3 ? x[3] : null,
+                    key = x[0],
+                    //
+                    location = x[1],
+                    active = x[2],
+                    delete = x[3],
                 }, 1).ToList();
         }
 

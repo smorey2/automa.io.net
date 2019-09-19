@@ -8,6 +8,8 @@ namespace Automa.IO.Unanet.Exports
 {
     public class LaborCategoryModel : ModelBase
     {
+        public string key { get; set; }
+        //
         public string labor_category { get; set; }
         public string delete { get; set; }
         public string description { get; set; }
@@ -16,8 +18,6 @@ namespace Automa.IO.Unanet.Exports
         public string external_system_code { get; set; }
         public string active { get; set; }
         public string effective_date { get; set; }
-        //
-        public string key { get; set; }
 
         public static Task<bool> ExportFile(UnanetClient una, string sourceFolder)
         {
@@ -37,6 +37,8 @@ namespace Automa.IO.Unanet.Exports
             using (var sr = File.OpenRead(filePath))
                 return CsvReader.Read(sr, x => new LaborCategoryModel
                 {
+                    key = x[0],
+                    //
                     labor_category = x[0],
                     delete = x[1],
                     description = x[2],
@@ -45,8 +47,6 @@ namespace Automa.IO.Unanet.Exports
                     external_system_code = x[5],
                     active = x[6],
                     effective_date = x[7],
-                    //
-                    key = x.Count > 8 ? x[8] : null,
                 }, 1).ToList();
         }
 

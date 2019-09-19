@@ -10,6 +10,9 @@ namespace Automa.IO.Unanet.Records
 {
     public class TimeModel : ModelBase
     {
+        public string key { get; set; }
+        public string keySheet { get; set; }
+        //
         public string username { get; set; }
         public DateTime work_date { get; set; }
         public string project_org_code { get; set; }
@@ -33,9 +36,6 @@ namespace Automa.IO.Unanet.Records
         public string time_period_begin_date { get; set; }
         public string post_date { get; set; }
         public string additional_pay_rate { get; set; }
-        //
-        public string key { get; set; }
-        public string keySheet { get; set; }
 
         public static Task<bool> ExportFileAsync(UnanetClient una, string sourceFolder, int window, string legalEntity = "75-00-DEG-00 - Digital Evolution Group, LLC")
         {
@@ -64,32 +64,32 @@ namespace Automa.IO.Unanet.Records
             using (var sr = File.OpenRead(filePath))
                 return CsvReader.Read(sr, x => new TimeModel
                 {
-                    username = x[0],
-                    work_date = x[1].ToDateTime().Value,
-                    project_org_code = x[2],
-                    project_code = x[3],
-                    task_name = x[4],
-                    project_type = x[5],
-                    pay_code = x[6],
+                    key = x[0],
+                    keySheet = x[1],
                     //
-                    hours = x[7].ToDecimal(),
-                    bill_rate = x[8].ToDecimal(),
-                    cost_rate = x[9].ToDecimal(),
-                    project_org_override = x[10],
-                    person_org_override = x[11],
-                    labor_category = x[12],
-                    location = x[13],
-                    comments = x[14],
+                    username = x[2],
+                    work_date = x[3].ToDateTime().Value,
+                    project_org_code = x[4],
+                    project_code = x[5],
+                    task_name = x[6],
+                    project_type = x[7],
+                    pay_code = x[8],
                     //
-                    change_reason = x[15],
-                    cost_structure = x[16],
-                    cost_element = x[17],
-                    time_period_begin_date = x[18],
-                    post_date = x[19],
-                    additional_pay_rate = x[20],
+                    hours = x[9].ToDecimal(),
+                    bill_rate = x[10].ToDecimal(),
+                    cost_rate = x[11].ToDecimal(),
+                    project_org_override = x[12],
+                    person_org_override = x[13],
+                    labor_category = x[14],
+                    location = x[15],
+                    comments = x[16],
                     //
-                    key = x.Count > 21 ? x[21] : null,
-                    keySheet = x.Count > 22 ? x[22] : null,
+                    change_reason = x[17],
+                    cost_structure = x[18],
+                    cost_element = x[19],
+                    time_period_begin_date = x[20],
+                    post_date = x[21],
+                    additional_pay_rate = x[22],
                 }, 1).ToList();
         }
 

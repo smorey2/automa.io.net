@@ -11,6 +11,8 @@ namespace Automa.IO.Unanet.Records
 {
     public class ProjectLaborCategoryModel : ModelBase
     {
+        public string key { get; set; }
+        //
         public string labor_category { get; set; }
         public string project_org_code { get; set; }
         public string project_code { get; set; }
@@ -20,8 +22,7 @@ namespace Automa.IO.Unanet.Records
         public decimal? bill_rate { get; set; }
         public DateTime? effective_date { get; set; }
         public string default_to_master_rate { get; set; }
-        //
-        public string key { get; set; }
+        // custom
         public string project_codeKey { get; set; }
 
         public static Task<bool> ExportFileAsync(UnanetClient una, string sourceFolder, string legalEntity = "75-00-DEG-00 - Digital Evolution Group, LLC")
@@ -43,17 +44,17 @@ namespace Automa.IO.Unanet.Records
             using (var sr = File.OpenRead(filePath))
                 return CsvReader.Read(sr, x => new ProjectLaborCategoryModel
                 {
-                    labor_category = x[0],
-                    project_org_code = x[1],
-                    project_code = x[2],
-                    delete = x[3],
-                    cost_rate = x[4].ToDecimal(),
-                    bill_rate = x[5].ToDecimal(),
+                    key = x[0],
                     //
-                    effective_date = x[6].ToDateTime(),
-                    default_to_master_rate = x[7],
+                    labor_category = x[1],
+                    project_org_code = x[2],
+                    project_code = x[3],
+                    delete = x[4],
+                    cost_rate = x[5].ToDecimal(),
+                    bill_rate = x[6].ToDecimal(),
                     //
-                    key = x.Count > 8 ? x[8] : null,
+                    effective_date = x[7].ToDateTime(),
+                    default_to_master_rate = x[8],                    
                 }, 1).ToList();
         }
 

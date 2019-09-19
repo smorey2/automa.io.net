@@ -20,7 +20,10 @@ namespace Automa.IO.Unanet.Records
         public string approve_time { get; set; }
         public string approve_expense { get; set; }
         public string customer_approves_first { get; set; }
-        //
+        // new
+        public string pm_approves_before_mgr { get; set; }
+        public string approval_type { get; set; }
+        // custom
         public string project_codeKey { get; set; }
         public string usernameKey { get; set; }
 
@@ -52,6 +55,9 @@ namespace Automa.IO.Unanet.Records
                     approve_time = x[6],
                     approve_expense = x[7],
                     customer_approves_first = x[8],
+                    // NEW
+                    pm_approves_before_mgr = x[9],
+                    approval_type = x[10],
                 }, 1)
                 .Where(x => x.role == "billingManager" || x.role == "projectManager")
                 .ToList();

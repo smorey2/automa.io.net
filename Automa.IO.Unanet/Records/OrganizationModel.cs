@@ -187,6 +187,7 @@ namespace Automa.IO.Unanet.Records
                         f.Values["parentOrg"] = "507";
                     }
                 //
+                //if (add || cf.Contains("ot")) f.Values["xxx"] = s.org_type;
                 if (add || cf.Contains("s")) f.Values["orgSize"] = s.size;
                 if (add || cf.Contains("esc") || cf.Contains("bind")) f.Values["externalSystemCode"] = s.external_system_code;
                 if (add || cf.Contains("sic")) f.Values["sicCode"] = s.sic_code;

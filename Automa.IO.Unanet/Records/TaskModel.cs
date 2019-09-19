@@ -11,6 +11,8 @@ namespace Automa.IO.Unanet.Records
 {
     public class TaskModel : ModelBase
     {
+        public string key { get; set; }
+        //
         public string project_org_code { get; set; }
         public string project_code { get; set; }
         public string task_name { get; set; }
@@ -67,8 +69,7 @@ namespace Automa.IO.Unanet.Records
         public string limit_bill_to_funded { get; set; }
         public string limit_rev_to_funded { get; set; }
         public string owning_organization { get; set; }
-        //
-        public string key { get; set; }
+        // custom
         public string project_codeKey { get; set; }
 
         public static Task<bool> ExportFileAsync(UnanetClient una, string sourceFolder, string legalEntity = "75-00-DEG-00 - Digital Evolution Group, LLC")
@@ -89,64 +90,64 @@ namespace Automa.IO.Unanet.Records
             using (var sr = File.OpenRead(filePath))
                 return CsvReader.Read(sr, x => new TaskModel
                 {
-                    project_org_code = x[0],
-                    project_code = x[1],
-                    task_name = x[2].ToString(),
-                    active = x[3],
+                    key = x[0],
                     //
-                    original_start_date = x[4].ToDateTime(),
-                    original_end_date = x[5].ToDateTime(),
-                    revised_start_date = x[6].ToDateTime("BOT"),
-                    revised_end_date = x[7].ToDateTime("EOT"),
-                    completed_date = x[8].ToDateTime(),
+                    project_org_code = x[1],
+                    project_code = x[2],
+                    task_name = x[3].ToString(),
+                    active = x[4],
                     //
-                    percent_complete = x[9],
-                    status = x[10],
-                    output = x[11],
-                    external_system_code = x[12],
-                    budget_hours = x[13],
-                    etc_hours = x[14],
-                    est_tot_hours = x[15],
+                    original_start_date = x[5].ToDateTime(),
+                    original_end_date = x[6].ToDateTime(),
+                    revised_start_date = x[7].ToDateTime("BOT"),
+                    revised_end_date = x[8].ToDateTime("EOT"),
+                    completed_date = x[9].ToDateTime(),
                     //
-                    budget_labor_dollars_bill = x[16],
-                    etc_labor_dollars_bill = x[17],
-                    est_tot_labor_dollars_bill = x[18],
-                    budget_expense_dollars_bill = x[19],
-                    etc_expense_dollars_bill = x[20],
-                    est_tot_expense_dollars_bill = x[21],
+                    percent_complete = x[10],
+                    status = x[11],
+                    output = x[12],
+                    external_system_code = x[13],
+                    budget_hours = x[14],
+                    etc_hours = x[15],
+                    est_tot_hours = x[16],
                     //
-                    user01 = x[22],
-                    user02 = x[23],
-                    user03 = x[24],
-                    user04 = x[25],
-                    user05 = x[26],
-                    user06 = x[27],
-                    user07 = x[28],
-                    user08 = x[29],
-                    user09 = x[30],
-                    user10 = x[31],
+                    budget_labor_dollars_bill = x[17],
+                    etc_labor_dollars_bill = x[18],
+                    est_tot_labor_dollars_bill = x[19],
+                    budget_expense_dollars_bill = x[20],
+                    etc_expense_dollars_bill = x[21],
+                    est_tot_expense_dollars_bill = x[22],
                     //
-                    budget_labor_dollars_cost = x[32],
-                    etc_labor_dollars_cost = x[33],
-                    est_tot_labor_dollars_cost = x[34],
-                    budget_expense_dollars_cost = x[35],
-                    etc_expense_dollars_cost = x[36],
-                    est_tot_expense_dollars_cost = x[37],
+                    user01 = x[23],
+                    user02 = x[24],
+                    user03 = x[25],
+                    user04 = x[26],
+                    user05 = x[27],
+                    user06 = x[28],
+                    user07 = x[29],
+                    user08 = x[30],
+                    user09 = x[31],
+                    user10 = x[32],
                     //
-                    project_type = x[38],
-                    delete = x[39],
-                    duration = x[40],
-                    enable_alerts = x[41],
-                    billing_type = x[42],
+                    budget_labor_dollars_cost = x[33],
+                    etc_labor_dollars_cost = x[34],
+                    est_tot_labor_dollars_cost = x[35],
+                    budget_expense_dollars_cost = x[36],
+                    etc_expense_dollars_cost = x[37],
+                    est_tot_expense_dollars_cost = x[38],
                     //
-                    budget_labor_dollars_cost_burdened = x[43],
-                    budget_expense_dollars_cost_burdened = x[44],
-                    funded_value = x[45],
-                    limit_bill_to_funded = x[46],
-                    limit_rev_to_funded = x[47],
-                    owning_organization = x[48],
+                    project_type = x[39],
+                    delete = x[40],
+                    duration = x[41],
+                    enable_alerts = x[42],
+                    billing_type = x[43],
                     //
-                    key = x.Count > 49 ? x[49] : null,
+                    budget_labor_dollars_cost_burdened = x[44],
+                    budget_expense_dollars_cost_burdened = x[45],
+                    funded_value = x[46],
+                    limit_bill_to_funded = x[47],
+                    limit_rev_to_funded = x[48],
+                    owning_organization = x[49],
                 }, 1).ToList();
         }
 

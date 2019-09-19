@@ -11,6 +11,8 @@ namespace Automa.IO.Unanet.Records
 {
     public class PersonModel : ModelBase
     {
+        public string key { get; set; }
+        //
         public string username { get; set; }
         public string first_name { get; set; }
         public string last_name { get; set; }
@@ -89,8 +91,30 @@ namespace Automa.IO.Unanet.Records
         public string payroll_medical_plan { get; set; }
         public string payroll_last_rate_change_date { get; set; }
         public string payroll_last_rate_change { get; set; }
+        // NEW
+        public string person_purchase_approval_amt { get; set; }
+        public string person_purchase_email { get; set; }
+        public string person_approval_grp_timesheet { get; set; }
+        public string person_approval_grp_leave { get; set; }
+        public string person_approval_grp_exp_rep { get; set; }
+        public string person_approval_grp_exp_req { get; set; }
+        public string person_approval_grp_po { get; set; }
+        public string person_approval_grp_pr { get; set; }
+        public string person_approval_grp_vi { get; set; }
         //
-        public string key { get; set; }
+        public string user11 { get; set; }
+        public string user12 { get; set; }
+        public string user13 { get; set; }
+        public string user14 { get; set; }
+        public string user15 { get; set; }
+        public string user16 { get; set; }
+        public string user17 { get; set; }
+        public string user18 { get; set; }
+        public string user19 { get; set; }
+        public string user20 { get; set; }
+        //
+        public string vendor_invoice_person { get; set; }
+        public string po_form_title { get; set; }
 
         public static Task<bool> ExportFileAsync(UnanetClient una, string sourceFolder, string legalEntity = "75-00-DEG-00 - Digital Evolution Group, LLC")
         {
@@ -111,86 +135,110 @@ namespace Automa.IO.Unanet.Records
             using (var sr = File.OpenRead(filePath))
                 return CsvReader.Read(sr, x => new PersonModel
                 {
-                    username = x[0],
-                    first_name = x[1],
-                    last_name = x[2],
-                    middle_initial = x[3],
-                    suffix = x[4],
-                    nickname = x[5],
+                    key = x[0],
                     //
-                    exempt_status = x[6],
-                    roles = x[7],
-                    time_period = x[8],
-                    pay_code = x[9],
-                    hour_increment = x[10].ToDecimal(),
-                    expense_approval_group = x[11],
+                    username = x[1],
+                    first_name = x[2],
+                    last_name = x[3],
+                    middle_initial = x[4],
+                    suffix = x[5],
+                    nickname = x[6],
                     //
-                    person_code = x[12],
-                    id_code_1 = x[13],
-                    id_code_2 = x[14],
-                    password = x[15],
-                    ivr_password = x[16],
-                    email = x[17],
-                    person_org_code = x[18],
-                    bill_rate = x[19].ToDecimal(),
-                    cost_rate = x[20].ToDecimal(),
-                    time_approval_group = x[21],
+                    exempt_status = x[7],
+                    roles = x[8],
+                    time_period = x[9],
+                    pay_code = x[10],
+                    hour_increment = x[11].ToDecimal(),
+                    //expense_approval_group = x[12],
                     //
-                    active = x[22],
-                    timesheet_emails = x[23],
-                    expense_emails = x[24],
-                    autofill_timesheet = x[25],
-                    expense_approval_amount = x[26],
-                    effective_date = x[27].ToDateTime(),
-                    dilution_period = x[28],
-                    default_project_org = x[29],
-                    default_project = x[30],
-                    default_task = x[31],
+                    person_code = x[13],
+                    id_code_1 = x[14],
+                    id_code_2 = x[15],
+                    password = x[16],
+                    ivr_password = x[17],
+                    email = x[18],
+                    person_org_code = x[19],
+                    bill_rate = x[20].ToDecimal(),
+                    cost_rate = x[21].ToDecimal(),
+                    time_approval_group = x[22],
                     //
-                    default_labor_category = x[32],
-                    default_payment_method = x[33],
-                    tito_required = x[34],
-                    business_week = x[35],
-                    assignment_emails = x[36],
+                    active = x[23],
+                    timesheet_emails = x[24],
+                    expense_emails = x[25],
+                    autofill_timesheet = x[26],
+                    expense_approval_amount = x[27],
+                    effective_date = x[28].ToDateTime(),
+                    dilution_period = x[29],
+                    default_project_org = x[30],
+                    default_project = x[31],
+                    default_task = x[32],
                     //
-                    user01 = x[37],
-                    user02 = x[38],
-                    user03 = x[39],
-                    user04 = x[40],
-                    user05 = x[41],
-                    user06 = x[42],
-                    user07 = x[43],
-                    user08 = x[44],
-                    user09 = x[45],
-                    user10 = x[46],
+                    default_labor_category = x[33],
+                    default_payment_method = x[34],
+                    tito_required = x[35],
+                    business_week = x[36],
+                    assignment_emails = x[37],
                     //
-                    hire_date = x[47].ToDateTime(),
-                    payment_currency = x[48],
-                    delete = x[49],
-                    cost_structure = x[50],
-                    cost_element = x[51],
-                    unlock = x[52],
-                    location = x[53],
+                    user01 = x[38],
+                    user02 = x[39],
+                    user03 = x[40],
+                    user04 = x[41],
+                    user05 = x[42],
+                    user06 = x[43],
+                    user07 = x[44],
+                    user08 = x[45],
+                    user09 = x[46],
+                    user10 = x[47],
                     //
-                    employee_type = x[54],
-                    hide_vat = x[55],
-                    leave_request_emails = x[56],
-                    tbd_user = x[57],
-                    time_vendor = x[58],
-                    expense_vendor = x[59],
+                    hire_date = x[48].ToDateTime(),
+                    payment_currency = x[49],
+                    delete = x[50],
+                    cost_structure = x[51],
+                    cost_element = x[52],
+                    unlock = x[53],
+                    location = x[54],
                     //
-                    payroll_hire_date = x[60].ToDateTime(),
-                    payroll_marital_status = x[61],
-                    payroll_federal_exemptions = x[62],
-                    payroll_sui_tax_code = x[63],
-                    payroll_state_worked_in = x[64],
-                    payroll_immigration_status = x[65],
-                    payroll_eeo_code = x[66],
-                    payroll_medical_plan = x[67],
-                    payroll_last_rate_change_date = x[68],
-                    payroll_last_rate_change = x[69],
+                    employee_type = x[55],
+                    hide_vat = x[56],
+                    leave_request_emails = x[57],
+                    tbd_user = x[58],
+                    time_vendor = x[59],
+                    expense_vendor = x[60],
                     //
-                    key = x.Count > 70 ? x[70] : null,
+                    payroll_hire_date = x[61].ToDateTime(),
+                    payroll_marital_status = x[62],
+                    payroll_federal_exemptions = x[63],
+                    payroll_sui_tax_code = x[64],
+                    payroll_state_worked_in = x[65],
+                    payroll_immigration_status = x[66],
+                    payroll_eeo_code = x[67],
+                    payroll_medical_plan = x[68],
+                    payroll_last_rate_change_date = x[69],
+                    payroll_last_rate_change = x[70],
+                    // NEW
+                    person_purchase_approval_amt = x[71],
+                    person_purchase_email = x[72],
+                    person_approval_grp_timesheet = x[73],
+                    person_approval_grp_leave = x[74],
+                    person_approval_grp_exp_rep = x[75], // expense_approval_group
+                    person_approval_grp_exp_req = x[76], // expense_approval_group
+                    person_approval_grp_po = x[77],
+                    person_approval_grp_pr = x[78],
+                    person_approval_grp_vi = x[79],
+                    //
+                    user11 = x[80],
+                    user12 = x[81],
+                    user13 = x[82],
+                    user14 = x[83],
+                    user15 = x[84],
+                    user16 = x[85],
+                    user17 = x[86],
+                    user18 = x[87],
+                    user19 = x[88],
+                    user20 = x[89],
+                    //
+                    vendor_invoice_person = x[90],
+                    po_form_title = x[91],
                 }, 1).ToList();
         }
 
@@ -205,7 +253,12 @@ namespace Automa.IO.Unanet.Records
                 XAttribute("u1", x.user01), XAttribute("u2", x.user02), XAttribute("u3", x.user03), XAttribute("u4", x.user04), XAttribute("u5", x.user05), XAttribute("u6", x.user06), XAttribute("u7", x.user07), XAttribute("u8", x.user08), XAttribute("u9", x.user09), XAttribute("u10", x.user10),
                 XAttribute("hd", x.hire_date), XAttribute("pc3", x.payment_currency), XAttribute("cs", x.cost_structure), XAttribute("ce", x.cost_element), XAttribute("ul", x.unlock), XAttribute("l", x.location),
                 XAttribute("et", x.employee_type), XAttribute("hv", x.hide_vat), XAttribute("lre", x.leave_request_emails), XAttribute("tu", x.tbd_user), XAttribute("tv", x.time_vendor), XAttribute("ev", x.expense_vendor),
-                XAttribute("phd", x.payroll_hire_date), XAttribute("pm", x.payroll_marital_status), XAttribute("pfe", x.payroll_federal_exemptions), XAttribute("pstc", x.payroll_sui_tax_code), XAttribute("pswi", x.payroll_state_worked_in), XAttribute("pis", x.payroll_immigration_status), XAttribute("pec", x.payroll_eeo_code), XAttribute("pmp", x.payroll_medical_plan), XAttribute("plrcd", x.payroll_last_rate_change_date), XAttribute("plrc", x.payroll_last_rate_change)
+                XAttribute("phd", x.payroll_hire_date), XAttribute("pm", x.payroll_marital_status), XAttribute("pfe", x.payroll_federal_exemptions), XAttribute("pstc", x.payroll_sui_tax_code), XAttribute("pswi", x.payroll_state_worked_in), XAttribute("pis", x.payroll_immigration_status), XAttribute("pec", x.payroll_eeo_code), XAttribute("pmp", x.payroll_medical_plan), XAttribute("plrcd", x.payroll_last_rate_change_date), XAttribute("plrc", x.payroll_last_rate_change),
+                // NEW
+                XAttribute("ppaa", x.person_purchase_approval_amt), XAttribute("ppe", x.person_purchase_email),
+                XAttribute("pagt", x.person_approval_grp_timesheet), XAttribute("pagl", x.person_approval_grp_leave), XAttribute("pager", x.person_approval_grp_exp_rep), XAttribute("pager2", x.person_approval_grp_exp_req), XAttribute("pagp", x.person_approval_grp_po), XAttribute("pagp2", x.person_approval_grp_pr), XAttribute("pagv", x.person_approval_grp_vi),
+                XAttribute("u11", x.user11), XAttribute("u12", x.user12), XAttribute("u13", x.user13), XAttribute("u14", x.user14), XAttribute("u15", x.user15), XAttribute("u16", x.user16), XAttribute("u17", x.user17), XAttribute("u18", x.user18), XAttribute("u19", x.user19), XAttribute("u20", x.user20),
+                XAttribute("vip", x.vendor_invoice_person), XAttribute("pft", x.po_form_title)
             )).ToArray()).ToString();
             if (syncFileA == null)
                 return xml;
@@ -254,10 +307,10 @@ namespace Automa.IO.Unanet.Records
                 if (add || cf.Contains("tp")) f.FromSelect("timePeriod", s.time_period);
                 if (add || cf.Contains("pc")) f.FromSelect("payCode", s.pay_code);
                 if (add || cf.Contains("hi")) f.FromSelectByKey("hour_increment", s.hour_increment?.ToString());
-                if (add || cf.Contains("eag")) f.Values["expense_request_chain"] = s.expense_approval_group != null && // FIX SOURCE
-                    approvalGroups.TryGetValue(s.expense_approval_group, out var approvalGroupKey) ? approvalGroupKey : "-1"; // LOOKUP
-                if (add || cf.Contains("eag")) f.Values["expense_report_chain"] = s.expense_approval_group != null && // FIX SOURCE
-                    approvalGroups.TryGetValue(s.expense_approval_group, out var approvalGroupKey) ? approvalGroupKey : "-1"; // LOOKUP
+                //if (add || cf.Contains("eag")) f.Values["expense_request_chain"] = s.expense_approval_group != null && // FIX SOURCE
+                //    approvalGroups.TryGetValue(s.expense_approval_group, out var approvalGroupKey) ? approvalGroupKey : "-1"; // LOOKUP
+                //if (add || cf.Contains("eag")) f.Values["expense_report_chain"] = s.expense_approval_group != null && // FIX SOURCE
+                //    approvalGroups.TryGetValue(s.expense_approval_group, out var approvalGroupKey) ? approvalGroupKey : "-1"; // LOOKUP
                 //
                 if (add || cf.Contains("pc2")) f.Values["person_code"] = s.person_code;
                 if (add || cf.Contains("ic1") || cf.Contains("bind")) f.Values["empId"] = s.id_code_1;
@@ -320,7 +373,7 @@ namespace Automa.IO.Unanet.Records
                     vendorProfiles.TryGetValue(s.time_vendor, out var vendorKey) ? vendorKey : null; // LOOKUP
                 if (add || cf.Contains("ev")) f.Values["expenseVendor"] = s.expense_vendor != null &&
                     vendorProfiles.TryGetValue(s.expense_vendor, out var vendorKey) ? vendorKey : null; // LOOKUP
-                //
+
                 //if (add || cf.Contains("phd")) f.Values["xxxx"] = s.payroll_hire_date?.ToString("M/d/yyyy");
                 //if (add || cf.Contains("pms")) f.Values["xxxx"] = s.payroll_marital_status;
                 //if (add || cf.Contains("pfe")) f.Values["xxxx"] = s.payroll_federal_exemptions;
@@ -331,7 +384,35 @@ namespace Automa.IO.Unanet.Records
                 //if (add || cf.Contains("pmp")) f.Values["xxxx"] = s.payroll_medical_plan;
                 //if (add || cf.Contains("plrcd")) f.Values["xxxx"] = s.payroll_last_rate_change_date;
                 //if (add || cf.Contains("plrc")) f.Values["xxxx"] = s.payroll_last_rate_change;
+
+                // NEW
+                //if (add || cf.Contains("ppaa")) f.Values["xxxx"] = s.person_purchase_approval_amt;
+                //if (add || cf.Contains("ppe")) f.Checked["xxxx"] = s.person_purchase_email == "Y";
                 //
+                //if (add || cf.Contains("pagt")) f.Values["xxxx"] = s.person_approval_grp_timesheet;
+                //if (add || cf.Contains("pagl")) f.Values["xxxx"] = s.person_approval_grp_leave;
+                if (add || cf.Contains("pager")) f.Values["expense_report_chain"] = s.person_approval_grp_exp_rep != null && // FIX SOURCE
+                    approvalGroups.TryGetValue(s.person_approval_grp_exp_rep, out var approvalGroupKey) ? approvalGroupKey : "-1"; // LOOKUP
+                if (add || cf.Contains("pager2")) f.Values["expense_request_chain"] = s.person_approval_grp_exp_req != null && // FIX SOURCE
+                    approvalGroups.TryGetValue(s.person_approval_grp_exp_req, out var approvalGroupKey) ? approvalGroupKey : "-1"; // LOOKUP
+                //if (add || cf.Contains("pagp")) f.Values["xxxx"] = s.person_approval_grp_po;
+                //if (add || cf.Contains("pagp2")) f.Values["xxxx"] = s.person_approval_grp_pr;
+                //if (add || cf.Contains("pagv")) f.Values["xxxx"] = s.person_approval_grp_vi;
+                //
+                //if (add || cf.Contains("u11")) f.Values["udf_10"] = s.user11;
+                //if (add || cf.Contains("u12")) f.Values["udf_11"] = s.user12;
+                //if (add || cf.Contains("u13")) f.Values["udf_12"] = s.user13;
+                //if (add || cf.Contains("u14")) f.Values["udf_13"] = s.user14;
+                //if (add || cf.Contains("u15")) f.Values["udf_14"] = s.user15;
+                //if (add || cf.Contains("u16")) f.Values["udf_15"] = s.user16;
+                //if (add || cf.Contains("u17")) f.Values["udf_16"] = s.user17;
+                //if (add || cf.Contains("u18")) f.Values["udf_17"] = s.user18;
+                //if (add || cf.Contains("u19")) f.Values["udf_18"] = s.user19;
+                //if (add || cf.Contains("u20")) f.Values["udf_19"] = s.user20;
+                //
+                //if (add || cf.Contains("vip")) f.Checked["xxxx"] = s.vendor_invoice_person == "Y";
+                //if (add || cf.Contains("pft")) f.Values["xxxx"] = s.po_form_title;
+
                 f.Add("button_save", "action", null);
                 // edit rate row for effective_date|exempt_status|costStructLabor|bill_rate|cost_rate
                 if (!add && cf.Contains("ed") || cf.Contains("es") || cf.Contains("cs") || cf.Contains("br") || cf.Contains("cr"))
