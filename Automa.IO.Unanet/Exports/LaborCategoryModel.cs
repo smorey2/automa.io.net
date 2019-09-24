@@ -39,14 +39,14 @@ namespace Automa.IO.Unanet.Exports
                 {
                     key = x[0],
                     //
-                    labor_category = x[0],
-                    delete = x[1],
-                    description = x[2],
-                    bill_rate = x[3],
-                    cost_rate = x[4],
-                    external_system_code = x[5],
-                    active = x[6],
-                    effective_date = x[7],
+                    labor_category = x[1],
+                    delete = x[2],
+                    description = x[3],
+                    bill_rate = x[4],
+                    cost_rate = x[5],
+                    external_system_code = x[6],
+                    active = x[7],
+                    effective_date = x[8],
                 }, 1).ToList();
         }
 

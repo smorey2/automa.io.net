@@ -288,7 +288,7 @@ namespace Automa.IO.Unanet.Records
                 throw new InvalidOperationException($"{s.username} has a {nameof(s.id_code_1)}");
             if (!approvalGroups.ContainsKey(s.expense_approval_group))
                 throw new ArgumentOutOfRangeException(nameof(s.expense_approval_group), s.expense_approval_group);
-            if (s.username == "DDULLEA" || s.username == "SMOREY" || s.username == "TBENSON")
+            if (s.username == "DDULLEA" || s.username == "SMOREY" || s.username == "TBENSON" || s.username == "HHARKINS" || s.username == "TBABCOCK")
                 throw new InvalidOperationException($"{s.username} restricted user, please update manually.");
             var r = una.SubmitManage(add ? HttpMethod.Post : HttpMethod.Put, "people",
                 $"personkey={s.key}",

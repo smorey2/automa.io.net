@@ -59,14 +59,15 @@ namespace Automa.IO.Unanet.Records
                     pm_approves_before_mgr = x[9],
                     approval_type = x[10],
                 }, 1)
-                .Where(x => x.role == "billingManager" || x.role == "projectManager")
+                .Where(x => x.role == "billingManager" || x.role == "projectManager" || x.role == "projectApprover")
                 .ToList();
         }
 
         public static string GetReadXml(UnanetClient una, string sourceFolder, string syncFileA = null)
         {
             var xml = new XElement("r", Read(una, sourceFolder).Select(x => new XElement("p",
-                XAttribute("poc", x.project_org_code), XAttribute("pc", x.project_code), XAttribute("u", x.username), XAttribute("r", x.role), XAttribute("pi", x.primary_ind), XAttribute("at", x.approve_time), XAttribute("ae", x.approve_expense), XAttribute("caf", x.customer_approves_first)
+                XAttribute("poc", x.project_org_code), XAttribute("pc", x.project_code), XAttribute("u", x.username), XAttribute("r", x.role), XAttribute("pi", x.primary_ind), XAttribute("at", x.approve_time), XAttribute("ae", x.approve_expense), XAttribute("caf", x.customer_approves_first),
+                XAttribute("pabm", x.pm_approves_before_mgr), XAttribute("at2", x.approval_type)
             )).ToArray()).ToString();
             if (syncFileA == null)
                 return xml;
@@ -85,13 +86,24 @@ namespace Automa.IO.Unanet.Records
 
         public static ManageFlags ManageRecord(UnanetClient una, p_ProjectAdministrator1 s, out string last)
         {
-            if (ManageRecordBase(null, s.XCF, 1, out var cf, out var add, out last))
+            var canDelete = s.role != "projectManager";
+            if (ManageRecordBase(null, s.XCF, 1, out var cf, out var add, out last, canDelete: canDelete))
                 return ManageFlags.ProjectAdministratorChanged;
-            var r = una.SubmitSubManage("D", add ? HttpMethod.Post : HttpMethod.Put, $"projects/controllers/{s.role}",
+            var method = !cf.Contains("delete") ? add ? HttpMethod.Post : HttpMethod.Put : HttpMethod.Delete;
+            var r = una.SubmitSubManage("D", HttpMethod.Post, $"projects/controllers/{s.role}",
                 null, $"projectkey={s.project_codeKey}", null,
                 out last, (z, f) =>
             {
-                if (add || cf.Contains("p")) f.Values["primary"] = s.usernameKey;
+                if (s.role == "projectApprover")
+                {
+                    if (add || cf.Contains("p")) f.Values["primaryAssigned"] = $"*{s.usernameKey};2";
+                    else if (method == HttpMethod.Delete) f.Values["primaryNotAssigned"] = "-1";
+                }
+                else
+                {
+                    if (add || cf.Contains("p")) f.Values["primary"] = s.usernameKey;
+                    else if (method == HttpMethod.Delete) f.Values["primary"] = "-1";
+                }
                 return f.ToString();
             });
             return r != null ?

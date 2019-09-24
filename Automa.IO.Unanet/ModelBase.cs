@@ -8,7 +8,7 @@ namespace Automa.IO.Unanet
     public class ModelBase
     {
         protected readonly static DateTime BeginDate = new DateTime(2019, 01, 01);
-        protected readonly static DateTime BeginTimeWindowDate = new DateTime(2019, 04, 01);
+        protected readonly static DateTime BeginTimeWindowDate = new DateTime(2019, 09, 30);
         protected readonly static DateTime BeginInvoiceWindowDate = new DateTime(2019, 01, 01);
 
         protected static XAttribute XAttribute(string name, string value) => !string.IsNullOrEmpty(value) ? new XAttribute(name, value) : null;
