@@ -94,7 +94,7 @@ namespace Automa.IO.Unanet.Records
                     //
                     project_org_code = x[1],
                     project_code = x[2],
-                    task_name = x[3].ToString(),
+                    task_name = x[3].DecodeString(),
                     active = x[4],
                     //
                     original_start_date = x[5].ToDateTime(),

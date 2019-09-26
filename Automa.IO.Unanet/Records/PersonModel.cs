@@ -131,6 +131,11 @@ namespace Automa.IO.Unanet.Records
 
         public static IEnumerable<PersonModel> Read(UnanetClient una, string sourceFolder)
         {
+            string CleanRoles(string roles) => ("," + roles)
+                .Replace(",projectApprover", string.Empty)
+                .Replace(",projectLead", string.Empty)
+                .Replace(",poOwner", string.Empty)
+                .Substring(1);
             var filePath = Path.Combine(sourceFolder, $"{una.Exports["person"].Item2}.csv");
             using (var sr = File.OpenRead(filePath))
                 return CsvReader.Read(sr, x => new PersonModel
@@ -145,7 +150,7 @@ namespace Automa.IO.Unanet.Records
                     nickname = x[6],
                     //
                     exempt_status = x[7],
-                    roles = x[8],
+                    roles = CleanRoles(x[8]),
                     time_period = x[9],
                     pay_code = x[10],
                     hour_increment = x[11].ToDecimal(),

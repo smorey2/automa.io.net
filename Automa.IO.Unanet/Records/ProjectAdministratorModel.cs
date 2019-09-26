@@ -96,12 +96,13 @@ namespace Automa.IO.Unanet.Records
             {
                 if (s.role == "projectApprover")
                 {
-                    if (add || cf.Contains("p")) f.Values["primaryAssigned"] = $"*{s.usernameKey};2";
+                    f.Checked["approverApproveFirst"] = s.pm_approves_before_mgr == "Y";
+                    if (method != HttpMethod.Delete) f.Values["primaryAssigned"] = $"*{s.usernameKey};2";
                     else if (method == HttpMethod.Delete) f.Values["primaryNotAssigned"] = "-1";
                 }
                 else
                 {
-                    if (add || cf.Contains("p")) f.Values["primary"] = s.usernameKey;
+                    if (method != HttpMethod.Delete) f.Values["primary"] = s.usernameKey;
                     else if (method == HttpMethod.Delete) f.Values["primary"] = "-1";
                 }
                 return f.ToString();

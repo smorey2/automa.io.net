@@ -188,6 +188,7 @@ namespace Automa.IO.Unanet
                 var d1 = d0.ExtractSpan("<form name=\"downloadForm\"", "</form>");
                 if (d1 == null)
                 {
+                    var reportInfo = d0.ExtractSpanInner("<p class=\"report-info\">", "</p>")?.Trim();
                     var reportError = d0.ExtractSpanInner("<div class=\"report-error\"><p>", "</p>")?.Trim();
                     var exportError = d0.ExtractSpanInner("<pre class=\"export-error\">", "</pre>")?.Trim();
                     return false;

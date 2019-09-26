@@ -4,7 +4,7 @@ namespace Automa.IO.Unanet
 {
     public static class UnanetExtensions
     {
-        public static string ToString(this string s)
+        public static string DecodeString(this string s)
         {
             if (string.IsNullOrEmpty(s)) return s;
             if (s.Contains("&quote;") || s.Contains("&amp;"))
