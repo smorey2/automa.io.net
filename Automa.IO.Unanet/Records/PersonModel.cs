@@ -283,11 +283,11 @@ namespace Automa.IO.Unanet.Records
         {
             if (ManageRecordBase(s.key, s.XCF, 0, out var cf, out var add, out last))
                 return ManageFlags.PersonChanged;
-            var locations = Unanet.LocationLookup.Locations;
-            var approvalGroups = Unanet.ApprovalGroupLookup.TimeExpense;
-            var laborCategories = Unanet.LaborCategoryLookup.LaborCategories;
-            var vendorProfiles = Unanet.OrganizationLookup.Vendors;
-            var organizations = Unanet.OrganizationLookup.CostCenters;
+            var locations = Unanet.Lookups.Locations.Value;
+            var approvalGroups = Unanet.Lookups.TimeExpense.Value;
+            var laborCategories = Unanet.Lookups.LaborCategories.Value;
+            var vendorProfiles = Unanet.Lookups.Vendors.Value;
+            var organizations = Unanet.Lookups.CostCenters.Value;
             //
             if (s.id_code_1 == "C:AAAAAAAAAAAAAAAAAAAAAA")
                 throw new InvalidOperationException($"{s.username} has a {nameof(s.id_code_1)}");

@@ -181,7 +181,7 @@ namespace Automa.IO.Unanet.Records
         {
             if (ManageRecordBase(s.key, s.XCF, 0, out var cf, out var add, out last))
                 return ManageFlags.TaskChanged;
-            var organizations = Unanet.OrganizationLookup.CostCenters;
+            var organizations = Unanet.Lookups.CostCenters.Value;
             var r = una.SubmitSubManage("B", add ? HttpMethod.Post : HttpMethod.Put, "task",
                 add ? "key=0&insertPos=1" : $"key={s.key}&insertPos=0", $"projectkey={s.project_codeKey}", null,
                 out last, (z, f) =>

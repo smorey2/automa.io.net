@@ -124,7 +124,7 @@ namespace Automa.IO.Unanet.Records
             {
                 case "1":
                     {
-                        if (!Unanet.OrganizationLookup.TryGetCostCentersAndDefault(s.assign, out var assignKey))
+                        if (!Unanet.Lookups.TryGetCostCentersAndDefault(s.assign, out var assignKey))
                             throw new InvalidOperationException($"unable to find org {s.assign}");
                         var r = una.SubmitSubManage("E", method, $"projects/orgs",
                             $"key={assignKey}&nextKey=0", $"projectkey={s.project_codeKey}", null,

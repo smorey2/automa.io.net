@@ -82,7 +82,7 @@ namespace Automa.IO.Unanet.Records
         {
             if (ManageRecordBase(null, s.XCF, 1, out var cf, out var add, out last))
                 return ManageFlags.ProjectLaborCategoryChanged;
-            var laborCategories = Unanet.LaborCategoryLookup.LaborCategories;
+            var laborCategories = Unanet.Lookups.LaborCategories.Value;
             var r = una.SubmitSubManage(add ? "E" : "C", HttpMethod.Put, $"projects/labor_category",
                 $"key={s.key}", $"projectkey={s.project_codeKey}", "blindInsert=false&list=true&reload=true&canEditBill=true&canEditCost=true&canViewBill=true&canViewCost=true&labor_category_dbValue=&labor_category_filterInactiveLabCat=false&showLaborCategory=false",
                 out last, (z, f) =>

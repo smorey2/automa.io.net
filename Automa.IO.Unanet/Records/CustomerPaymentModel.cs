@@ -20,7 +20,7 @@ namespace Automa.IO.Unanet.Records
 
         public static ManageFlags ManageRecord(UnanetClient una, p_CustomerPayment s, out string last, Action<string, string> setInfo, string legalEntityKey = "2845", string legalEntity = "75-00-DEG-00 - Digital Evolution Group, LLC", string bankAcct = "1003 - Capital City_A_CHK")
         {
-            if (!Unanet.ReceivableLookup.BankAccount.TryGetValue(bankAcct, out var bankAcctKey))
+            if (!Unanet.Lookups.BankAccount.Value.TryGetValue(bankAcct, out var bankAcctKey))
                 throw new InvalidOperationException($"Can not find: {bankAcct}");
             // first
             if (string.IsNullOrEmpty(s.CpKey))

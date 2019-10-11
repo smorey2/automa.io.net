@@ -318,7 +318,7 @@ namespace Automa.IO.Unanet.Records
         {
             if (ManageRecordBase(s.key, s.XCF, 0, out var cf, out var add, out last))
                 return ManageFlags.ProjectChanged;
-            var organizations = Unanet.OrganizationLookup.CostCenters;
+            var organizations = Unanet.Lookups.CostCenters.Value;
             var r = una.SubmitManage(add ? HttpMethod.Post : HttpMethod.Put, "projects",
                 $"projectkey={s.key}",
                 out last, (z, f) =>
