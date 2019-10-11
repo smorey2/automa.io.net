@@ -47,5 +47,12 @@ namespace Automa.IO.Unanet
                 default: throw new ArgumentOutOfRangeException(nameof(window), window.ToString());
             }
         }
+
+        protected static string GetLookupValue(Dictionary<string, string> source, string value, bool missingThrows = false)
+        {
+            if (missingThrows && value != null && !source.ContainsKey(value))
+                throw new ArgumentOutOfRangeException(nameof(value), value);
+            return value != null && source.TryGetValue(value, out var key) ? key : "-1";
+        }
     }
 }

@@ -240,8 +240,7 @@ namespace Automa.IO.Unanet.Records
                 if (add || cf.Contains("fv")) f.Values["funded_value"] = s.funded_value;
                 //if (add || cf.Contains("lbtf")) f.Checked["limitBillToFunded"] = s.limit_bill_to_funded == "Y";
                 //if (add || cf.Contains("lrtf")) f.Checked["limitRevToFunded"] = s.limit_rev_to_funded == "Y";
-                if (add || cf.Contains("oo")) f.Values["tOOMenu"] = s.owning_organization != null &&
-                    organizations.TryGetValue(s.owning_organization, out var organizationKey) ? organizationKey : "-1"; // LOOKUP
+                if (add || cf.Contains("oo")) f.Values["tOOMenu"] = GetLookupValue(organizations, s.owning_organization);
                 return f.ToString();
             });
             return r != null ?

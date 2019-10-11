@@ -71,7 +71,7 @@ namespace Automa.IO.Unanet.Records
                     work_date = x[3].ToDateTime().Value,
                     project_org_code = x[4],
                     project_code = x[5],
-                    task_name = x[6],
+                    task_name = x[6].DecodeString(),
                     project_type = x[7],
                     pay_code = x[8],
                     //

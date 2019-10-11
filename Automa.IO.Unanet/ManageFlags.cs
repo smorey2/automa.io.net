@@ -7,7 +7,7 @@ namespace Automa.IO.Unanet
     {
         None = 0x0, Default = AllEntity | Export | Sync,
         AllEntity = OrganizationAll | ProjectAll | PersonAll | TimeInvoiceAll,
-        //AllEntity = Task,
+        //AllEntity = TimeInvoiceAll,
 
         // OPERATIONS
         Export = 0x1, Sync = 0x2,
@@ -50,7 +50,7 @@ namespace Automa.IO.Unanet
         ApprovalGroupChanged = ApprovalGroups | Export,
 
         // 0x10 - Entity:Time
-        TimeInvoiceMask = 0x100F0000, TimeInvoiceAll = Invoice, //Time | Invoice,
+        TimeInvoiceMask = 0x100F0000, TimeInvoiceAll = Time | Invoice,
         Time = 0x10010000,
         Invoice = 0x10020000,
     }

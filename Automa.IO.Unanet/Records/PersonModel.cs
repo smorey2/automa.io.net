@@ -279,7 +279,7 @@ namespace Automa.IO.Unanet.Records
             public string XCF { get; set; }
         }
 
-        public static ManageFlags ManageRecord(UnanetClient una, p_Person1 s, out string last)
+        public static ManageFlags ManageRecord(UnanetClient una, p_Person1 s, out string last, string[] restrictedUsernames)
         {
             if (ManageRecordBase(s.key, s.XCF, 0, out var cf, out var add, out last))
                 return ManageFlags.PersonChanged;
@@ -293,7 +293,7 @@ namespace Automa.IO.Unanet.Records
                 throw new InvalidOperationException($"{s.username} has a {nameof(s.id_code_1)}");
             if (!approvalGroups.ContainsKey(s.expense_approval_group))
                 throw new ArgumentOutOfRangeException(nameof(s.expense_approval_group), s.expense_approval_group);
-            if (s.username == "DDULLEA" || s.username == "SMOREY" || s.username == "TBENSON" || s.username == "HHARKINS" || s.username == "TBABCOCK")
+            if (restrictedUsernames != null && restrictedUsernames.Contains(s.username))
                 throw new InvalidOperationException($"{s.username} restricted user, please update manually.");
             var r = una.SubmitManage(add ? HttpMethod.Post : HttpMethod.Put, "people",
                 $"personkey={s.key}",
@@ -312,10 +312,8 @@ namespace Automa.IO.Unanet.Records
                 if (add || cf.Contains("tp")) f.FromSelect("timePeriod", s.time_period);
                 if (add || cf.Contains("pc")) f.FromSelect("payCode", s.pay_code);
                 if (add || cf.Contains("hi")) f.FromSelectByKey("hour_increment", s.hour_increment?.ToString());
-                //if (add || cf.Contains("eag")) f.Values["expense_request_chain"] = s.expense_approval_group != null && // FIX SOURCE
-                //    approvalGroups.TryGetValue(s.expense_approval_group, out var approvalGroupKey) ? approvalGroupKey : "-1"; // LOOKUP
-                //if (add || cf.Contains("eag")) f.Values["expense_report_chain"] = s.expense_approval_group != null && // FIX SOURCE
-                //    approvalGroups.TryGetValue(s.expense_approval_group, out var approvalGroupKey) ? approvalGroupKey : "-1"; // LOOKUP
+                //if (add || cf.Contains("eag")) f.Values["expense_request_chain"] = GetLookupValue(approvalGroups, s.expense_approval_group);
+                //if (add || cf.Contains("eag")) f.Values["expense_report_chain"] = GetLookupValue(approvalGroups, s.expense_approval_group);
                 //
                 if (add || cf.Contains("pc2")) f.Values["person_code"] = s.person_code;
                 if (add || cf.Contains("ic1") || cf.Contains("bind")) f.Values["empId"] = s.id_code_1;
@@ -323,14 +321,11 @@ namespace Automa.IO.Unanet.Records
                 //if (add || cf.Contains("p")) f.Values["password1"] = s.password;
                 //if (add || cf.Contains("ip")) f.Values["password2"] = s.ivr_password;
                 if (add || cf.Contains("e")) f.Values["email"] = s.email;
-                if (add || cf.Contains("poc")) f.Values["personOrg"] = s.person_org_code != null &&
-                    organizations.TryGetValue(s.person_org_code, out var organizationKey) ? organizationKey : "-1"; // LOOKUP
+                if (add || cf.Contains("poc")) f.Values["personOrg"] = GetLookupValue(organizations, s.person_org_code);
                 if (add || cf.Contains("br")) f.Values["bill_rate"] = s.bill_rate?.ToString();
                 if (add || cf.Contains("cr")) f.Values["cost_rate"] = s.cost_rate?.ToString();
-                if (add || cf.Contains("tag")) f.Values["leave_request"] = s.time_approval_group != null && // FIX SOURCE
-                    approvalGroups.TryGetValue(s.time_approval_group, out var approvalGroupKey) ? approvalGroupKey : "-1"; // LOOKUP
-                if (add || cf.Contains("tag")) f.Values["time_chain"] = s.time_approval_group != null &&
-                    approvalGroups.TryGetValue(s.time_approval_group, out var approvalGroupKey) ? approvalGroupKey : "-1"; // LOOKUP
+                //if (add || cf.Contains("tag")) f.Values["leave_request"] = GetLookupValue(approvalGroups, s.time_approval_group);
+                //if (add || cf.Contains("tag")) f.Values["time_chain"] = GetLookupValue(approvalGroups, s.time_approval_group);
                 //
                 if (add || cf.Contains("a")) f.Checked["active"] = s.active == "Y";
                 if (add || cf.Contains("te")) f.Checked["timesheet_email"] = s.timesheet_emails == "Y";
@@ -344,8 +339,7 @@ namespace Automa.IO.Unanet.Records
                 //if (add || cf.Contains("dp2")) f.Values["xxxx"] = s.default_project;
                 //if (add || cf.Contains("dt")) f.Values["xxxx"] = s.default_task;
                 //
-                if (add || cf.Contains("dlc")) f.Values["labor_category"] = s.default_labor_category != null &&
-                    laborCategories.TryGetValue(s.default_labor_category, out var laborCategoryKey) ? laborCategoryKey : "-1"; // LOOKUP
+                if (add || cf.Contains("dlc")) f.Values["labor_category"] = GetLookupValue(laborCategories, s.default_labor_category);
                 if (add || cf.Contains("dpm")) f.FromSelect("payment_method_key", s.default_payment_method);
                 if (add || cf.Contains("tr")) f.FromSelectByKey("titoRequired", s.tito_required);
                 if (add || cf.Contains("bw")) f.FromSelect("businessWeek", s.business_week);
@@ -367,17 +361,14 @@ namespace Automa.IO.Unanet.Records
                 if (add || cf.Contains("cs")) f.FromSelectByPredicate("costStructLabor", s.cost_structure, x => x.Value.StartsWith(s.cost_structure));
                 //if (add || cf.Contains("ce")) f.Values["xxxx"] = s.cost_element;
                 //if (add || cf.Contains("ul")) f.Values["xxxx"] = s.unlock;
-                if (add || cf.Contains("l")) f.Values["location"] = s.location != null &&
-                    locations.TryGetValue(s.location, out var locationKey) ? locationKey : "-1"; // LOOKUP
+                if (add || cf.Contains("l")) f.Values["location"] = GetLookupValue(locations, s.location);
                 //
                 if (add || cf.Contains("et")) f.FromSelect("employeeType", s.employee_type);
                 //if (add || cf.Contains("hv")) f.Values["hide_vat"] = s.hide_vat;
                 //if (add || cf.Contains("lre")) f.Values["xxxx"] = s.leave_request_emails;
                 //if (add || cf.Contains("tu")) f.Values["xxxx"] = s.tbd_user;
-                if (add || cf.Contains("tv")) f.Values["timeVendor"] = s.time_vendor != null &&
-                    vendorProfiles.TryGetValue(s.time_vendor, out var vendorKey) ? vendorKey : null; // LOOKUP
-                if (add || cf.Contains("ev")) f.Values["expenseVendor"] = s.expense_vendor != null &&
-                    vendorProfiles.TryGetValue(s.expense_vendor, out var vendorKey) ? vendorKey : null; // LOOKUP
+                if (add || cf.Contains("tv")) f.Values["timeVendor"] = GetLookupValue(vendorProfiles, s.time_vendor);
+                if (add || cf.Contains("ev")) f.Values["expenseVendor"] = GetLookupValue(vendorProfiles, s.expense_vendor);
 
                 //if (add || cf.Contains("phd")) f.Values["xxxx"] = s.payroll_hire_date?.ToString("M/d/yyyy");
                 //if (add || cf.Contains("pms")) f.Values["xxxx"] = s.payroll_marital_status;
@@ -394,12 +385,10 @@ namespace Automa.IO.Unanet.Records
                 //if (add || cf.Contains("ppaa")) f.Values["xxxx"] = s.person_purchase_approval_amt;
                 //if (add || cf.Contains("ppe")) f.Checked["xxxx"] = s.person_purchase_email == "Y";
                 //
-                //if (add || cf.Contains("pagt")) f.Values["xxxx"] = s.person_approval_grp_timesheet;
-                //if (add || cf.Contains("pagl")) f.Values["xxxx"] = s.person_approval_grp_leave;
-                if (add || cf.Contains("pager")) f.Values["expense_report_chain"] = s.person_approval_grp_exp_rep != null && // FIX SOURCE
-                    approvalGroups.TryGetValue(s.person_approval_grp_exp_rep, out var approvalGroupKey) ? approvalGroupKey : "-1"; // LOOKUP
-                if (add || cf.Contains("pager2")) f.Values["expense_request_chain"] = s.person_approval_grp_exp_req != null && // FIX SOURCE
-                    approvalGroups.TryGetValue(s.person_approval_grp_exp_req, out var approvalGroupKey) ? approvalGroupKey : "-1"; // LOOKUP
+                if (add || cf.Contains("pagt")) f.Values["time_chain"] = GetLookupValue(approvalGroups, s.person_approval_grp_timesheet, missingThrows: true);
+                if (add || cf.Contains("pagl")) f.Values["leave_request"] = GetLookupValue(approvalGroups, s.person_approval_grp_leave, missingThrows: true);
+                if (add || cf.Contains("pager")) f.Values["expense_report_chain"] = GetLookupValue(approvalGroups, s.person_approval_grp_exp_rep, missingThrows: true);
+                if (add || cf.Contains("pager2")) f.Values["expense_request_chain"] = GetLookupValue(approvalGroups, s.person_approval_grp_exp_req, missingThrows: true);
                 //if (add || cf.Contains("pagp")) f.Values["xxxx"] = s.person_approval_grp_po;
                 //if (add || cf.Contains("pagp2")) f.Values["xxxx"] = s.person_approval_grp_pr;
                 //if (add || cf.Contains("pagv")) f.Values["xxxx"] = s.person_approval_grp_vi;
@@ -422,14 +411,15 @@ namespace Automa.IO.Unanet.Records
                 // edit rate row for effective_date|exempt_status|costStructLabor|bill_rate|cost_rate
                 if (!add && cf.Contains("ed") || cf.Contains("es") || cf.Contains("cs") || cf.Contains("br") || cf.Contains("cr"))
                 {
-                    var d1 = z.ExtractSpanInner("<table id=\"rates\"", "</table>");
-                    var rows = una.ParseList(d1, "k_");
-                    if (rows.Keys.Count != 1)
-                        throw new InvalidOperationException("MANUAL: found none/multiple rate rows");
-                    var rateKey = rows.Keys.Single();
-                    f.Values["isRateEdit"] = "true";
-                    f.Values["redisplayRateEdit"] = "true";
-                    f.Values["selectedRateKey"] = rateKey;
+                    throw new InvalidOperationException("MANUAL: finance to change rate information");
+                    //var d1 = z.ExtractSpanInner("<table id=\"rates\"", "</table>");
+                    //var rows = una.ParseList(d1, "k_");
+                    //if (rows.Keys.Count != 1)
+                    //    throw new InvalidOperationException("MANUAL: found none/multiple rate rows");
+                    //var rateKey = rows.Keys.Single();
+                    //f.Values["isRateEdit"] = "true";
+                    //f.Values["redisplayRateEdit"] = "true";
+                    //f.Values["selectedRateKey"] = rateKey;
                 }
             });
             return r != null ?

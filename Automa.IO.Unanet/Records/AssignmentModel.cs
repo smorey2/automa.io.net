@@ -69,7 +69,7 @@ namespace Automa.IO.Unanet.Records
                     //
                     project_org_code = x[2],
                     project_code = x[3],
-                    task_name = x[4],
+                    task_name = x[4].DecodeString(),
                     username = x[5],
                     begin_date = x[6],
                     end_date = x[7],

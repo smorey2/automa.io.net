@@ -69,7 +69,7 @@ namespace Automa.IO.Unanet.Records
                     {
                         project_org_code = x[0],
                         project_code = x[1],
-                        task_name = x[2],
+                        task_name = x[2].DecodeString(),
                         description = x[3].ToString(),
                         bill_date = x[4].ToDateTime(),
                         bill_on_completion = x[5],
@@ -111,6 +111,7 @@ namespace Automa.IO.Unanet.Records
 
         public static ManageFlags ManageRecord(UnanetClient una, p_FixedPrice1 s, out string last)
         {
+            throw new NotSupportedException();
             if (s.revenue_recognition_method == null)
                 throw new InvalidOperationException($"{s.project_code} not categorized");
             if (ManageRecordBase(s.key, s.XCF, 0, out var cf, out var add, out last))
