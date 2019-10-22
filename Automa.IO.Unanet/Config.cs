@@ -31,6 +31,7 @@ namespace Automa.IO.Unanet
 
             // Person
             { "person", new Tuple<string, string>("730", "DEG_ Person") },
+            { "alternate", new Tuple<string, string>("747", "Alternate") },
             { "approval group", new Tuple<string, string>("739", "DEG_ Approval Group") },
 
             // Time/Invoice
@@ -41,30 +42,31 @@ namespace Automa.IO.Unanet
         public readonly static Dictionary<string, Tuple<string, string>> Exports = new Dictionary<string, Tuple<string, string>>
         {
             // Lookup
-            { "location master", new Tuple<string, string>("818", "DEG_ Location - Master") }, //new
-            { "labor category master", new Tuple<string, string>("814", "DEG_ Labor Category - Master") }, //new
+            { "location master", new Tuple<string, string>("818", "DEG_ Location - Master") },
+            { "labor category master", new Tuple<string, string>("814", "DEG_ Labor Category - Master") },
             //{ "vendor profile", new Tuple<string, string>("741", "DEG_ Vendor Profile") },
             //
             { "organization", new Tuple<string, string>("734", "DEG_ Organization") },
-            { "customer profile", new Tuple<string, string>("751", "Customer Profile") }, //base
-            { "organization address", new Tuple<string, string>("770", "Organization Address") }, //base
-            { "organization contact", new Tuple<string, string>("771", "Organization Contact") }, //base
+            { "customer profile", new Tuple<string, string>("828", "Customer Profile") }, //base
+            { "organization address", new Tuple<string, string>("847", "Organization Address") }, //base
+            { "organization contact", new Tuple<string, string>("848", "Organization Contact") }, //base
 
             // Project
-            { "project", new Tuple<string, string>("810", "DEG_ Project") }, //new
-            { "task", new Tuple<string, string>("820", "DEG_ Task") }, //new
+            { "project", new Tuple<string, string>("810", "DEG_ Project") },
+            { "task", new Tuple<string, string>("820", "DEG_ Task") },
             { "fixed price item", new Tuple<string, string>("795", "DEG_ Fixed Price Item") },
             { "fixed price item [post]", new Tuple<string, string>("733", "DEG_ Fixed Price Item [post]") },
-            { "assignment", new Tuple<string, string>("812", "DEG_ Assignment") }, //new
-            { "project administrator", new Tuple<string, string>("780", "Project Administrators") }, //base
-            { "labor category project", new Tuple<string, string>("817", "DEG_ Labor Category - Project") }, //new
+            { "assignment", new Tuple<string, string>("812", "DEG_ Assignment") },
+            { "project administrator", new Tuple<string, string>("857", "Project Administrators") }, //base
+            { "labor category project", new Tuple<string, string>("817", "DEG_ Labor Category - Project") },
 
             // Person
-            { "person", new Tuple<string, string>("811", "DEG_ Person") }, //new
-            { "approval group", new Tuple<string, string>("748", "Approval Group") }, //base
+            { "person", new Tuple<string, string>("811", "DEG_ Person") },
+            { "alternate", new Tuple<string, string>("824", "Alternate") }, //base
+            { "approval group", new Tuple<string, string>("825", "Approval Group") }, //base
 
             // Time/Invoice
-            { "time", new Tuple<string, string>("819", "DEG_ Time") }, //new
+            { "time", new Tuple<string, string>("819", "DEG_ Time") },
             { "invoice", new Tuple<string, string>("724", "Invoice Export") }, //base
         };
 

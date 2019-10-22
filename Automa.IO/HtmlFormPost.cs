@@ -47,7 +47,7 @@ namespace Automa.IO
                 return;
             if (formOptions == null)
                 formOptions = HtmlFormSettings.Default;
-            
+
             // marker
             var markerIdx = 0;
             if (formOptions.Marker != null)
@@ -56,7 +56,7 @@ namespace Automa.IO
                 if (markerIdx < 0)
                     throw new InvalidOperationException("unable to find marker");
             }
-            
+
             // strip <form.../form>
             var endIdx = s.IndexOfSkip("</form>", markerIdx);
             s = endIdx == -1 ? s.Substring(markerIdx) : s.Substring(markerIdx, endIdx - markerIdx);
@@ -210,13 +210,8 @@ namespace Automa.IO
                     }
                 }
             }
-            // add
-            Values.Add(name, value);
-            Types.Add(name, type);
-            if (type.StartsWith("checkbox", StringComparison.OrdinalIgnoreCase))
-                Checked.Add(name, @checked);
-            if (type.Equals("file", StringComparison.OrdinalIgnoreCase))
-                Files.Add(name, null);
+            // set-value
+            SetValue(name, value, type, @checked);
         }
 
         /// <summary>
@@ -234,6 +229,23 @@ namespace Automa.IO
                 if (Checked.ContainsKey(name))
                     Checked.Remove(name);
             }
+        }
+
+        /// <summary>
+        /// Sets the value.
+        /// </summary>
+        /// <param name="name">The name.</param>
+        /// <param name="value">The value.</param>
+        /// <param name="type">The type.</param>
+        /// <param name="checked">if set to <c>true</c> [checked].</param>
+        public void SetValue(string name, string value, string type = "text", bool @checked = false)
+        {
+            Values[name] = value;
+            Types[name] = type;
+            if (type.StartsWith("checkbox", StringComparison.OrdinalIgnoreCase))
+                Checked[name] = @checked;
+            if (type.Equals("file", StringComparison.OrdinalIgnoreCase))
+                Files[name] = null;
         }
 
         /// <summary>

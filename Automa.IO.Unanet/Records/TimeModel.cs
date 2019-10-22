@@ -54,7 +54,8 @@ namespace Automa.IO.Unanet.Records
                 f.Checked["DISAPPROVED"] = true; f.Checked["COMPLETED"] = true; f.Checked["LOCKED"] = true;
                 f.Checked["EXTRACTED"] = true;
                 f.Checked["inclReg"] = true;
-                f.FromSelectByKey("adjustmentStatus", "NO");
+                f.FromSelectByKey("adjustmentStatus", "ENTERED");
+                f.Checked["suppIntAdj"] = true;
                 func?.Invoke(f);
             }, sourceFolder));
         }

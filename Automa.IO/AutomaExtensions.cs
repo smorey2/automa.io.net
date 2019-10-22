@@ -134,10 +134,10 @@ namespace Automa.IO
             var startIdx = source.IndexOf(start, startIndex, stringComparison);
             if (startIdx == -1 || startIdx >= endIndex) return null;
             startIdx += start.Length;
-            if (end == null) return source.Substring(startIdx);
+            if (end == null) return endIndex != int.MaxValue ? source.Substring(startIdx, endIndex - startIdx - 1) : source.Substring(startIdx);
             // end
             var endIdx = source.IndexOf(end, startIdx, stringComparison);
-            if (endIdx == -1 || endIdx >= endIndex) return source.Substring(startIdx);
+            if (endIdx == -1 || endIdx >= endIndex) return endIndex != int.MaxValue ? source.Substring(startIdx, endIndex - startIdx - 1) : source.Substring(startIdx);
             return source.Substring(startIdx, endIdx - startIdx);
         }
 
@@ -159,10 +159,10 @@ namespace Automa.IO
             var stringComparison = ignoreCase ? StringComparison.OrdinalIgnoreCase : StringComparison.Ordinal;
             var startIdx = source.IndexOf(start, startIndex, stringComparison);
             if (startIdx == -1) return null;
-            if (end == null) return source.Substring(startIdx);
+            if (end == null) return endIndex != int.MaxValue ? source.Substring(startIdx, endIndex - startIdx - 1) : source.Substring(startIdx);
             // end
             var endIdx = source.IndexOf(end, startIdx, stringComparison);
-            if (endIdx == -1 || endIdx >= endIndex) return source.Substring(startIdx);
+            if (endIdx == -1 || endIdx >= endIndex) return endIndex != int.MaxValue ? source.Substring(startIdx, endIndex - startIdx - 1) : source.Substring(startIdx);
             return source.Substring(startIdx, endIdx - startIdx + end.Length);
         }
 
