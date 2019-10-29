@@ -72,9 +72,8 @@ namespace Automa.IO.Unanet.Records
             if (syncFileA == null)
                 return xml;
             var syncFile = string.Format(syncFileA, ".j_pa.xml");
-            Directory.CreateDirectory(Path.GetDirectoryName(syncFileA));
-            if (!Directory.Exists(Path.GetDirectoryName(syncFileA)))
-                Directory.CreateDirectory(Path.GetDirectoryName(syncFileA));
+            if (!Directory.Exists(Path.GetDirectoryName(syncFile)))
+                Directory.CreateDirectory(Path.GetDirectoryName(syncFile));
             File.WriteAllText(syncFile, xml);
             return xml;
         }
@@ -90,8 +89,8 @@ namespace Automa.IO.Unanet.Records
             if (ManageRecordBase(null, s.XCF, 1, out var cf, out var add, out last, canDelete: canDelete))
                 return ManageFlags.ProjectAdministratorChanged;
             var method = !cf.Contains("delete") ? add ? HttpMethod.Post : HttpMethod.Put : HttpMethod.Delete;
-            var r = una.SubmitSubManage("D", HttpMethod.Post, $"projects/controllers/{s.role}",
-                null, $"projectkey={s.project_codeKey}", null,
+            var r = una.SubmitSubManage("D", HttpMethod.Post, $"projects/controllers/{s.role}", null,
+                $"projectkey={s.project_codeKey}", null,
                 out last, (z, f) =>
             {
                 if (s.role == "projectApprover")

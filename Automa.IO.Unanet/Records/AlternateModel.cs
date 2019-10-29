@@ -1,5 +1,4 @@
 ﻿using ExcelTrans.Services;
-using System;
 using System.Collections.Generic;
 using System.IO;
 using System.Linq;
@@ -17,7 +16,7 @@ namespace Automa.IO.Unanet.Records
         public string delete { get; set; }
         // custom
         public string usernameKey { get; set; }
-        public string altenate_usernameKey { get; set; }
+        public string alternate_usernameKey { get; set; }
 
         public static Task<bool> ExportFileAsync(UnanetClient una, string sourceFolder)
         {
@@ -50,28 +49,30 @@ namespace Automa.IO.Unanet.Records
             )).ToArray()).ToString();
             if (syncFileA == null)
                 return xml;
-            var syncFile = string.Format(syncFileA, "p_a.xml");
-            if (!Directory.Exists(Path.GetDirectoryName(syncFileA)))
-                Directory.CreateDirectory(Path.GetDirectoryName(syncFileA));
+            var syncFile = string.Format(syncFileA, ".p_a.xml");
+            if (!Directory.Exists(Path.GetDirectoryName(syncFile)))
+                Directory.CreateDirectory(Path.GetDirectoryName(syncFile));
             File.WriteAllText(syncFile, xml);
             return xml;
         }
 
         public class p_Alternate1 : AlternateModel
         {
+            public string XA { get; set; }
             public string XCF { get; set; }
         }
 
         public static ManageFlags ManageRecord(UnanetClient una, p_Alternate1 s, out string last)
         {
-            if (ManageRecordBase(null, s.XCF, 1, out var cf, out var add, out last))
+            if (ManageRecordBase(null, s.XCF, 1, out var cf, out var add, out last, canDelete: true))
                 return ManageFlags.AlternateChanged;
-            var r = una.SubmitSubManage("D", HttpMethod.Get, $"people/alternates",
-                $"personkey={s.usernameKey}", null, null,
+            var method = !cf.Contains("delete") ? add ? HttpMethod.Post : HttpMethod.Put : HttpMethod.Delete;
+            var r = una.SubmitSubManage("D", HttpMethod.Get, $"people/alternates", null,
+                $"personkey={s.alternate_usernameKey}", null,
                 out last, (z, f) =>
                 {
                     var roleKey = f.Selects["attributes"].First(x => x.Value.Replace(" ", "").ToLowerInvariant() == s.role.ToLowerInvariant()).Key;
-                    f.Values["assign"] = $"{s.altenate_usernameKey};{roleKey}";
+                    f.Values[method == HttpMethod.Delete ? "unassign" : "assign"] = $"{s.usernameKey};{roleKey}";
                     f.Add("button_save", "action", null);
                     return f.ToString();
                 });

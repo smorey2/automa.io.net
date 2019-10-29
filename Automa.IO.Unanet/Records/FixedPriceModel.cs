@@ -97,9 +97,8 @@ namespace Automa.IO.Unanet.Records
             if (syncFileA == null)
                 return xml;
             var syncFile = string.Format(syncFileA, $".j_fp.xml");
-            Directory.CreateDirectory(Path.GetDirectoryName(syncFileA));
-            if (!Directory.Exists(Path.GetDirectoryName(syncFileA)))
-                Directory.CreateDirectory(Path.GetDirectoryName(syncFileA));
+            if (!Directory.Exists(Path.GetDirectoryName(syncFile)))
+                Directory.CreateDirectory(Path.GetDirectoryName(syncFile));
             File.WriteAllText(syncFile, xml);
             return xml;
         }
@@ -117,8 +116,8 @@ namespace Automa.IO.Unanet.Records
             if (ManageRecordBase(s.key, s.XCF, 0, out var cf, out var add, out last))
                 return ManageFlags.FixedPriceChanged;
             var method = !cf.Contains("tainted") ? add ? HttpMethod.Post : HttpMethod.Put : HttpMethod.Delete;
-            var r = una.SubmitSubManage("A", method, "projects/accounting/fixed_price_item",
-                $"key={s.key}", $"projectkey={s.project_codeKey}", null,
+            var r = una.SubmitSubManage("A", method, "projects/accounting/fixed_price_item", $"key={s.key}",
+                $"projectkey={s.project_codeKey}", null,
                 out last, (z, f) =>
             {
                 //if (add || cf.Contains("poc")) f.Values["xxxx"] = s.project_org_code;

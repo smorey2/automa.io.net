@@ -10,6 +10,7 @@ using System.Linq;
 using System.Net;
 using System.Net.Http;
 using System.Text;
+using System.Text.RegularExpressions;
 using System.Threading;
 using System.Threading.Tasks;
 using NetCookie = System.Net.Cookie;
@@ -100,6 +101,15 @@ namespace Automa.IO
         }
 
         #endregion
+
+        public static IEnumerable<T> RegExSelect<T>(this Match match, Func<Match, T> func)
+        {
+            while (match.Success)
+            {
+                yield return func(match);
+                match = match.NextMatch();
+            }
+        }
 
         #region String
 

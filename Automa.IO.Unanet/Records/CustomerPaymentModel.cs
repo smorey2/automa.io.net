@@ -25,8 +25,7 @@ namespace Automa.IO.Unanet.Records
             // first
             if (string.IsNullOrEmpty(s.CpKey))
             {
-                var cps = (string[])una.SubmitManage(HttpMethod.Post, "accounts_receivable/customer_payment",
-                    null,
+                var cps = (string[])una.SubmitManage(HttpMethod.Post, "accounts_receivable/customer_payment", null,
                     out last, (z, f) =>
                 {
                     var customers = Unanet.Una.GetAutoComplete("CP_CUSTOMER", $"{s.OrganizationCode} -", legalEntityKey: legalEntityKey);
@@ -62,8 +61,8 @@ namespace Automa.IO.Unanet.Records
             if (string.IsNullOrEmpty(s.CpKey))
                 return ManageFlags.None;
             // second
-            var r = una.SubmitSubManage("D", HttpMethod.Post, "accounts_receivable/customer_payment/included",
-                null, $"cpKey={s.CpKey}", null,
+            var r = una.SubmitSubManage("D", HttpMethod.Post, "accounts_receivable/customer_payment/included", null, 
+                $"cpKey={s.CpKey}", null,
                 out last, (z, f) =>
                 {
                     var doc = z.ToHtmlDocument();

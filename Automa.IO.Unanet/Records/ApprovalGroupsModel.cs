@@ -55,9 +55,8 @@ namespace Automa.IO.Unanet.Records
         //        XAttribute("agn", x.approval_group_name), XAttribute("a", x.approvers), XAttribute("d", x.description)
         //    )).ToArray()).ToString();
         //    var syncFile = string.Format(syncFileA, ".p_ag.xml");
-        //    Directory.CreateDirectory(Path.GetDirectoryName(syncFileA));
-        //    if (!Directory.Exists(Path.GetDirectoryName(syncFileA)))
-        //        Directory.CreateDirectory(Path.GetDirectoryName(syncFileA));
+        //    if (!Directory.Exists(Path.GetDirectoryName(syncFile)))
+        //        Directory.CreateDirectory(Path.GetDirectoryName(syncFile));
         //    File.WriteAllText(syncFile, xml);
         //    return xml;
         //}

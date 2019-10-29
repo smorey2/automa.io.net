@@ -67,8 +67,8 @@ namespace Automa.IO.Unanet.Records
             if (syncFileA == null)
                 return xml;
             var syncFile = string.Format(syncFileA, ".j_lc.xml");
-            if (!Directory.Exists(Path.GetDirectoryName(syncFileA)))
-                Directory.CreateDirectory(Path.GetDirectoryName(syncFileA));
+            if (!Directory.Exists(Path.GetDirectoryName(syncFile)))
+                Directory.CreateDirectory(Path.GetDirectoryName(syncFile));
             File.WriteAllText(syncFile, xml);
             return xml;
         }
@@ -83,8 +83,8 @@ namespace Automa.IO.Unanet.Records
             if (ManageRecordBase(null, s.XCF, 1, out var cf, out var add, out last))
                 return ManageFlags.ProjectLaborCategoryChanged;
             var laborCategories = Unanet.Lookups.LaborCategories.Value;
-            var r = una.SubmitSubManage(add ? "E" : "C", HttpMethod.Put, $"projects/labor_category",
-                $"key={s.key}", $"projectkey={s.project_codeKey}", "blindInsert=false&list=true&reload=true&canEditBill=true&canEditCost=true&canViewBill=true&canViewCost=true&labor_category_dbValue=&labor_category_filterInactiveLabCat=false&showLaborCategory=false",
+            var r = una.SubmitSubManage(add ? "E" : "C", HttpMethod.Put, $"projects/labor_category", $"key={s.key}",
+                $"projectkey={s.project_codeKey}", "blindInsert=false&list=true&reload=true&canEditBill=true&canEditCost=true&canViewBill=true&canViewCost=true&labor_category_dbValue=&labor_category_filterInactiveLabCat=false&showLaborCategory=false",
                 out last, (z, f) =>
                 {
                     if (add) f.Values["assign"] = laborCategories[s.labor_category]; // LOOKUP

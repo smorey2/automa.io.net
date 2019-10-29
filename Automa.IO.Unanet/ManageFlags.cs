@@ -7,7 +7,6 @@ namespace Automa.IO.Unanet
     {
         None = 0x0, Default = AllEntity | Export | Sync,
         AllEntity = OrganizationAll | ProjectAll | PersonAll | TimeInvoiceAll,
-        //AllEntity = Alternate, //TimeInvoiceAll, //
         //AllEntity = TimeInvoiceAll,
 
         // OPERATIONS
@@ -43,7 +42,7 @@ namespace Automa.IO.Unanet
         ProjectLaborCategoryChanged = ProjectLaborCategory | Export,
 
         // 0x08 - Person
-        PersonMask = 0x0800F000, PersonAll = Person, // | Alternate,
+        PersonMask = 0x0800F000, PersonAll = Person | Alternate, //ApprovalGroups
         Person = 0x08001000,
         Alternate = 0x08002000,
         ApprovalGroups = 0x08004000,

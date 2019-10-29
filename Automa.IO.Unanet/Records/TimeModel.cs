@@ -36,6 +36,8 @@ namespace Automa.IO.Unanet.Records
         public string time_period_begin_date { get; set; }
         public string post_date { get; set; }
         public string additional_pay_rate { get; set; }
+        // new
+        public string invoiced { get; set; }
 
         public static Task<bool> ExportFileAsync(UnanetClient una, string sourceFolder, int window, string legalEntity = "75-00-DEG-00 - Digital Evolution Group, LLC", Action<HtmlFormPost> func = null)
         {
@@ -105,8 +107,8 @@ namespace Automa.IO.Unanet.Records
             if (syncFileA == null)
                 return xml;
             var syncFile = string.Format(syncFileA, ".t.xml");
-            if (!Directory.Exists(Path.GetDirectoryName(syncFileA)))
-                Directory.CreateDirectory(Path.GetDirectoryName(syncFileA));
+            if (!Directory.Exists(Path.GetDirectoryName(syncFile)))
+                Directory.CreateDirectory(Path.GetDirectoryName(syncFile));
             File.WriteAllText(syncFile, xml);
             return xml;
         }

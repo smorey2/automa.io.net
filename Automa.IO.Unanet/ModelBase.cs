@@ -1,6 +1,7 @@
 ﻿using Automa.IO.Unanet.Records;
 using System;
 using System.Collections.Generic;
+using System.Text.RegularExpressions;
 using System.Xml.Linq;
 
 namespace Automa.IO.Unanet

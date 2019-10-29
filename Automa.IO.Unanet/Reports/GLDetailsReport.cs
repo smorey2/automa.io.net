@@ -92,17 +92,17 @@ namespace Automa.IO.Unanet.Reports
                     PersonName = x[14],
                     Reference = x[15],
                     ProjectOrg = x[16].ToProjectToOrg(),
-                    ProjectCode = x[16],
-                    ProjectTitle = x[17],
+                    ProjectCode = x[17],
+                    ProjectTitle = x[18],
                     //
-                    Quantity = x[18].ToDecimal(),
-                    BeginningBalance = x[19].ToDecimal(),
-                    Debit = x[20].ToDecimal(),
-                    Credit = x[21].ToDecimal(),
-                    EndingBalance = x[22].ToDecimal(),
+                    Quantity = x[19].ToDecimal(),
+                    BeginningBalance = x[20].ToDecimal(),
+                    Debit = x[21].ToDecimal(),
+                    Credit = x[22].ToDecimal(),
+                    EndingBalance = x[23].ToDecimal(),
                     //
-                    AccountTypeOrderBy = x[23],
-                    ArrangeBy = x[24],
+                    AccountTypeOrderBy = x[24],
+                    ArrangeBy = x[25],
                 }, 1).ToList();
         }
 
@@ -118,8 +118,8 @@ namespace Automa.IO.Unanet.Reports
             if (syncFileA == null)
                 return xml;
             var syncFile = string.Format(syncFileA, $".r_g{accountType[0]}.xml");
-            if (!Directory.Exists(Path.GetDirectoryName(syncFileA)))
-                Directory.CreateDirectory(Path.GetDirectoryName(syncFileA));
+            if (!Directory.Exists(Path.GetDirectoryName(syncFile)))
+                Directory.CreateDirectory(Path.GetDirectoryName(syncFile));
             File.WriteAllText(syncFile, xml);
             return xml;
         }

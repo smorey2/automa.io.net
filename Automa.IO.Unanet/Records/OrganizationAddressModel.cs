@@ -72,8 +72,8 @@ namespace Automa.IO.Unanet.Records
             if (syncFileA == null)
                 return xml;
             var syncFile = string.Format(syncFileA, ".o_oa.xml");
-            if (!Directory.Exists(Path.GetDirectoryName(syncFileA)))
-                Directory.CreateDirectory(Path.GetDirectoryName(syncFileA));
+            if (!Directory.Exists(Path.GetDirectoryName(syncFile)))
+                Directory.CreateDirectory(Path.GetDirectoryName(syncFile));
             File.WriteAllText(syncFile, xml);
             return xml;
         }
@@ -103,8 +103,8 @@ namespace Automa.IO.Unanet.Records
             //}
             if (list?.Count > 1) { last = $"list > 1"; return ManageFlags.OrganizationAddressChanged; }
             var key = list?.Single().Key;
-            var r = una.SubmitSubManage("C", add ? HttpMethod.Post : HttpMethod.Put, "organizations/addresses",
-                $"key={key}", $"orgKey={s.organization_codeKey}", "&streetAddress=&city=&state=&postalCode=&country=",
+            var r = una.SubmitSubManage("C", add ? HttpMethod.Post : HttpMethod.Put, "organizations/addresses", $"key={key}",
+                $"orgKey={s.organization_codeKey}", "&streetAddress=&city=&state=&postalCode=&country=",
                 out last, (z, f) =>
             {
                 //if (add || cf.Contains("oc")) f.Values["xxx"] = s.organization_code;

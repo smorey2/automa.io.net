@@ -104,8 +104,8 @@ namespace Automa.IO.Unanet.Records
             if (syncFileA == null)
                 return xml;
             var syncFile = string.Format(syncFileA, ".o_cp.xml");
-            if (!Directory.Exists(Path.GetDirectoryName(syncFileA)))
-                Directory.CreateDirectory(Path.GetDirectoryName(syncFileA));
+            if (!Directory.Exists(Path.GetDirectoryName(syncFile)))
+                Directory.CreateDirectory(Path.GetDirectoryName(syncFile));
             File.WriteAllText(syncFile, xml);
             return xml;
         }
@@ -122,8 +122,8 @@ namespace Automa.IO.Unanet.Records
             var list = add ? null : GetList(una, s.organization_codeKey);
             if (list?.Count > 1) { last = $"list > 1"; return ManageFlags.CustomerProfileChanged; }
             var key = list?.Single().Key;
-            var r = una.SubmitSubManage("C", add ? HttpMethod.Post : HttpMethod.Put, "organizations/customer_org",
-                $"key={key}", $"orgKey={s.organization_codeKey}", "legalEntityOrg=-1&paymentTerm=1&active=true",
+            var r = una.SubmitSubManage("C", add ? HttpMethod.Post : HttpMethod.Put, "organizations/customer_org", $"key={key}",
+                $"orgKey={s.organization_codeKey}", "legalEntityOrg=-1&paymentTerm=1&active=true",
                 out last, (z, f) =>
             {
                 //if (add || cf.Contains("oc")) f.FromSelect("xxx", s.organization_code);

@@ -103,15 +103,15 @@ namespace Automa.IO.Unanet.Records
             if (syncFileA == null)
                 return xml;
             var syncFile = string.Format(syncFileA, ".j_a.xml");
-            Directory.CreateDirectory(Path.GetDirectoryName(syncFileA));
-            if (!Directory.Exists(Path.GetDirectoryName(syncFileA)))
-                Directory.CreateDirectory(Path.GetDirectoryName(syncFileA));
+            if (!Directory.Exists(Path.GetDirectoryName(syncFile)))
+                Directory.CreateDirectory(Path.GetDirectoryName(syncFile));
             File.WriteAllText(syncFile, xml);
             return xml;
         }
 
         public class p_Assignment1 : AssignmentModel
         {
+            public string XA { get; set; }
             public string XCF { get; set; }
         }
 
@@ -126,8 +126,8 @@ namespace Automa.IO.Unanet.Records
                     {
                         if (!Unanet.Lookups.TryGetCostCentersAndDefault(s.assign, out var assignKey))
                             throw new InvalidOperationException($"unable to find org {s.assign}");
-                        var r = una.SubmitSubManage("E", method, $"projects/orgs",
-                            $"key={assignKey}&nextKey=0", $"projectkey={s.project_codeKey}", null,
+                        var r = una.SubmitSubManage("E", method, $"projects/orgs", $"key={assignKey}&nextKey=0",
+                            $"projectkey={s.project_codeKey}", null,
                             out last, (z, f) =>
                             {
                                 if (add)
@@ -143,9 +143,8 @@ namespace Automa.IO.Unanet.Records
                     }
                 case "2":
                     {
-                        var r = una.SubmitSubManage(add ? "E" : "F", method, $"projects/assignment",
-                            null, $"projectkey={s.project_codeKey}",
-                            "savedCriteria=&person_mod=false&personClass=com.unanet.page.projects.ScheduledPeopleMenu%24ScheduleListPeopleMenu&person_dbValue=&person_personOrgCode_fltr=&person_lastname_fltr=&person_outputActive=true&location_mod=false&locationClass=com.unanet.page.criteria.FilteredLocationMenu&location_dbValue=&location_location_fltr=&dateRange_bDate=BOT&dateRange_eDate=EOT&dateRange=bot_eot&unit=HOUR&showEstimates=true&savedListName=&criteriaClass=com.unanet.page.projects.AssignmentListCriteria&loadValues=true&restore=false&list=true",
+                        var r = una.SubmitSubManage(add ? "E" : "F", method, $"projects/assignment", null,
+                            $"projectkey={s.project_codeKey}", "savedCriteria=&person_mod=false&personClass=com.unanet.page.projects.ScheduledPeopleMenu%24ScheduleListPeopleMenu&person_dbValue=&person_personOrgCode_fltr=&person_lastname_fltr=&person_outputActive=true&location_mod=false&locationClass=com.unanet.page.criteria.FilteredLocationMenu&location_dbValue=&location_location_fltr=&dateRange_bDate=BOT&dateRange_eDate=EOT&dateRange=bot_eot&unit=HOUR&showEstimates=true&savedListName=&criteriaClass=com.unanet.page.projects.AssignmentListCriteria&loadValues=true&restore=false&list=true",
                             out last, (z, f) =>
                             {
                                 if (add)

@@ -15,7 +15,7 @@ namespace Automa.IO.Unanet
     {
         public static readonly DateTime BOT = new DateTime(0);
 
-        string UnanetUri => !_sandbox ? $"https://{_unanetId}.unanet.biz/{_unanetId}/action" : $"https://{_unanetId}-sand.unanet.biz/{_unanetId}-sand/action";
+        public string UnanetUri => !_sandbox ? $"https://{_unanetId}.unanet.biz/{_unanetId}/action" : $"https://{_unanetId}-sand.unanet.biz/{_unanetId}-sand/action";
         public IDictionary<string, Tuple<string, string>> Exports => !_sandbox ? Config.Exports : Config.ExportsSandbox;
         public IDictionary<string, string> Imports => Config.Imports;
 
@@ -291,6 +291,15 @@ namespace Automa.IO.Unanet
 
         #region Manage
 
+        public string PostValue(HttpMethod method, string entity, string entitySelect, string parentSelect, out string last)
+        {
+            var d0 = this.TryFunc(() => method == HttpMethod.Get ?
+                this.DownloadData(HttpMethod.Get, $"{UnanetUri}/{entity}?{parentSelect}") :
+                this.DownloadData(HttpMethod.Post, $"{UnanetUri}/{entity}?{parentSelect}", entitySelect));
+            last = null;
+            return d0;
+        }
+
         public object SubmitManage(HttpMethod method, string entity, string entitySelect, out string last, Action<string, HtmlFormPost> action = null, string marker = null, Func<string, object> valueFunc = null)
         {
             string body, url = null;
@@ -328,10 +337,15 @@ namespace Automa.IO.Unanet
             {
                 switch (type)
                 {
+                    case "0":
+                        d0 = this.TryFunc(() => method == HttpMethod.Get ?
+                            this.DownloadData(HttpMethod.Get, $"{UnanetUri}/{entity}?{parentSelect}") :
+                            this.DownloadData(HttpMethod.Post, $"{UnanetUri}/{entity}?{parentSelect}", entitySelect));
+                        break;
                     case "A":
                         d0 = this.TryFunc(() => method == HttpMethod.Post ?
                             this.DownloadData(HttpMethod.Get, $"{UnanetUri}/{entity}/add?{parentSelect}") :
-                            this.DownloadData(HttpMethod.Post, $"{UnanetUri}/{entity}/edit?{parentSelect}", $"{entitySelect}"));
+                            this.DownloadData(HttpMethod.Post, $"{UnanetUri}/{entity}/edit?{parentSelect}", entitySelect));
                         break;
                     case "B":
                         d0 = this.TryFunc(() => this.DownloadData(HttpMethod.Post, $"{UnanetUri}/{entity}/edit", $"{entitySelect}&restore=true&isCopy=false&editAll=false&{parentSelect}"));

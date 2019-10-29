@@ -166,8 +166,8 @@ namespace Automa.IO.Unanet.Records
             if (syncFileA == null)
                 return xml;
             var syncFile = string.Format(syncFileA, ".j_t.xml");
-            if (!Directory.Exists(Path.GetDirectoryName(syncFileA)))
-                Directory.CreateDirectory(Path.GetDirectoryName(syncFileA));
+            if (!Directory.Exists(Path.GetDirectoryName(syncFile)))
+                Directory.CreateDirectory(Path.GetDirectoryName(syncFile));
             File.WriteAllText(syncFile, xml);
             return xml;
         }
@@ -182,8 +182,8 @@ namespace Automa.IO.Unanet.Records
             if (ManageRecordBase(s.key, s.XCF, 0, out var cf, out var add, out last))
                 return ManageFlags.TaskChanged;
             var organizations = Unanet.Lookups.CostCenters.Value;
-            var r = una.SubmitSubManage("B", add ? HttpMethod.Post : HttpMethod.Put, "task",
-                add ? "key=0&insertPos=1" : $"key={s.key}&insertPos=0", $"projectkey={s.project_codeKey}", null,
+            var r = una.SubmitSubManage("B", add ? HttpMethod.Post : HttpMethod.Put, "task", add ? "key=0&insertPos=1" : $"key={s.key}&insertPos=0",
+                $"projectkey={s.project_codeKey}", null,
                 out last, (z, f) =>
             {
                 //if (add || cf.Contains("poc")) f.Values["xxxx"] = s.project_org_code;
