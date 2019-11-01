@@ -36,9 +36,7 @@ namespace Automa.IO.Unanet.Records
         public string time_period_begin_date { get; set; }
         public string post_date { get; set; }
         public string additional_pay_rate { get; set; }
-        // new
-        public string invoiced { get; set; }
-
+        
         public static Task<bool> ExportFileAsync(UnanetClient una, string sourceFolder, int window, string legalEntity = "75-00-DEG-00 - Digital Evolution Group, LLC", Action<HtmlFormPost> func = null)
         {
             var filePath = Path.Combine(sourceFolder, $"{una.Exports["time"].Item2}.csv");

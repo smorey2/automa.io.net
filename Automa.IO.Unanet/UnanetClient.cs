@@ -106,13 +106,17 @@ namespace Automa.IO.Unanet
         {
             public class DataType
             {
-                public class Value { public string Key; public string Label; }
-                public string Error;
-                public bool Exceeded;
-                public int Limit;
-                public Value[] Results;
+                public class Value
+                {
+                    public string Key { get; set; }
+                    public string Label { get; set; }
+                }
+                public string Error { get; set; }
+                public bool Exceeded { get; set; }
+                public int Limit { get; set; }
+                public Value[] Results { get; set; }
             }
-            public DataType Data;
+            public DataType Data { get; set; }
         }
 
         /// <summary>

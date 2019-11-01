@@ -102,15 +102,6 @@ namespace Automa.IO
 
         #endregion
 
-        public static IEnumerable<T> RegExSelect<T>(this Match match, Func<Match, T> func)
-        {
-            while (match.Success)
-            {
-                yield return func(match);
-                match = match.NextMatch();
-            }
-        }
-
         #region String
 
         /// <summary>
