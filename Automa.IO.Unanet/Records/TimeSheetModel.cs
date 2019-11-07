@@ -12,7 +12,9 @@ namespace Automa.IO.Unanet.Records
 {
     public class TimeSheetModel : ModelBase
     {
-        public int keySheet { get; set; }
+        public int KeySheet { get; set; }
+        public (int? key, string name) Person { get; set; }
+        public DateTime Week { get; set; }
         public SheetStatus Status { get; set; }
         public Metadata Meta { get; set; }
         public List<Entry> Rows { get; set; }
@@ -104,7 +106,7 @@ namespace Automa.IO.Unanet.Records
         {
             var hours = 0M;
             var b = new StringBuilder();
-            b.AppendLine($"KeySheet: {keySheet}, Rows: {Rows.Count}");
+            b.AppendLine($"KeySheet: {KeySheet}, Rows: {Rows.Count}");
             b.AppendLine($"|{"PROJECT",40}|{"TASK",40}|{"LABCAT",15}|{"TYPE",8}|{"JURIS",8}| MON| TUE| WED| THU| FRI| SAT| SUN|");
             foreach (var row in Rows)
             {
@@ -123,8 +125,8 @@ namespace Automa.IO.Unanet.Records
             return (hours, b.ToString());
         }
 
-        public static string PreAdjust(UnanetClient una, int keySheet, out string last) =>
-            una.PostValue(HttpMethod.Get, "people/time/preadjust", null, $"timesheetkey={keySheet}", out last);
+        static string PreAdjust(UnanetClient una, int keySheet, out string last) =>
+           una.PostValue(HttpMethod.Get, "people/time/preadjust", null, $"timesheetkey={keySheet}", out last);
 
         public static TimeSheetModel Get(UnanetClient una, int keySheet, out string last, bool preAdjust = false)
         {
@@ -138,7 +140,7 @@ namespace Automa.IO.Unanet.Records
             return time;
         }
 
-        public static void Save(UnanetClient una, TimeSheetModel s, out string last)
+        public static bool Save(UnanetClient una, TimeSheetModel s, string submitComments, string approvalComments, out string last)
         {
             var f = new HtmlFormPost { Action = "/roundarch/action/people/time/save" };
             if (s.Status == SheetStatus.Inuse)
@@ -149,9 +151,9 @@ namespace Automa.IO.Unanet.Records
             else
             {
                 f.Add("submitButton", "action", "submit");
-                f.Add("submitComments", "text", "Submit");
+                f.Add("submitComments", "text", submitComments);
             }
-            f.Add("timesheetkey", "text", s.keySheet.ToString());
+            f.Add("timesheetkey", "text", s.KeySheet.ToString());
             for (var i = 0; i < 7; i++)
                 f.Add($"date_{i}", "text", s.Meta.Dates[i].ToString("M/d/yyyy"));
             f.Add("rows", "text", s.Rows.Count.ToString());
@@ -191,16 +193,21 @@ namespace Automa.IO.Unanet.Records
             var d1 = d0.ExtractSpanInner("<div class=\"error\">", "</div>");
             if (d1 != null)
                 last = d0.ExtractSpanInner("ERROR:");
-            if (last != null || !d0.Contains("Adjustments - Enter a change reason for all modified entries")) return;
-            // Adjustments - Enter a change reason for all modified entries
+            if (last != null || !d0.Contains("Adjustments - Enter a change reason for all modified entries"))
+                return false;
+
+            // adjustments
             f = new HtmlFormPost(d0);
             var post = f.ToString();
             //f["ignore_warnings"] = "true";
             f.Values["globalComment"] = "true";
-            f.Values["comments_00"] = "End of month adjustments";
+            f.Values["comments_00"] = approvalComments;
             f.Add("button_save", "text", null);
             d0 = una.PostValue(HttpMethod.Post, f.Action.Substring(18), f.ToString(), null, out last);
             d1 = d0.ExtractSpanInner("<div class=\"error\">", "</div>");
+            if (d1 != null)
+                last = d0.ExtractSpanInner("ERROR:");
+            return true;
         }
 
         public void MoveEntry(int key, int project_codeKey, int task_nameKey, out string last, Action<TimeSheetModel, Entry, KeyValuePair<int, Slip>> customClone = null)
@@ -272,6 +279,11 @@ namespace Automa.IO.Unanet.Records
 
         static TimeSheetModel ParseView(string source, int keySheet, SheetStatus status)
         {
+            var title = source.ExtractSpanInner("setSubsectionTitle('", "');");
+            var personString = title.ExtractSpanInner("Timesheet for", "(").Trim();
+            var person = ((int?)null, personString);
+            var week = DateTime.Parse(title.ExtractSpanInner(") (", " ").Trim());
+            //
             source = source.ExtractSpanInner("<table class=\"timesheet\">", "</table>");
             source = source.ExtractSpan("<tbody>", "</tbody>");
             var doc = XElement.Parse(source);
@@ -279,7 +291,7 @@ namespace Automa.IO.Unanet.Records
             string project = null;
             foreach (var tr in doc.Elements("tr"))
             {
-                if (tr.Attribute("class").Value.Contains("s0"))
+                if (tr.Attribute("class").Value.Contains("row-change"))
                 {
                     project = tr.Elements("td").ToArray()[0].Value;
                     continue;
@@ -306,7 +318,9 @@ namespace Automa.IO.Unanet.Records
             }
             return new TimeSheetModel
             {
-                keySheet = keySheet,
+                KeySheet = keySheet,
+                Person = person,
+                Week = week,
                 Status = status,
                 Rows = rows,
             };
@@ -314,6 +328,13 @@ namespace Automa.IO.Unanet.Records
 
         static TimeSheetModel ParseEdit(string source, int keySheet, SheetStatus status)
         {
+            var title = source.ExtractSpanInner("<title>", "</title>");
+            //var personString = string.Join(" ", title.ExtractSpanInner("Timesheet for", "(").Trim().Split(',').Reverse().ToArray());
+            var personString = title.ExtractSpanInner("Timesheet for", "(").Trim();
+            var personGroups = Regex.Match(source.ExtractSpanInner("new Person(", ");"), @"([\d]+),([\d]+),([\d]+)").Groups;
+            var person = ((int?)int.Parse(personGroups[1].Value), personString);
+            var week = DateTime.Parse(title.ExtractSpanInner("(", " ").Trim());
+            //
             var meta = new Metadata
             {
                 ProjectTypes = Regex.Matches(source.ExtractSpanInner("var projecttypes = [", "];"), @"key:([\d]+).*\('([^']*)'\)", RegexOptions.Multiline).Cast<Match>()
@@ -394,7 +415,9 @@ namespace Automa.IO.Unanet.Records
                 }).ToList();
             return new TimeSheetModel
             {
-                keySheet = keySheet,
+                KeySheet = keySheet,
+                Person = person,
+                Week = week,
                 Status = status,
                 Meta = meta,
                 Rows = rows,

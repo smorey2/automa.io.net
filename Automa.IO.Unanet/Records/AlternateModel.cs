@@ -71,7 +71,9 @@ namespace Automa.IO.Unanet.Records
                 $"personkey={s.alternate_usernameKey}", null,
                 out last, (z, f) =>
                 {
-                    var roleKey = f.Selects["attributes"].First(x => x.Value.Replace(" ", "").ToLowerInvariant() == s.role.ToLowerInvariant()).Key;
+                    var roleKey = f.Selects["attributes"].FirstOrDefault(x => x.Value.Replace(" ", "").ToLowerInvariant() == s.role.ToLowerInvariant()).Key;
+                    if (roleKey == null)
+                        return null;
                     f.Values[method == HttpMethod.Delete ? "unassign" : "assign"] = $"{s.usernameKey};{roleKey}";
                     f.Add("button_save", "action", null);
                     return f.ToString();

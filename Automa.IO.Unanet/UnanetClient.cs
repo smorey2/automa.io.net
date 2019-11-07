@@ -13,6 +13,7 @@ namespace Automa.IO.Unanet
     /// </summary>
     public partial class UnanetClient : AutomaClient
     {
+        protected readonly static int DownloadTimeoutInSeconds = 150;
         public static readonly DateTime BOT = new DateTime(0);
 
         public string UnanetUri => !_sandbox ? $"https://{_unanetId}.unanet.biz/{_unanetId}/action" : $"https://{_unanetId}-sand.unanet.biz/{_unanetId}-sand/action";
@@ -49,7 +50,7 @@ namespace Automa.IO.Unanet
         /// <param name="interceptFilename">The intercept filename.</param>
         /// <returns><c>true</c> if XXXX, <c>false</c> otherwise.</returns>
         /// <exception cref="InvalidOperationException">unexpected form action returned from unanet</exception>
-        public bool RunReport(string report, Action<HtmlFormPost> action, string executeFolder, Func<string, string> interceptFilename = null)
+        public string RunReport(string report, Func<HtmlFormPost, string> action, string executeFolder = null, Func<string, string> interceptFilename = null)
         {
             string body, url;
             // parse
@@ -57,17 +58,25 @@ namespace Automa.IO.Unanet
                 var d0 = this.TryFunc(() => this.DownloadData(HttpMethod.Get, $"{UnanetUri}/reports/{report}/search"));
                 var d1 = d0.ExtractSpan("<form method=\"post\" name=\"search\"", "</form>");
                 var htmlForm = new HtmlFormPost(d1);
-                action(htmlForm);
-                body = htmlForm.ToString();
-                if (!htmlForm.Action.StartsWith("/roundarch/action"))
-                    throw new InvalidOperationException("unexpected form action returned from unanet");
-                url = UnanetUri + htmlForm.Action.Substring(17);
+                body = action(htmlForm);
+                if (body == null)
+                    return null;
+                url = UnanetUri + GetPostUrl(htmlForm.Action);
             }
             // download
             {
-                var d0 = this.TryFunc(() => this.DownloadFile(executeFolder, HttpMethod.Post, $"{url}/csv", body, interceptFilename: interceptFilename));
-                return true;
+                var d0 = this.TryFunc(() => executeFolder != null
+                    ? this.DownloadFile(executeFolder, HttpMethod.Post, $"{url}/csv", body, interceptFilename: interceptFilename)
+                    : this.DownloadData(HttpMethod.Post, url, body));
+                return d0;
             }
+        }
+
+        public string GetPostUrl(string action)
+        {
+            if (action == null || !action.StartsWith("/roundarch/action"))
+                throw new InvalidOperationException("unexpected form action returned from unanet");
+            return action.Substring(17);
         }
 
         #endregion
@@ -188,7 +197,7 @@ namespace Automa.IO.Unanet
             }
             // submit
             {
-                var d0 = this.TryFunc(() => this.DownloadData(HttpMethod.Post, $"{UnanetUri}/admin/export/template/run", body));
+                var d0 = this.TryFunc(() => this.DownloadData(HttpMethod.Post, $"{UnanetUri}/admin/export/template/run", body, timeoutInSeconds: DownloadTimeoutInSeconds));
                 var d1 = d0.ExtractSpan("<form name=\"downloadForm\"", "</form>");
                 if (d1 == null)
                 {
@@ -315,9 +324,12 @@ namespace Automa.IO.Unanet
                 try { action(d0, htmlForm); }
                 catch (Exception e) { last = e.Message; throw; }
                 body = htmlForm.ToString();
-                if (htmlForm.Action == null || !htmlForm.Action.StartsWith("/roundarch/action"))
-                    throw new InvalidOperationException("unexpected form action returned from unanet");
-                url = UnanetUri + htmlForm.Action.Substring(17);
+                if (body == null)
+                {
+                    last = null;
+                    return null;
+                }
+                url = UnanetUri + GetPostUrl(htmlForm.Action);
             }
             // submit
             {
@@ -370,9 +382,12 @@ namespace Automa.IO.Unanet
                 var htmlForm = new HtmlFormPost(d0, formOptions: formSettings);
                 try { body = func(d0, htmlForm); }
                 catch (Exception e) { last = e.Message; throw; }
-                if (htmlForm.Action == null || !htmlForm.Action.StartsWith("/roundarch/action"))
-                    throw new InvalidOperationException("unexpected form action returned from unanet");
-                url = UnanetUri + htmlForm.Action.Substring(17);
+                if (body == null)
+                {
+                    last = null;
+                    return null;
+                }
+                url = UnanetUri + GetPostUrl(htmlForm.Action);
             }
             else
             {

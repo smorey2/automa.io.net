@@ -28,6 +28,7 @@ namespace Automa.IO.Unanet
             { "assignment", new Tuple<string, string>("737", "DEG_ Assignment") },
             { "project administrator", new Tuple<string, string>("738", "DEG_ Project Administrators") },
             { "labor category project", new Tuple<string, string>("0", "DEG_ Labor Category - Project") },
+            { "project invoice setup", new Tuple<string, string>("0", "Project Invoice Setup") },
 
             // Person
             { "person", new Tuple<string, string>("730", "DEG_ Person") },
@@ -47,9 +48,9 @@ namespace Automa.IO.Unanet
             //{ "vendor profile", new Tuple<string, string>("741", "DEG_ Vendor Profile") },
             //
             { "organization", new Tuple<string, string>("734", "DEG_ Organization") },
-            { "customer profile", new Tuple<string, string>("828", "Customer Profile") }, //base
-            { "organization address", new Tuple<string, string>("847", "Organization Address") }, //base
-            { "organization contact", new Tuple<string, string>("848", "Organization Contact") }, //base
+            { "customer profile", new Tuple<string, string>("828", "Customer Profile") },
+            { "organization address", new Tuple<string, string>("847", "Organization Address") },
+            { "organization contact", new Tuple<string, string>("848", "Organization Contact") },
 
             // Project
             { "project", new Tuple<string, string>("810", "DEG_ Project") },
@@ -57,17 +58,18 @@ namespace Automa.IO.Unanet
             { "fixed price item", new Tuple<string, string>("795", "DEG_ Fixed Price Item") },
             { "fixed price item [post]", new Tuple<string, string>("733", "DEG_ Fixed Price Item [post]") },
             { "assignment", new Tuple<string, string>("812", "DEG_ Assignment") },
-            { "project administrator", new Tuple<string, string>("857", "Project Administrators") }, //base
+            { "project administrator", new Tuple<string, string>("857", "Project Administrators") },
             { "labor category project", new Tuple<string, string>("817", "DEG_ Labor Category - Project") },
+            { "project invoice setup", new Tuple<string, string>("859", "Project Invoice Setup") },
 
             // Person
             { "person", new Tuple<string, string>("811", "DEG_ Person") },
-            { "alternate", new Tuple<string, string>("824", "Alternate") }, //base
-            { "approval group", new Tuple<string, string>("825", "Approval Group") }, //base
+            { "alternate", new Tuple<string, string>("824", "Alternate") },
+            { "approval group", new Tuple<string, string>("825", "Approval Group") },
 
             // Time/Invoice
             { "time", new Tuple<string, string>("819", "DEG_ Time") },
-            { "invoice", new Tuple<string, string>("724", "Invoice Export") }, //base
+            { "invoice", new Tuple<string, string>("724", "Invoice Export") },
         };
 
         #endregion

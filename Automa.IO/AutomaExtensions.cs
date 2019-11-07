@@ -700,10 +700,11 @@ namespace Automa.IO
         /// <param name="interceptRequest">The intercept request.</param>
         /// <param name="updateCookies">if set to <c>true</c> [update cookies].</param>
         /// <param name="onError">The on error.</param>
+        /// <param name="timeoutInSeconds">The timeout in seconds.</param>
         /// <returns>HttpWebResponse.</returns>
         /// <exception cref="ArgumentOutOfRangeException">method</exception>
         /// <exception cref="System.ArgumentOutOfRangeException">method</exception>
-        public static HttpWebResponse DownloadPreamble(this IHasCookies source, HttpMethod method, string url, object body, string contentType = null, Action<HttpWebRequest> interceptRequest = null, bool updateCookies = false, Action<HttpStatusCode, string> onError = null)
+        public static HttpWebResponse DownloadPreamble(this IHasCookies source, HttpMethod method, string url, object body, string contentType = null, Action<HttpWebRequest> interceptRequest = null, bool updateCookies = false, Action<HttpStatusCode, string> onError = null, decimal timeoutInSeconds = -1M)
         {
             HttpWebRequest rq;
             if (method == HttpMethod.Get && body != null)
@@ -731,6 +732,8 @@ namespace Automa.IO
             rq.ProtocolVersion = HttpVersion.Version11;
             rq.AllowAutoRedirect = true;
             rq.ContentType = contentType ?? "application/x-www-form-urlencoded; charset=UTF-8";
+            if (timeoutInSeconds >= 0)
+                rq.Timeout = (int)(timeoutInSeconds * 1000);
             interceptRequest?.Invoke(rq);
             if (method != HttpMethod.Get && body != null)
             {
@@ -801,10 +804,11 @@ namespace Automa.IO
         /// <param name="interceptRequest">The intercept request.</param>
         /// <param name="updateCookies">if set to <c>true</c> [update cookies].</param>
         /// <param name="onError">The on error.</param>
+        /// <param name="timeoutInSeconds">The timeout in seconds.</param>
         /// <returns>System.String.</returns>
-        public static string DownloadData(this IHasCookies source, HttpMethod method, string url, object body = null, string contentType = null, Action<HttpWebRequest> interceptRequest = null, bool updateCookies = true, Action<HttpStatusCode, string> onError = null)
+        public static string DownloadData(this IHasCookies source, HttpMethod method, string url, object body = null, string contentType = null, Action<HttpWebRequest> interceptRequest = null, bool updateCookies = true, Action<HttpStatusCode, string> onError = null, decimal timeoutInSeconds = -1M)
         {
-            var rs = source.DownloadPreamble(method, url, body, contentType, interceptRequest, updateCookies, onError);
+            var rs = source.DownloadPreamble(method, url, body, contentType, interceptRequest, updateCookies, onError, timeoutInSeconds);
             using (var r = new StreamReader(rs.GetResponseStream()))
                 return r.ReadToEnd();
         }
@@ -821,9 +825,9 @@ namespace Automa.IO
         /// <param name="updateCookies">if set to <c>true</c> [update cookies].</param>
         /// <param name="onError">The on error.</param>
         /// <returns>JToken.</returns>
-        public static JToken DownloadJson(this IHasCookies source, HttpMethod method, string url, object body = null, string contentType = null, Action<HttpWebRequest> interceptRequest = null, bool updateCookies = true, Action<HttpStatusCode, string> onError = null)
+        public static JToken DownloadJson(this IHasCookies source, HttpMethod method, string url, object body = null, string contentType = null, Action<HttpWebRequest> interceptRequest = null, bool updateCookies = true, Action<HttpStatusCode, string> onError = null, decimal timeoutInSeconds = -1M)
         {
-            var d = source.DownloadData(method, url, body, contentType, interceptRequest, updateCookies, onError);
+            var d = source.DownloadData(method, url, body, contentType, interceptRequest, updateCookies, onError, timeoutInSeconds);
             return JToken.Parse(d);
         }
 
@@ -841,10 +845,11 @@ namespace Automa.IO
         /// <param name="interceptFilename">The intercept filename.</param>
         /// <param name="updateCookies">if set to <c>true</c> [update cookies].</param>
         /// <param name="onError">The on error.</param>
+        /// <param name="timeoutInSeconds">The timeout in seconds.</param>
         /// <returns>System.String.</returns>
-        public static string DownloadFile(this IHasCookies source, string filePath, HttpMethod method, string url, object body = null, string contentType = null, Action<HttpWebRequest> interceptRequest = null, Action<Stream, Stream> interceptResponse = null, Func<string, string> interceptFilename = null, bool updateCookies = false, Action<HttpStatusCode, string> onError = null)
+        public static string DownloadFile(this IHasCookies source, string filePath, HttpMethod method, string url, object body = null, string contentType = null, Action<HttpWebRequest> interceptRequest = null, Action<Stream, Stream> interceptResponse = null, Func<string, string> interceptFilename = null, bool updateCookies = false, Action<HttpStatusCode, string> onError = null, decimal timeoutInSeconds = -1M)
         {
-            var rs = source.DownloadPreamble(method, url, body, contentType, interceptRequest, updateCookies, onError);
+            var rs = source.DownloadPreamble(method, url, body, contentType, interceptRequest, updateCookies, onError, timeoutInSeconds);
             return CompleteDownload(rs, filePath, null, interceptResponse, interceptFilename);
         }
 
@@ -862,10 +867,11 @@ namespace Automa.IO
         /// <param name="interceptFilename">The intercept filename.</param>
         /// <param name="updateCookies">if set to <c>true</c> [update cookies].</param>
         /// <param name="onError">The on error.</param>
+        /// <param name="timeoutInSeconds">The timeout in seconds.</param>
         /// <returns>System.String.</returns>
-        public static string DownloadFile(this IHasCookies source, Stream stream, HttpMethod method, string url, object body = null, string contentType = null, Action<HttpWebRequest> interceptRequest = null, Action<Stream, Stream> interceptResponse = null, Func<string, string> interceptFilename = null, bool updateCookies = false, Action<HttpStatusCode, string> onError = null)
+        public static string DownloadFile(this IHasCookies source, Stream stream, HttpMethod method, string url, object body = null, string contentType = null, Action<HttpWebRequest> interceptRequest = null, Action<Stream, Stream> interceptResponse = null, Func<string, string> interceptFilename = null, bool updateCookies = false, Action<HttpStatusCode, string> onError = null, decimal timeoutInSeconds = -1M)
         {
-            var rs = source.DownloadPreamble(method, url, body, contentType, interceptRequest, updateCookies, onError);
+            var rs = source.DownloadPreamble(method, url, body, contentType, interceptRequest, updateCookies, onError, timeoutInSeconds);
             return CompleteDownload(rs, null, stream, interceptResponse, interceptFilename);
         }
 

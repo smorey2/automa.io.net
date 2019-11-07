@@ -39,7 +39,8 @@ namespace Automa.IO.Unanet.Reports
             {
                 f.FromSelect("legalEntity", legalEntity);
                 f.FromSelect("arrangeBy", "Customer");
-            }, sourceFolder));
+                return f.ToString();
+            }, sourceFolder) != null);
         }
 
         public static IEnumerable<ARAgingReport> Read(UnanetClient una, string sourceFolder)

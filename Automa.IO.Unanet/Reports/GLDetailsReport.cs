@@ -64,7 +64,8 @@ namespace Automa.IO.Unanet.Reports
                 f.Values["fpRange_fpEnd"] = f.Selects["fpRange_fpEnd"].Single(x => x.Value == fpEnd).Key;
                 f.FromSelect("fpRange", "custom");
                 f.FromSelect("orgHierarchy", "Organization");
-            }, sourceFolder));
+                return f.ToString();
+            }, sourceFolder) != null);
         }
 
         public static IEnumerable<GLDetailsReport> Read(UnanetClient una, string accountType, string sourceFolder)

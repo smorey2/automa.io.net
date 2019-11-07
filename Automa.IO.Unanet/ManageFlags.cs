@@ -7,7 +7,7 @@ namespace Automa.IO.Unanet
     {
         None = 0x0, Default = AllEntity | Export | Sync,
         AllEntity = OrganizationAll | ProjectAll | PersonAll | TimeInvoiceAll,
-        //AllEntity = TimeInvoiceAll,
+        //AllEntity = Project,
 
         // OPERATIONS
         Export = 0x1, Sync = 0x2,
@@ -33,12 +33,14 @@ namespace Automa.IO.Unanet
         FixedPrice = 0x02000800,
         Assignment = 0x04000000,
         ProjectAdministrator = 0x04000100,
+        ProjectInvoiceSetup = 0x04000200,
         // changed
         ProjectChanged = Project | Export,
         TaskChanged = Task | Export,
         FixedPriceChanged = FixedPrice | Export,
         AssignmentChanged = Assignment | Export,
         ProjectAdministratorChanged = ProjectAdministrator | Export,
+        ProjectInvoiceSetupChanged = ProjectInvoiceSetup | Export,
         ProjectLaborCategoryChanged = ProjectLaborCategory | Export,
 
         // 0x08 - Person
