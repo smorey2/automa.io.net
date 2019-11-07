@@ -1,5 +1,4 @@
-﻿using HtmlAgilityPack;
-using System;
+﻿using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Net.Http;
@@ -8,27 +7,21 @@ namespace Automa.IO.Unanet.Records
 {
     public class ApprovalModel : ModelBase
     {
-        public static object ManagerApprovalByKeySheet(UnanetClient una, string personName, int keySheet, out string last) => Approve(una, "people", personName, "keySheet", keySheet, out last);
-        public static object ProjectApprovalByKeySheet(UnanetClient una, string personName, int keySheet, out string last) => Approve(una, "projects", personName, "keySheet", keySheet, out last);
-        static object Approve(UnanetClient una, string type, string personName, string method, int? keySheet, out string last)
-        {
-            GetApprovals(una, type, personName, out last);
-            if (last != null)
-                return null;
-            return null;
-        }
+        #region Classes
 
         public class Grid
         {
+            public string Label { get; set; }
             public int Key { get; set; }
             public string Name { get; set; }
             public string PersonName { get; set; }
-            public Dictionary<(int key, string keyType), GridRow> Rows { get; set; }
+            public Dictionary<(string key, string keyType), GridRow> Rows { get; set; }
         }
 
         public class GridRow
         {
-            public int Key { get; set; }
+            public string Label { get; set; }
+            public string Key { get; set; }
             public string KeyType { get; set; }
             public string Name { get; set; }
             public string PersonName { get; set; }
@@ -39,10 +32,55 @@ namespace Automa.IO.Unanet.Records
             public string Comments { get; set; }
         }
 
-        public static Grid GetApprovals(UnanetClient una, string type, string personName, out string last)
+        #endregion
+
+        public static bool ManagerApprovalByKey(UnanetClient una, string personName, (string key, string keyType) key, string comments, out string last) => Approve(una, "people", personName, "key", key, comments, out last);
+        public static bool ManagerApprovalByKeyMatch(UnanetClient una, string personName, (string key, string keyType) key, string comments, out string last) => Approve(una, "people", personName, "keyMatch", key, comments, out last);
+        public static bool ProjectApprovalByKey(UnanetClient una, string personName, (string key, string keyType) key, string comments, out string last) => Approve(una, "projects", personName, "key", key, comments, out last);
+        public static bool ProjectApprovalByKeyMatch(UnanetClient una, string personName, (string key, string keyType) key, string comments, out string last) => Approve(una, "projects", personName, "keyMatch", key, comments, out last);
+        public static bool Approve(UnanetClient una, string type, string personName, string method, (string key, string keyType)? key, string comments, out string last)
+        {
+            var found = FindApproval(una, type, personName, out last);
+            if (last != null || found.grid.Rows == null)
+                return false;
+            GridRow row;
+            switch (method)
+            {
+                case "all":
+                    foreach (var row0 in found.grid.Rows.Values)
+                        Approve(una, type, found, row0, comments, out last);
+                    return true;
+                case "first":
+                    row = found.grid.Rows.FirstOrDefault().Value;
+                    if (row == null)
+                        return false;
+                    Approve(una, type, found, row, comments, out last);
+                    return true;
+                case "firstTime":
+                    row = found.grid.Rows.FirstOrDefault(x => x.Key.keyType == "Time").Value;
+                    if (row == null)
+                        return false;
+                    Approve(una, type, found, row, comments, out last);
+                    return true;
+                case "key":
+                    if (!found.grid.Rows.TryGetValue(key.Value, out row))
+                    {
+                        last = $"Unable to find {key} for {personName}";
+                        return false;
+                    }
+                    Approve(una, type, found, row, comments, out last);
+                    return true;
+                case "keyMatch":
+                    foreach (var row0 in found.grid.Rows.Values.Where(x => x.Key.EndsWith($",{key.Value.key}") && x.KeyType == key.Value.keyType))
+                        Approve(una, type, found, row0, comments, out last);
+                    return true;
+                default: throw new ArgumentOutOfRangeException(nameof(method), method);
+            }
+        }
+
+        public static (Grid grid, HtmlFormPost form) FindApproval(UnanetClient una, string type, string personName, out string last)
         {
             last = null;
-
             string prefix;
             switch (type)
             {
@@ -55,12 +93,12 @@ namespace Automa.IO.Unanet.Records
                 var d0 = una.PostValue(HttpMethod.Get, $"{type}/approvals/alternate", null, null, out last);
                 if (d0.Contains("Unauthorized"))
                     throw new InvalidOperationException("Unauthorized");
-                var items = Parse(d0, prefix);
+                var items = ParseApproval(d0, prefix);
                 var found = items.TryGetValue(personName, out var item) ? item
-                    : personName == "first" ? items.First().Value
+                    : personName == "first" ? items.Where(x => x.Key != "Benson, Tim").First().Value
                     : null;
                 if (found == null)
-                    return null;
+                    return (null, null);
                 // first post
                 var f = new HtmlFormPost(d0);
                 var key = found.Key;
@@ -82,17 +120,17 @@ namespace Automa.IO.Unanet.Records
                 f = new HtmlFormPost(d0);
                 url = una.GetPostUrl(f.Action);
                 d0 = una.PostValue(HttpMethod.Post, url, body, null, out last);
-                items = Parse(d0, prefix);
+                items = ParseApproval(d0, prefix);
                 found = items.TryGetValue(personName, out item) ? item
-                    : personName == "first" ? items.First().Value
+                    : personName == "first" ? items.Where(x => x.Key != "Benson, Tim").First().Value
                     : null;
-                return found;
+                return (found, f);
             }
             catch (Exception e) { last = e.Message; }
-            return null;
+            return (null, null);
         }
 
-        public static IDictionary<string, Grid> Parse(string source, string prefix)
+        public static IDictionary<string, Grid> ParseApproval(string source, string prefix)
         {
             source = source.ExtractSpan("<form", "</form>");
             var doc = source.ToHtmlDocument();
@@ -100,6 +138,7 @@ namespace Automa.IO.Unanet.Records
             var r = divs.Where((e, i) => i % 2 == 0).Select((a, b) => new { a, b = divs[b * 2 + 1].InnerHtml.ToHtmlDocument().DocumentNode })
                 .Select(x => new Grid
                 {
+                    Label = x.a.Attributes["id"].Value.Substring(6),
                     Key = int.Parse(x.a.Attributes["id"].Value.Substring(prefix.Length + 7).Replace("-a", "")),
                     Name = x.a.InnerText.Remove(x.a.InnerText.IndexOf("(")).Trim(),
                     PersonName = x.a.InnerText.ExtractSpanInner("(", ")").ToUpperInvariant(),
@@ -109,7 +148,8 @@ namespace Automa.IO.Unanet.Records
                         var tds = y.Descendants("td").ToArray();
                         return new GridRow
                         {
-                            Key = int.Parse(ats[2].Split(',').Last()),
+                            Label = y.Attributes["id"].Value,
+                            Key = ats[2],
                             KeyType = ats[1],
                             Name = tds[3].InnerText.Remove(tds[3].InnerText.IndexOf("(")).Trim(),
                             PersonName = tds[3].InnerText.ExtractSpanInner("(", ")").ToUpperInvariant(),
@@ -122,6 +162,49 @@ namespace Automa.IO.Unanet.Records
                     }).ToDictionary(z => (z.Key, z.KeyType)),
                 }).ToDictionary(x => x.Name);
             return r;
+        }
+
+        public static void Approve(UnanetClient una, string type, (Grid grid, HtmlFormPost form) found, GridRow row, string comments, out string last)
+        {
+            last = null;
+            string approvalType;
+            switch (type)
+            {
+                case "people": approvalType = "MANAGER"; break;
+                case "projects": approvalType = "PROJECT"; break;
+                default: throw new ArgumentOutOfRangeException(nameof(type), type);
+            }
+            try
+            {
+                var f = found.form;
+                if (found.grid.Rows != null)
+                    foreach (var group in found.grid.Rows.Keys.GroupBy(x => x.keyType))
+                        f.Add($"keys_{found.grid.Label}_{group.Key}", "text", $"{string.Join(";", group.Select(x => x.key).ToArray())};");
+                f.Remove("displaySet");
+                f.Values["approvalType"] = approvalType;
+                f.Values["fromQueue"] = "true";
+                f.Values["referralURL"] = $"/{type}/approvals/refresh";
+                string url;
+                switch (row.KeyType)
+                {
+                    case "Leave":
+                        url = "approve/leave";
+                        f.Values["leaveKey"] = row.Key;
+                        break;
+                    case "Time":
+                        url = "approve/time";
+                        var keys = row.Key.Split(',');
+                        f.Values["projectkey"] = keys[0];
+                        f.Values["timesheetkey"] = keys[1];
+                        break;
+                    default: throw new ArgumentOutOfRangeException(nameof(row.KeyType), row.KeyType);
+                }
+                f.Values["scrollToLabel"] = row.Label;
+                f.Add("comments", "text", comments);
+                var body = f.ToString();
+                var d0 = una.PostValue(HttpMethod.Post, url, body, null, out last);
+            }
+            catch (Exception e) { last = e.Message; }
         }
     }
 }

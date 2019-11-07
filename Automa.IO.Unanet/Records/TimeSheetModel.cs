@@ -106,7 +106,7 @@ namespace Automa.IO.Unanet.Records
         {
             var hours = 0M;
             var b = new StringBuilder();
-            b.AppendLine($"KeySheet: {KeySheet}, Rows: {Rows.Count}");
+            b.AppendLine($"Key: {KeySheet}, Rows: {Rows.Count}");
             b.AppendLine($"|{"PROJECT",40}|{"TASK",40}|{"LABCAT",15}|{"TYPE",8}|{"JURIS",8}| MON| TUE| WED| THU| FRI| SAT| SUN|");
             foreach (var row in Rows)
             {
@@ -153,7 +153,7 @@ namespace Automa.IO.Unanet.Records
                 f.Add("submitButton", "action", "submit");
                 f.Add("submitComments", "text", submitComments);
             }
-            f.Add("timesheetkey", "text", s.KeySheet.ToString());
+            f.Add("timesheetkey", "text", $"{s.KeySheet}");
             for (var i = 0; i < 7; i++)
                 f.Add($"date_{i}", "text", s.Meta.Dates[i].ToString("M/d/yyyy"));
             f.Add("rows", "text", s.Rows.Count.ToString());
@@ -329,12 +329,11 @@ namespace Automa.IO.Unanet.Records
         static TimeSheetModel ParseEdit(string source, int keySheet, SheetStatus status)
         {
             var title = source.ExtractSpanInner("<title>", "</title>");
-            //var personString = string.Join(" ", title.ExtractSpanInner("Timesheet for", "(").Trim().Split(',').Reverse().ToArray());
             var personString = title.ExtractSpanInner("Timesheet for", "(").Trim();
-            var personGroups = Regex.Match(source.ExtractSpanInner("new Person(", ");"), @"([\d]+),([\d]+),([\d]+)").Groups;
-            var person = ((int?)int.Parse(personGroups[1].Value), personString);
+            //var personGroups = Regex.Match(source.ExtractSpanInner("new Person(", ");"), @"([\d]+),(null|[\d]+),([\d]+)").Groups;
+            var person = ((int?)null, personString);
             var week = DateTime.Parse(title.ExtractSpanInner("(", " ").Trim());
-            //
+            // meta
             var meta = new Metadata
             {
                 ProjectTypes = Regex.Matches(source.ExtractSpanInner("var projecttypes = [", "];"), @"key:([\d]+).*\('([^']*)'\)", RegexOptions.Multiline).Cast<Match>()
@@ -372,7 +371,6 @@ namespace Automa.IO.Unanet.Records
                        Paycode = meta.Paycodes[int.Parse(m.Groups[4].Value)],
                    };
                }).ToDictionary(x => x.Key);
-
             // timeslips
             lastIdx = 0;
             source = source.ExtractSpan("timeslips = [];", "var dates = [];");
