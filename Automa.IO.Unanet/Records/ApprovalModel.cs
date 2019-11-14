@@ -2,6 +2,7 @@
 using System.Collections.Generic;
 using System.Linq;
 using System.Net.Http;
+using System.Threading;
 
 namespace Automa.IO.Unanet.Records
 {
@@ -34,11 +35,13 @@ namespace Automa.IO.Unanet.Records
 
         #endregion
 
-        public static bool ManagerApprovalByKey(UnanetClient una, string personName, (string key, string keyType) key, string comments, out string last) => Approve(una, "people", personName, "key", key, comments, out last);
-        public static bool ManagerApprovalByKeyMatch(UnanetClient una, string personName, (string key, string keyType) key, string comments, out string last) => Approve(una, "people", personName, "keyMatch", key, comments, out last);
-        public static bool ProjectApprovalByKey(UnanetClient una, string personName, (string key, string keyType) key, string comments, out string last) => Approve(una, "projects", personName, "key", key, comments, out last);
-        public static bool ProjectApprovalByKeyMatch(UnanetClient una, string personName, (string key, string keyType) key, string comments, out string last) => Approve(una, "projects", personName, "keyMatch", key, comments, out last);
-        public static bool Approve(UnanetClient una, string type, string personName, string method, (string key, string keyType)? key, string comments, out string last)
+        public static bool ManagerApprovalByKey(UnanetClient una, (string key, string keyType) key, string comments, string personName, out string last) => Approve(una, "people", "key", key, comments, personName, out last);
+        public static bool ManagerApprovalByKeyMatch(UnanetClient una, (string key, string keyType) key, string comments, string personName, out string last) => Approve(una, "people", "keyMatch", key, comments, personName, out last);
+        public static bool ProjectApprovalByKey(UnanetClient una, (string key, string keyType) key, string comments, string personName, out string last) => Approve(una, "projects", "key", key, comments, personName, out last);
+        public static bool ProjectApprovalByKeyMatch(UnanetClient una, (string key, string keyType) key, string comments, string personName, out string last) => Approve(una, "projects", "keyMatch", key, comments, personName, out last);
+        public static bool CustomerApprovalByKey(UnanetClient una, (string key, string keyType) key, string comments, string personName, out string last) => Approve(una, "customers", "key", key, comments, personName, out last);
+        public static bool CustomerApprovalByKeyMatch(UnanetClient una, (string key, string keyType) key, string comments, string personName, out string last) => Approve(una, "customers", "keyMatch", key, comments, personName, out last);
+        public static bool Approve(UnanetClient una, string type, string method, (string key, string keyType)? key, string comments, string personName, out string last)
         {
             var found = FindApproval(una, type, personName, out last);
             if (last != null || found.grid.Rows == null)
@@ -78,6 +81,24 @@ namespace Automa.IO.Unanet.Records
             }
         }
 
+        public static void ApproveSheet(UnanetClient una, (string key, string keyType) key, string comments, string[] projApprs, string[] managers, string[] customers, out string last)
+        {
+            last = null;
+            if (projApprs != null)
+                foreach (var personName in projApprs)
+                    ProjectApprovalByKeyMatch(una, key, comments, personName, out last);
+            if (managers != null)
+                foreach (var personName in managers)
+                {
+                    // delay to propagate
+                    Thread.Sleep(100);
+                    ManagerApprovalByKeyMatch(una, key, comments, personName, out last);
+                }
+            if (customers != null)
+                foreach (var personName in customers)
+                    CustomerApprovalByKeyMatch(una, key, comments, personName, out last);
+        }
+
         public static (Grid grid, HtmlFormPost form) FindApproval(UnanetClient una, string type, string personName, out string last)
         {
             last = null;
@@ -92,7 +113,7 @@ namespace Automa.IO.Unanet.Records
             {
                 var d0 = una.PostValue(HttpMethod.Get, $"{type}/approvals/alternate", null, null, out last);
                 if (d0.Contains("Unauthorized"))
-                    throw new InvalidOperationException("Unauthorized");
+                    throw new InvalidOperationException($"'{type}/approvals' was not authorized, please contact the administrator");
                 var items = ParseApproval(d0, prefix);
                 var found = items.TryGetValue(personName, out var item) ? item
                     : personName == "first" ? items.Where(x => x.Key != "Benson, Tim").First().Value

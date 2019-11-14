@@ -89,7 +89,7 @@ namespace Automa.IO.Unanet.Records
             if (ManageRecordBase(null, s.XCF, 1, out var cf, out var add, out last, canDelete: canDelete))
                 return ManageFlags.ProjectAdministratorChanged;
             var method = !cf.Contains("delete") ? add ? HttpMethod.Post : HttpMethod.Put : HttpMethod.Delete;
-            var r = una.SubmitSubManage("D", HttpMethod.Post, $"projects/controllers/{s.role}", null,
+            var r = una.SubmitSubManage("D", HttpMethod.Get, $"projects/controllers/{s.role}", null, //: POST
                 $"projectkey={s.project_codeKey}", null,
                 out last, (z, f) =>
             {

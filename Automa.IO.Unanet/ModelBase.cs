@@ -11,6 +11,17 @@ namespace Automa.IO.Unanet
         protected readonly static DateTime BeginTimeWindowDate = new DateTime(2019, 09, 30);
         protected readonly static DateTime BeginInvoiceWindowDate = new DateTime(2019, 01, 01);
 
+        //protected static string XEscape(string value)
+        //{
+        //    for (var x = 0; x < 5; x++)
+        //    {
+        //        var last = value;
+        //        value = HttpUtility.UrlDecode(value);
+        //        if (value == last)
+        //            return value;
+        //    }
+        //    throw new InvalidOperationException("XEscape");
+        //}
         protected static XAttribute XAttribute(string name, string value) => !string.IsNullOrEmpty(value) ? new XAttribute(name, value) : null;
         protected static XAttribute XAttribute<T>(string name, T? value) where T : struct => value != null ? new XAttribute(name, value.Value) : null;
 

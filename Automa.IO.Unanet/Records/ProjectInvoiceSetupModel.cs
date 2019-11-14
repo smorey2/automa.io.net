@@ -50,6 +50,7 @@ namespace Automa.IO.Unanet.Records
         // custom
         public string project_codeKey { get; set; }
         public string usernameKey { get; set; }
+        public string lead_project_codeKey { get; set; }
 
         public static Task<bool> ExportFileAsync(UnanetClient una, string sourceFolder, string legalEntity = "75-00-DEG-00 - Digital Evolution Group, LLC")
         {
@@ -135,10 +136,107 @@ namespace Automa.IO.Unanet.Records
         {
             if (ManageRecordBase(null, s.XCF, 1, out var cf, out var add, out last))
                 return ManageFlags.ProjectInvoiceSetupChanged;
-            var r = una.SubmitSubManage("D", HttpMethod.Post, $"projects/controllers", null,
+            var r = una.SubmitSubManage("D", HttpMethod.Get, $"projects/accounting/invoice/edit", null,
                 $"projectkey={s.project_codeKey}", null,
                 out last, (z, f) =>
             {
+                if (add || cf.Contains("gi")) f.Checked["generateInvoice"] = s.generate_invoice == "Y";
+                if (add || cf.Contains("io")) { f.Values["proj_invoice"] = s.invoicing_option; f.Values["invoice_option"] = s.invoicing_option; }
+                if (s.invoicing_option != "C")
+                {
+                    f.Values["lead_projects_mod"] = "true";
+                    f.Types["lead_projects"] = "disabled";
+                }
+                else
+                {
+                    //if (add || cf.Contains("lpoc")) f.Values["xxxx"] = s.lead_project_org_code;
+                    //if (add || cf.Contains("lpc")) f.Values["xxxx"] = s.lead_project_code;
+                    f.Types["contributorsnotAssigned_orgCode_fltr"] = "disabled";
+                    f.Types["contributorsnotAssigned_projCode_fltr"] = "disabled";
+                    f.Values["lead_projects_mod"] = "false";
+                    f.Values["lead_projects"] = s.lead_project_codeKey;
+                }
+                //
+                if (s.invoicing_option != "C")
+                {
+                    if (add || cf.Contains("pif")) f.FromSelect("invoiceFormat", s.primary_invoice_format);
+                    //if (add || cf.Contains("aif")) f.FromSelect("xxxx", s.additional_invoice_formats);
+                    if (add || cf.Contains("inf")) f.FromSelectByPredicate("invoiceNumber", s.invoice_number_format, x => x.Value.StartsWith(s.invoice_number_format));
+                    if (add || cf.Contains("pt")) f.FromSelect("paymentTerm", s.payment_terms);
+                }
+                else
+                {
+                    f.Types["invoiceFormat"] = "disabled";
+                    //f.Types["xxxx"] = "disabled";
+                    f.Types["invoiceNumber"] = "disabled";
+                    f.Types["paymentTerm"] = "disabled";
+                }
+                //
+                if (s.invoicing_option != "C")
+                {
+                    if (add || cf.Contains("btc")) f.FromSelect("bill_to_contact", s.bill_to_contact);
+                    if (add || cf.Contains("bta")) f.FromSelect("bill_to_address", !string.IsNullOrEmpty(s.bill_to_address) ? s.bill_to_address : f.Selects["bill_to_address"].First().Value);
+                    if (add || cf.Contains("stc")) f.FromSelect("ship_to_contact", s.ship_to_contact);
+                    if (add || cf.Contains("sta")) f.FromSelect("ship_to_address", s.ship_to_address);
+                    if (add || cf.Contains("rtc")) f.FromSelect("remit_to_contact", s.remit_to_contact);
+                    if (add || cf.Contains("rta")) f.FromSelect("remit_to_address", !string.IsNullOrEmpty(s.remit_to_address) ? s.remit_to_address : f.Selects["remit_to_address"].First().Value);
+                    if (add || cf.Contains("idm")) f.FromSelectByKey("invoice_delivery_opt", s.invoice_delivery_method);
+                    if (add || cf.Contains("emt")) f.FromSelect("emailTemplate", s.email_message_template);
+                    if (add || cf.Contains("tel")) f.Values["toEmail"] = s.to_email_list;
+                    if (add || cf.Contains("cel")) f.Values["ccEmail"] = s.cc_email_list;
+                    if (add || cf.Contains("bel")) f.Values["bccEmail"] = s.bcc_email_list;
+                    if (add || cf.Contains("rdr")) f.Checked["delivery_req"] = s.req_delivery_receipt == "Y";
+                    if (add || cf.Contains("rrr")) f.Checked["read_req"] = s.req_read_receipt == "Y";
+                }
+                else
+                {
+                    f.Types["bill_to_contact"] = "disabled";
+                    f.Types["bill_to_address"] = "disabled";
+                    f.Types["ship_to_contact"] = "disabled";
+                    f.Types["ship_to_address"] = "disabled";
+                    f.Types["remit_to_contact"] = "disabled";
+                    f.Types["remit_to_address"] = "disabled";
+                    f.Types["invoice_delivery_opt"] = "disabled";
+                    f.Types["emailTemplate"] = "disabled";
+                    f.Types["toEmail"] = "disabled";
+                    f.Types["ccEmail"] = "disabled";
+                    f.Types["bccEmail"] = "disabled";
+                    f.Types["delivery_req"] = "disabled";
+                    f.Types["read_req"] = "disabled";
+                }
+                //
+                if (s.invoicing_option != "C")
+                {
+                    if (add || cf.Contains("spoc")) f.Checked["showProjectOrgCode"] = s.show_project_org_code == "Y";
+                    if (add || cf.Contains("spc")) f.Checked["showProjectCode"] = s.show_project_code == "Y";
+                    if (add || cf.Contains("spt")) f.Checked["showProjectTitle"] = s.show_project_title == "Y";
+                    if (add || cf.Contains("spfv")) f.Checked["showProjectFundedValue"] = s.show_project_funded_value == "Y";
+                    if (add || cf.Contains("scl")) f.Checked["showCompanyLogo"] = s.show_company_logo == "Y";
+                    if (add || cf.Contains("cl")) f.FromSelect("companyLogo", s.company_logo); f.Types["companyLogo"] = f.Checked["showCompanyLogo"] ? "text" : "disabled";
+                    if (add || cf.Contains("scn")) f.Checked["showContractNumber"] = s.show_contract_number == "Y";
+                    if (add || cf.Contains("cn")) f.Values["contractNumber"] = s.contract_number; f.Types["contractNumber"] = f.Checked["showContractNumber"] ? "text" : "disabled";
+                    if (add || cf.Contains("son")) f.Checked["showOrderNumber"] = s.show_order_number == "Y";
+                    f.Types["orderNumber"] = f.Checked["showOrderNumber"] ? "text" : "disabled";
+                }
+                else
+                {
+                    f.Types["showProjectOrgCode"] = "disabled";
+                    f.Types["showProjectCode"] = "disabled";
+                    f.Types["showProjectTitle"] = "disabled";
+                    f.Types["showProjectFundedValue"] = "disabled";
+                    f.Types["showCompanyLogo"] = "disabled";
+                    f.Types["companyLogo"] = "disabled";
+                    f.Types["showContractNumber"] = "disabled";
+                    f.Types["contractNumber"] = "disabled";
+                    f.Types["showOrderNumber"] = "disabled";
+                    f.Types["orderNumber"] = "text";
+                }
+                //
+                if (add || cf.Contains("on")) f.Values["orderNumber"] = s.order_number;
+                if (add || cf.Contains("d")) f.Values["description"] = s.description;
+                /*if (add || cf.Contains("im"))*/
+                f.Values["memo"] = s.invoice_memo;
+                f.Add("button_save", "action", null);
                 return f.ToString();
             });
             return r != null ?

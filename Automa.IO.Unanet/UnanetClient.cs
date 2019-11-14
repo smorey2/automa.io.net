@@ -371,7 +371,7 @@ namespace Automa.IO.Unanet
                             this.DownloadData(HttpMethod.Get, $"{UnanetUri}/{entity}/list?{parentSelect}") :
                             this.DownloadData(HttpMethod.Post, $"{UnanetUri}/{entity}/list", $"{entitySelect}&addNext=false&edit=true&copy=false&nextKey=&{parentSelect}&{defaults}"));
                         break;
-                    case "D": d0 = this.TryFunc(() => this.DownloadData(HttpMethod.Get, $"{UnanetUri}/{entity}?{parentSelect}")); break;
+                    case "D": d0 = this.TryFunc(() => this.DownloadData(method, $"{UnanetUri}/{entity}?{parentSelect}")); break;
                     case "E":
                         d0 = this.TryFunc(() => method == HttpMethod.Put ?
                             this.DownloadData(HttpMethod.Get, $"{UnanetUri}/{entity}/add?{parentSelect}") :

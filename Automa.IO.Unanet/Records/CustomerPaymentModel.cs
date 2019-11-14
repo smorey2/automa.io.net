@@ -61,7 +61,7 @@ namespace Automa.IO.Unanet.Records
             if (string.IsNullOrEmpty(s.CpKey))
                 return ManageFlags.None;
             // second
-            var r = una.SubmitSubManage("D", HttpMethod.Post, "accounts_receivable/customer_payment/included", null, 
+            var r = una.SubmitSubManage("D", HttpMethod.Get, "accounts_receivable/customer_payment/included", null, //: POST
                 $"cpKey={s.CpKey}", null,
                 out last, (z, f) =>
                 {

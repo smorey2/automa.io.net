@@ -58,7 +58,7 @@ namespace Automa.IO.Unanet.Records
             public Dictionary<int, (int? key, string value)> Labcats { get; set; }
             public Dictionary<int, (int? key, string value)> Tasks { get; set; }
             public (int? key, string value) ProjectType { get; set; }
-            public List<(int? key, string value)> Paycodes { get; set; }
+            public Dictionary<int, (int? key, string value)> Paycodes { get; set; }
             public (int? key, string value) Paycode { get; set; }
         }
 
@@ -192,7 +192,7 @@ namespace Automa.IO.Unanet.Records
             var d0 = una.PostValue(HttpMethod.Post, f.Action.Substring(18), f.ToString(), null, out last);
             var d1 = d0.ExtractSpanInner("<div class=\"error\">", "</div>");
             if (d1 != null)
-                last = d0.ExtractSpanInner("ERROR:");
+                last = d1.ExtractSpanInner("<br><br>", "<br></p>");
             if (last != null || !d0.Contains("Adjustments - Enter a change reason for all modified entries"))
                 return false;
 
@@ -206,11 +206,20 @@ namespace Automa.IO.Unanet.Records
             d0 = una.PostValue(HttpMethod.Post, f.Action.Substring(18), f.ToString(), null, out last);
             d1 = d0.ExtractSpanInner("<div class=\"error\">", "</div>");
             if (d1 != null)
-                last = d0.ExtractSpanInner("ERROR:");
+                last = d1.ExtractSpanInner("<br><br>", "<br></p>");
             return true;
         }
 
-        public void MoveEntry(int key, int project_codeKey, int task_nameKey, out string last, Action<TimeSheetModel, Entry, KeyValuePair<int, Slip>> customClone = null)
+        public void TouchEntry(int key, out string last, Action<TimeSheetModel, Entry, KeyValuePair<int, Slip>> custom = null)
+        {
+            last = null;
+            // find slip
+            var keySlip = Rows.SelectMany(x => x.Slips, (r, s) => new { r, s }).FirstOrDefault(x => x.s.Value.Key == key);
+            if (keySlip == null) { last = "unable to find src Slip"; return; }
+            custom?.Invoke(this, keySlip.r, keySlip.s);
+        }
+
+        public void MoveEntry(int key, int project_codeKey, int task_nameKey, out string last, Action<TimeSheetModel, Entry, KeyValuePair<int, Slip>> custom = null)
         {
             last = null;
             // find slip
@@ -225,10 +234,15 @@ namespace Automa.IO.Unanet.Records
             clone.Task = task;
             if (clone.Labcat.key != null && !project.Labcats.ContainsKey(clone.Labcat.key.Value))
                 clone.Labcat = project.Labcats.Values.First(x => x.value == "Other");
-            //clone.ProjectType = project.ProjectType;
-            //clone.Paycode = project.Paycode;
-            var slip = keySlip.s; clone.Slips.Add(slip.Key, slip.Value); // slip.Value.Key = null; 
-            customClone?.Invoke(this, clone, slip);
+            if (clone.ProjectType.key != project.ProjectType.key)
+            {
+                clone.ProjectType = project.ProjectType;
+                clone.Paycode = project.Paycode;
+            }
+            if (clone.Paycode.key != null && !project.Paycodes.ContainsKey(clone.Paycode.key.Value))
+                clone.Paycode = project.Paycode;
+            var slip = keySlip.s; clone.Slips.Add(slip.Key, slip.Value);
+            custom?.Invoke(this, clone, slip);
             // find or insert row
             var match0 = Rows.Where(x => x.Project.Key == clone.Project.Key && x.Task.key == clone.Task.key && x.Labcat.key == clone.Labcat.key).ToList();
             if (match0.Count == 0) { Rows.Add(clone); return; }
@@ -351,14 +365,16 @@ namespace Automa.IO.Unanet.Records
                .Select(m =>
                {
                    var startIdx = m.Captures[0].Index;
-                   var labcats = Regex.Matches(source.ExtractSpanInner("pLabCats = [];", "labCats = pLabCats;", lastIdx, startIdx) ?? "", @"get.([\d]+)", RegexOptions.Multiline).Cast<Match>()
-                        .Select(n => (int?)int.Parse(n.Groups[1].Value)).ToList()
-                        .Select(x => meta.LaborCategories[x.Value]).ToDictionary(x => x.key.Value);
+                   var labcats = source.IndexOf("mLabCats", lastIdx, startIdx - lastIdx) != -1
+                        ? meta.LaborCategories
+                        : Regex.Matches(source.ExtractSpanInner("pLabCats = [];", "labCats = pLabCats;", lastIdx, startIdx) ?? "", @"get.([\d]+)", RegexOptions.Multiline).Cast<Match>()
+                            .Select(n => (int?)int.Parse(n.Groups[1].Value)).ToList()
+                            .Select(x => meta.LaborCategories[x.Value]).ToDictionary(x => x.key.Value);
                    var tasks = Regex.Matches(source.ExtractSpanInner("tasks = [];", "paycodes = [", lastIdx, startIdx) ?? "", @"Task\(([\d]+).*\('([^']*)'\)", RegexOptions.Multiline).Cast<Match>()
                         .Select(n => ((int?)int.Parse(n.Groups[1].Value), HttpUtility.UrlDecode(n.Groups[2].Value))).ToDictionary(x => x.Item1.Value);
                    var paycodes = Regex.Matches(source.ExtractSpanInner("paycodes = [", "];", lastIdx, startIdx) ?? "", @"pcBK\[([\d]+)\]", RegexOptions.Multiline).Cast<Match>()
                        .Select(n => (int?)int.Parse(n.Groups[1].Value)).ToList()
-                       .Select(x => meta.Paycodes[x.Value]).ToList();
+                       .Select(x => meta.Paycodes[x.Value]).ToDictionary(x => x.Item1.Value);
                    lastIdx = startIdx;
                    return new Project
                    {
@@ -390,13 +406,13 @@ namespace Automa.IO.Unanet.Records
                                         Start = new DateTime(int.Parse(o.Groups[2].Value), int.Parse(o.Groups[3].Value) + 1, int.Parse(o.Groups[4].Value), int.Parse(o.Groups[5].Value), int.Parse(o.Groups[6].Value), int.Parse(o.Groups[7].Value)).AddMilliseconds(int.Parse(o.Groups[8].Value)),
                                         Stop = new DateTime(int.Parse(o.Groups[9].Value), int.Parse(o.Groups[10].Value) + 1, int.Parse(o.Groups[11].Value), int.Parse(o.Groups[12].Value), int.Parse(o.Groups[13].Value), int.Parse(o.Groups[14].Value)).AddMilliseconds(int.Parse(o.Groups[15].Value)),
                                         Nonwork = decimal.Parse(o.Groups[16].Value),
-                                        Comments = o.Groups[17].Value,
+                                        Comments = !string.IsNullOrEmpty(o.Groups[17].Value) ? HttpUtility.UrlDecode(o.Groups[17].Value) : null,
                                     }).ToArray();
                              return (int.Parse(n.Groups[1].Value), new Slip
                              {
                                  Key = int.Parse(n.Groups[2].Value),
                                  Hours = decimal.Parse(n.Groups[3].Value),
-                                 Comments = n.Groups[4].Value,
+                                 Comments = !string.IsNullOrEmpty(n.Groups[4].Value) ? HttpUtility.UrlDecode(n.Groups[4].Value) : null,
                                  Titos = titos,
                              });
                          }).ToDictionary(x => x.Item1, x => x.Item2);

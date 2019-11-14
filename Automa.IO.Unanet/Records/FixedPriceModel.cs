@@ -14,6 +14,7 @@ namespace Automa.IO.Unanet.Records
         public string project_org_code { get; set; }
         public string project_code { get; set; }
         public string task_name { get; set; }
+        public string external_system_code { get; set; }
         public string description { get; set; }
         public DateTime? bill_date { get; set; }
         public string bill_on_completion { get; set; }
@@ -65,23 +66,28 @@ namespace Automa.IO.Unanet.Records
             {
                 var post = new HashSet<string>(CsvReader.Read(sr1, x => x.Count > 9 ? x[9] : null, 1).ToList());
                 using (var sr = File.OpenRead(filePath))
-                    return CsvReader.Read(sr, x => new FixedPriceModel
+                    return CsvReader.Read(sr, x =>
                     {
-                        project_org_code = x[0],
-                        project_code = x[1],
-                        task_name = x[2].DecodeString(),
-                        description = x[3].ToString(),
-                        bill_date = x[4].ToDateTime(),
-                        bill_on_completion = x[5],
-                        bill_amount = x[6],
-                        revenue_recognition_method = x[7],
-                        delete = x[8],
-                        //
-                        key = x.Count > 9 ? x[9] : null,
-                        revenue_recognition_date = x.Count > 10 ? x[10].ToDateTime() : null,
-                        revenue_recognition_amount = x.Count > 11 ? x[11].ToDecimal() : null,
-                        //
-                        posted = x.Count > 9 && !post.Contains(x[9]),
+                        var description = x[3].ToString();
+                        return new FixedPriceModel
+                        {
+                            project_org_code = x[0],
+                            project_code = x[1],
+                            task_name = x[2].DecodeString(),
+                            external_system_code = null,
+                            description = description,
+                            bill_date = x[4].ToDateTime(),
+                            bill_on_completion = x[5],
+                            bill_amount = x[6],
+                            revenue_recognition_method = x[7],
+                            delete = x[8],
+                            //
+                            key = x.Count > 9 ? x[9] : null,
+                            revenue_recognition_date = x.Count > 10 ? x[10].ToDateTime() : null,
+                            revenue_recognition_amount = x.Count > 11 ? x[11].ToDecimal() : null,
+                            //
+                            posted = x.Count > 9 && !post.Contains(x[9]),
+                        };
                     }, 1).ToList();
             }
         }

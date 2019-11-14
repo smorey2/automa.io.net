@@ -5,9 +5,11 @@ namespace Automa.IO.Unanet
     [Flags] // XX._TPJO.O
     public enum ManageFlags
     {
-        None = 0x0, Default = AllEntity | Export | Sync,
+        None = 0x0,
+        Default = AllEntity | Export, // | Sync,
         AllEntity = OrganizationAll | ProjectAll | PersonAll | TimeInvoiceAll,
-        //AllEntity = Project,
+        //AllEntity = FixedPrice,
+        //AllEntity = ProjectInvoiceSetup,
 
         // OPERATIONS
         Export = 0x1, Sync = 0x2,
@@ -26,14 +28,14 @@ namespace Automa.IO.Unanet
         OrganizationContactChanged = OrganizationContact | Export,
 
         // 0x06 - Project
-        ProjectMask = 0x06000F00, ProjectAll = Project | ProjectLaborCategory | Task | FixedPrice | Assignment | ProjectAdministrator,
+        ProjectMask = 0x06000F00, ProjectAll = Project | ProjectLaborCategory | Task /*| FixedPrice*/| Assignment | ProjectAdministrator | ProjectInvoiceSetup,
         Project = 0x02000100,
         Task = 0x02000200,
         ProjectLaborCategory = 0x02000400,
         FixedPrice = 0x02000800,
-        Assignment = 0x04000000,
-        ProjectAdministrator = 0x04000100,
-        ProjectInvoiceSetup = 0x04000200,
+        Assignment = 0x04000100,
+        ProjectAdministrator = 0x04000200,
+        ProjectInvoiceSetup = 0x04000400,
         // changed
         ProjectChanged = Project | Export,
         TaskChanged = Task | Export,
@@ -44,7 +46,7 @@ namespace Automa.IO.Unanet
         ProjectLaborCategoryChanged = ProjectLaborCategory | Export,
 
         // 0x08 - Person
-        PersonMask = 0x0800F000, PersonAll = Person | Alternate, //ApprovalGroups
+        PersonMask = 0x0800F000, PersonAll = Person | Alternate, /*ApprovalGroups, */
         Person = 0x08001000,
         Alternate = 0x08002000,
         ApprovalGroups = 0x08004000,

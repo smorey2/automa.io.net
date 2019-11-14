@@ -15,7 +15,7 @@ namespace Automa.IO.Unanet.Reports
         public DateTime? Date { get; set; }
         public string[] Managers { get; set; }
         public string[] ProjApprs { get; set; }
-        public string[] Customer { get; set; }
+        public string[] Customers { get; set; }
 
         public static ILookup<string, PeopleTimeStatusReport> Get(UnanetClient una, DateTime weekDate)
         {
@@ -55,7 +55,7 @@ namespace Automa.IO.Unanet.Reports
                     Date = string.IsNullOrEmpty(tds[6].Value) ? null : (DateTime?)DateTime.Parse($"{tds[6].Value} {tds[7].Value}"),
                     Managers = string.IsNullOrEmpty(tds[8].Value) ? null : tds[8].Elements("div").Select(x => x.Value).ToArray(),
                     ProjApprs = string.IsNullOrEmpty(tds[9].Value) ? null : tds[9].Elements("div").Select(x => x.Value.Replace("** ", "")).ToArray(),
-                    Customer = string.IsNullOrEmpty(tds[10].Value) ? null : tds[10].Elements("div").Select(x => x.Value.Replace("* ", "")).ToArray(),
+                    Customers = string.IsNullOrEmpty(tds[10].Value) ? null : tds[10].Elements("div").Select(x => x.Value.Replace("* ", "")).ToArray(),
                 });
             }
             return rows.ToLookup(x => x.PersonName);
