@@ -10,7 +10,7 @@ namespace Automa.IO.Umb
     /// <seealso cref="Automa.IO.AutomaClient" />
     public partial class UmbClient : AutomaClient
     {
-        string UmbUri => "https://commercialcard.umb.com";
+        public string UmbUri => "https://commercialcard.umb.com";
 
         /// <summary>
         /// Initializes a new instance of the <see cref="UmbClient" /> class.
@@ -30,7 +30,7 @@ namespace Automa.IO.Umb
         {
             switch (mode)
             {
-                case AccessMode.Request: return ((string)value).IndexOf(">Session Expired<") != -1;
+                case AccessMode.Request: return ((string)value).IndexOf("Session Expired") != -1;
             }
             return false;
         }
@@ -52,7 +52,11 @@ namespace Automa.IO.Umb
             // parse
             {
                 var d0 = this.TryFunc(() => this.DownloadData(HttpMethod.Get, $"{UmbUri}/{report}"));
+                if (d0.IndexOf("Session Expired") != -1)
+                    throw new LoginRequiredException();
                 var d1 = d0.ExtractSpan("<form name=\"parameterForm\"", "</form>");
+                if (string.IsNullOrEmpty(d1))
+                    throw new InvalidOperationException("Report error");
                 var htmlForm = new HtmlFormPost(d1);
                 action(htmlForm);
                 body = htmlForm.ToString();
@@ -61,7 +65,7 @@ namespace Automa.IO.Umb
             // download
             {
                 var d0 = this.TryFunc(() => this.DownloadFile(executeFolder, HttpMethod.Get, url, body, interceptFilename: interceptFilename));
-                return true;
+                return !string.IsNullOrEmpty(d0);
             }
         }
 

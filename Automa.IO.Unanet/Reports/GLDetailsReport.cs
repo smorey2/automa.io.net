@@ -41,14 +41,14 @@ namespace Automa.IO.Unanet.Reports
         public string AccountTypeOrderBy { get; set; }
         public string ArrangeBy { get; set; }
 
-        public static Task<bool> ExportFileAsync(UnanetClient una, string accountType, string sourceFolder, DateTime? beginDate = null, DateTime? endDate = null, string legalEntity = "75-00-DEG-00 - Digital Evolution Group, LLC", string wipAcct = "1420")
+        public static Task<bool> ExportFileAsync(UnanetClient una, string accountType, string sourceFolder, DateTime? beginDate = null, DateTime? endDate = null, string legalEntity = null, string wipAcct = null)
         {
             string account = null;
             if (accountType == "Wip")
             {
-                var options = una.GetOptions("AccountMenu", "account", wipAcct);
+                var options = una.GetOptions("AccountMenu", "account", wipAcct ?? una.Settings.WipAcct);
                 if (options.Count != 1)
-                    throw new InvalidOperationException($"Can not find: {wipAcct}");
+                    throw new InvalidOperationException($"Can not find: {wipAcct ?? una.Settings.WipAcct}");
                 account = options.First().Key;
             }
             var filePath = Path.Combine(sourceFolder, "report.csv");
@@ -56,7 +56,7 @@ namespace Automa.IO.Unanet.Reports
                 File.Delete(filePath);
             return Task.Run(() => una.RunReport("financials/detail/general_ledger", f =>
             {
-                f.FromSelect("legalEntity", legalEntity);
+                f.FromSelect("legalEntity", legalEntity ?? una.Settings.LegalEntity);
                 if (accountType == "Wip") f.Values["account"] = account;
                 else f.FromSelect("accountType", accountType); // "Revenue"
                 string fpBegin = (beginDate ?? BeginFinanceDate).ToString("yyyy-MM"), fpEnd = (endDate ?? DateTime.Today).ToString("yyyy-MM");

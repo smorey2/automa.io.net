@@ -41,18 +41,18 @@ namespace Automa.IO.Unanet.Records
         // custom
         public string organization_codeKey { get; set; }
 
-        public static Task<bool> ExportFileAsync(UnanetClient una, string sourceFolder, string legalEntityKey = "2845")
+        public static Task<bool> ExportFileAsync(UnanetClient una, string sourceFolder)
         {
-            var filePath = Path.Combine(sourceFolder, $"{una.Exports["customer profile"].Item2}.csv");
+            var filePath = Path.Combine(sourceFolder, una.Settings.customer_profile.file);
             if (File.Exists(filePath))
                 File.Delete(filePath);
-            return Task.Run(() => una.GetEntitiesByExport(una.Exports["customer profile"].Item1, f =>
+            return Task.Run(() => una.GetEntitiesByExport(una.Settings.customer_profile.key, f =>
             {
                 f.Checked["suppressOutput"] = true;
                 f.Checked["includeALL"] = true;
                 f.Checked["includeSELECTED"] = false;
                 f.Checked["suppress"] = false;
-                //f.Values["legalEntities"] = legalEntityKey;
+                //f.Values["legalEntities"] = legalEntityKey ?? una.Settings.DefaultOrg.key;
             }, sourceFolder));
         }
 
@@ -61,7 +61,7 @@ namespace Automa.IO.Unanet.Records
 
         public static IEnumerable<CustomerProfileModel> Read(UnanetClient una, string sourceFolder)
         {
-            var filePath = Path.Combine(sourceFolder, $"{una.Exports["customer profile"].Item2}.csv");
+            var filePath = Path.Combine(sourceFolder, una.Settings.customer_profile.file);
             using (var sr = File.OpenRead(filePath))
                 return CsvReader.Read(sr, x => new CustomerProfileModel
                 {

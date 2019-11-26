@@ -16,19 +16,15 @@ namespace Automa.IO.Unanet
         protected readonly static int DownloadTimeoutInSeconds = 150;
         public static readonly DateTime BOT = new DateTime(0);
 
-        public string UnanetUri => !_sandbox ? $"https://{_unanetId}.unanet.biz/{_unanetId}/action" : $"https://{_unanetId}-sand.unanet.biz/{_unanetId}-sand/action";
-        public IDictionary<string, Tuple<string, string>> Exports => !_sandbox ? Config.Exports : Config.ExportsSandbox;
-        public IDictionary<string, string> Imports => Config.Imports;
-
-        readonly string _unanetId;
-        readonly bool _sandbox;
-
-        public UnanetClient(string unanetId, bool sandbox)
-            : base(x => new Automa(x, (ctx, driver) => new UnanetAutomation(x, ctx, driver, unanetId, sandbox)))
+        public UnanetClient(IUnanetSettings settings)
+            : base(x => new Automa(x, (ctx, driver) => new UnanetAutomation(x, ctx, driver, settings)))
         {
-            _unanetId = unanetId;
-            _sandbox = sandbox;
+            Settings = settings;
+            UnanetUri = Settings.UnanetUri;
         }
+
+        public IUnanetSettings Settings { get; }
+        public string UnanetUri { get; }
 
         public override bool EnsureAccess(AccessMethod method, AccessMode mode, ref object tag, object value = null)
         {

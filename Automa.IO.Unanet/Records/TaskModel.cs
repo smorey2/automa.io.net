@@ -72,21 +72,21 @@ namespace Automa.IO.Unanet.Records
         // custom
         public string project_codeKey { get; set; }
 
-        public static Task<bool> ExportFileAsync(UnanetClient una, string sourceFolder, string legalEntity = "75-00-DEG-00 - Digital Evolution Group, LLC")
+        public static Task<bool> ExportFileAsync(UnanetClient una, string sourceFolder, string legalEntity = null)
         {
-            var filePath = Path.Combine(sourceFolder, $"{una.Exports["task"].Item2}.csv");
+            var filePath = Path.Combine(sourceFolder, una.Settings.task.file);
             if (File.Exists(filePath))
                 File.Delete(filePath);
-            return Task.Run(() => una.GetEntitiesByExport(una.Exports["task"].Item1, f =>
+            return Task.Run(() => una.GetEntitiesByExport(una.Settings.task.key, f =>
             {
                 f.Checked["suppressOutput"] = true;
-                f.FromSelect("legalEntity", legalEntity);
+                f.FromSelect("legalEntity", legalEntity ?? una.Settings.LegalEntity);
             }, sourceFolder));
         }
 
         public static IEnumerable<TaskModel> Read(UnanetClient una, string sourceFolder)
         {
-            var filePath = Path.Combine(sourceFolder, $"{una.Exports["task"].Item2}.csv");
+            var filePath = Path.Combine(sourceFolder, una.Settings.task.file);
             using (var sr = File.OpenRead(filePath))
                 return CsvReader.Read(sr, x => new TaskModel
                 {
@@ -182,7 +182,8 @@ namespace Automa.IO.Unanet.Records
             if (ManageRecordBase(s.key, s.XCF, 0, out var cf, out var add, out last))
                 return ManageFlags.TaskChanged;
             var organizations = Unanet.Lookups.CostCenters.Value;
-            var r = una.SubmitSubManage("B", add ? HttpMethod.Post : HttpMethod.Put, "task", add ? "key=0&insertPos=1" : $"key={s.key}&insertPos=0",
+            var method = add ? HttpMethod.Post : HttpMethod.Put;
+            var r = una.SubmitSubManage("B", method, "task", add ? "key=0&insertPos=1" : $"key={s.key}&insertPos=0",
                 $"projectkey={s.project_codeKey}", null,
                 out last, (z, f) =>
             {

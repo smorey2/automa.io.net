@@ -44,9 +44,16 @@ namespace Automa.IO.Umb
             passwordElement.SendKeys(credential.Password);
             // done
             passwordElement.SendKeys(Keys.Return);
+            // login successful?
             url = _driver.Url;
             if (!url.StartsWith(UmbUri + "/Site/#/home"))
                 throw new LoginRequiredException();
+            // password maintenance - password expired 
+            //var rpElement = _driver.FindElement(By.Id("RP"));
+            //if (rpElement != null)
+            //{
+            //    throw new LoginRequiredException("password expired");
+            //}
             //cookies(_automa.Cookies);
         }
     }

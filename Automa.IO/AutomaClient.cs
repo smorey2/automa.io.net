@@ -1,3 +1,4 @@
+using OpenQA.Selenium;
 using System;
 using System.Net;
 using System.Security;
@@ -58,6 +59,12 @@ namespace Automa.IO
                     _automa = value == EmptyAutoma ? null : value;
                 }
             }
+        }
+
+        public IWebDriver GetDriver(object tag = null, decimal loginTimeoutInSeconds = -1M)
+        {
+            AutomaLogin(false, tag, loginTimeoutInSeconds);
+            return Automa.Driver;
         }
 
         #region Credentials
@@ -207,6 +214,8 @@ namespace Automa.IO
         /// <param name="closeAfter">if set to <c>true</c> [close after].</param>
         /// <param name="tag">The tag.</param>
         /// <param name="loginTimeoutInSeconds">The login timeout in seconds.</param>
+        /// <returns><c>true</c> if XXXX, <c>false</c> otherwise.</returns>
+        /// <exception cref="WebDriverException"></exception>
         protected virtual void AutomaLogin(bool closeAfter = true, object tag = null, decimal loginTimeoutInSeconds = -1M)
         {
             _logger("AutomaClient::Login");
@@ -227,8 +236,8 @@ namespace Automa.IO
                 if (closeAfter)
                     try { Automa.Dispose(); }
                     catch { }
+                _logger("AutomaClient::Done");
             }
-            _logger("AutomaClient::Done");
         }
 
         /// <summary>

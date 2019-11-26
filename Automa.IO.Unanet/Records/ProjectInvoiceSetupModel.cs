@@ -52,21 +52,21 @@ namespace Automa.IO.Unanet.Records
         public string usernameKey { get; set; }
         public string lead_project_codeKey { get; set; }
 
-        public static Task<bool> ExportFileAsync(UnanetClient una, string sourceFolder, string legalEntity = "75-00-DEG-00 - Digital Evolution Group, LLC")
+        public static Task<bool> ExportFileAsync(UnanetClient una, string sourceFolder, string legalEntity = null)
         {
-            var filePath = Path.Combine(sourceFolder, $"{una.Exports["project invoice setup"].Item2}.csv");
+            var filePath = Path.Combine(sourceFolder, una.Settings.project_invoice_setup.file);
             if (File.Exists(filePath))
                 File.Delete(filePath);
-            return Task.Run(() => una.GetEntitiesByExport(una.Exports["project invoice setup"].Item1, f =>
+            return Task.Run(() => una.GetEntitiesByExport(una.Settings.project_invoice_setup.key, f =>
             {
                 f.Checked["suppressOutput"] = true;
-                f.FromSelect("legalEntity", legalEntity);
+                f.FromSelect("legalEntity", legalEntity ?? una.Settings.LegalEntity);
             }, sourceFolder));
         }
 
         public static IEnumerable<ProjectInvoiceSetupModel> Read(UnanetClient una, string sourceFolder)
         {
-            var filePath = Path.Combine(sourceFolder, $"{una.Exports["project invoice setup"].Item2}.csv");
+            var filePath = Path.Combine(sourceFolder, una.Settings.project_invoice_setup.file);
             using (var sr = File.OpenRead(filePath))
                 return CsvReader.Read(sr, x => new ProjectInvoiceSetupModel
                 {

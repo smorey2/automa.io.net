@@ -21,10 +21,10 @@ namespace Automa.IO.Unanet.Exports
 
         public static Task<bool> ExportFile(UnanetClient una, string sourceFolder)
         {
-            var filePath = Path.Combine(sourceFolder, $"{una.Exports["labor category master"].Item2}.csv");
+            var filePath = Path.Combine(sourceFolder, una.Settings.labor_category_master.file);
             if (File.Exists(filePath))
                 File.Delete(filePath);
-            return Task.Run(() => una.GetEntitiesByExport(una.Exports["labor category master"].Item1, f =>
+            return Task.Run(() => una.GetEntitiesByExport(una.Settings.labor_category_master.key, f =>
             {
                 f.Checked["suppressOutput"] = true;
                 f.FromSelect("dateRange", "Today");
@@ -33,7 +33,7 @@ namespace Automa.IO.Unanet.Exports
 
         public static IEnumerable<LaborCategoryModel> Read(UnanetClient una, string sourceFolder)
         {
-            var filePath = Path.Combine(sourceFolder, $"{una.Exports["labor category master"].Item2}.csv");
+            var filePath = Path.Combine(sourceFolder, una.Settings.labor_category_master.file);
             using (var sr = File.OpenRead(filePath))
                 return CsvReader.Read(sr, x => new LaborCategoryModel
                 {
@@ -52,7 +52,7 @@ namespace Automa.IO.Unanet.Exports
 
         public static IEnumerable<LaborCategoryModel> EnsureAndRead(UnanetClient una, string sourceFolder)
         {
-            var filePath = Path.Combine(sourceFolder, $"{una.Exports["labor category master"].Item2}.csv");
+            var filePath = Path.Combine(sourceFolder, una.Settings.labor_category_master.file);
             if (!File.Exists(filePath))
                 ExportFile(una, sourceFolder).Wait();
             return Read(una, sourceFolder);

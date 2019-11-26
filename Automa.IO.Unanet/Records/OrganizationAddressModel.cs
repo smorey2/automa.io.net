@@ -29,10 +29,10 @@ namespace Automa.IO.Unanet.Records
 
         public static Task<bool> ExportFileAsync(UnanetClient una, string sourceFolder, string type = "CUSTOMER")
         {
-            var filePath = Path.Combine(sourceFolder, $"{una.Exports["organization address"].Item2}.csv");
+            var filePath = Path.Combine(sourceFolder, una.Settings.organization_address.file);
             if (File.Exists(filePath))
                 File.Delete(filePath);
-            return Task.Run(() => una.GetEntitiesByExport(una.Exports["organization address"].Item1, f =>
+            return Task.Run(() => una.GetEntitiesByExport(una.Settings.organization_address.key, f =>
             {
                 f.Checked["suppressOutput"] = true;
                 f.FromSelect("organizationtype", type);
@@ -44,7 +44,7 @@ namespace Automa.IO.Unanet.Records
 
         public static IEnumerable<OrganizationAddressModel> Read(UnanetClient una, string sourceFolder)
         {
-            var filePath = Path.Combine(sourceFolder, $"{una.Exports["organization address"].Item2}.csv");
+            var filePath = Path.Combine(sourceFolder, una.Settings.organization_address.file);
             using (var sr = File.OpenRead(filePath))
                 return CsvReader.Read(sr, x => new OrganizationAddressModel
                 {

@@ -344,7 +344,6 @@ namespace Automa.IO.Unanet.Records
         {
             var title = source.ExtractSpanInner("<title>", "</title>");
             var personString = title.ExtractSpanInner("Timesheet for", "(").Trim();
-            //var personGroups = Regex.Match(source.ExtractSpanInner("new Person(", ");"), @"([\d]+),(null|[\d]+),([\d]+)").Groups;
             var person = ((int?)null, personString);
             var week = DateTime.Parse(title.ExtractSpanInner("(", " ").Trim());
             // meta

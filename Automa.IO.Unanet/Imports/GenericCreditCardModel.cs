@@ -10,13 +10,13 @@ namespace Automa.IO.Unanet.Imports
         [DisplayName("Posting Date")] public string PostingDate { get; set; }
         [DisplayName("Amount USD")] public string Amount { get; set; }
         [DisplayName("Supplier")] public string Supplier { get; set; }
-        
-        public static Task<string> ImportFileAsync(UnanetClient una, string sourceFolder, Stream set, string paymentMethod = "DEG UMB") =>
-            Task.Run(() => una.PutEntitiesByImport(una.Imports["credit card - generic"], f =>
+
+        public static Task<string> ImportFileAsync(UnanetClient una, string sourceFolder, Stream set, string paymentMethod) =>
+            Task.Run(() => una.PutEntitiesByImport(una.Settings.credit_card_generic.key, f =>
             {
                 f.FromSelectByKey("outputOption", "errors");
                 f.FromSelect("payment_method", paymentMethod);
-                f.Values["filename"] = @"C:\GenericCreditCard.csv";
+                f.Values["filename"] = una.Settings.credit_card_generic.file;
                 f.Files["filename"] = set;
             }, sourceFolder));
     }

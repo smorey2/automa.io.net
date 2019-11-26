@@ -1,87 +1,137 @@
-﻿using System;
-using System.Collections.Generic;
-
-namespace Automa.IO.Unanet
+﻿namespace Automa.IO.Unanet
 {
-    internal class Config
+    /// <summary>
+    /// Interface IUnanetSettings
+    /// </summary>
+    public interface IUnanetSettings
     {
-        #region Exports
+        string UnanetUri { get; }
+        string LegalEntity { get; }
+        (string key, string name) DefaultOrg { get; }
+        string WipAcct { get; }
 
-        public readonly static Dictionary<string, Tuple<string, string>> ExportsSandbox = new Dictionary<string, Tuple<string, string>>
-        {
-            // Lookup
-            { "location master", new Tuple<string, string>("742", "DEG_ Location - Master") },
-            { "labor category master", new Tuple<string, string>("743", "DEG_ Labor Category - Master") },
-            { "vendor profile", new Tuple<string, string>("741", "DEG_ Vendor Profile") },
+        // EXPORTS
+        (string key, string file) location_master { get; }
+        (string key, string file) labor_category_master { get; }
+        //(string key, string file) vendor_profile { get; }
 
-            // Organization
-            { "organization", new Tuple<string, string>("733", "DEG_ Organization") },
-            { "customer profile", new Tuple<string, string>("734", "DEG_ Customer Profile") },
-            { "organization address", new Tuple<string, string>("735", "DEG_ Organization Address") },
-            { "organization contact", new Tuple<string, string>("736", "DEG_ Organization Contact") },
+        // Organization
+        (string key, string file) organization { get; }
+        (string key, string file) customer_profile { get; }
+        (string key, string file) organization_address { get; }
+        (string key, string file) organization_contact { get; }
 
-            // Project
-            { "project", new Tuple<string, string>("728", "DEG_ Project") },
-            { "task", new Tuple<string, string>("729", "DEG_ Task") },
-            { "fixed price item", new Tuple<string, string>("0", "DEG_ Fixed Price Item") },
-            { "fixed price item [post]", new Tuple<string, string>("732", "DEG_ Fixed Price Item [post]") },
-            { "assignment", new Tuple<string, string>("737", "DEG_ Assignment") },
-            { "project administrator", new Tuple<string, string>("738", "DEG_ Project Administrators") },
-            { "labor category project", new Tuple<string, string>("0", "DEG_ Labor Category - Project") },
-            { "project invoice setup", new Tuple<string, string>("0", "Project Invoice Setup") },
+        // Project
+        (string key, string file) project { get; }
+        (string key, string file) task { get; }
+        (string key, string file) fixed_price_item { get; }
+        (string key, string file) fixed_price_item_post { get; }
+        (string key, string file) assignment { get; }
+        (string key, string file) project_administrator { get; }
+        (string key, string file) labor_category_project { get; }
+        (string key, string file) project_invoice_setup { get; }
 
-            // Person
-            { "person", new Tuple<string, string>("730", "DEG_ Person") },
-            { "alternate", new Tuple<string, string>("747", "Alternate") },
-            { "approval group", new Tuple<string, string>("739", "DEG_ Approval Group") },
+        // Person
+        (string key, string file) person { get; }
+        (string key, string file) alternate { get; }
+        (string key, string file) approval_group { get; }
 
-            // Time/Invoice
-            { "time", new Tuple<string, string>("731", "DEG_ Time") },
-            { "invoice", new Tuple<string, string>("0", "DEG_ Invoice Export") },
-        };
+        // Time/Invoice
+        (string key, string file) time { get; }
+        (string key, string file) invoice { get; }
 
-        public readonly static Dictionary<string, Tuple<string, string>> Exports = new Dictionary<string, Tuple<string, string>>
-        {
-            // Lookup
-            { "location master", new Tuple<string, string>("818", "DEG_ Location - Master") },
-            { "labor category master", new Tuple<string, string>("814", "DEG_ Labor Category - Master") },
-            //{ "vendor profile", new Tuple<string, string>("741", "DEG_ Vendor Profile") },
-            //
-            { "organization", new Tuple<string, string>("734", "DEG_ Organization") },
-            { "customer profile", new Tuple<string, string>("828", "Customer Profile") },
-            { "organization address", new Tuple<string, string>("847", "Organization Address") },
-            { "organization contact", new Tuple<string, string>("848", "Organization Contact") },
+        // IMPORTS
+        (string key, string file) credit_card_generic { get; }
+    }
 
-            // Project
-            { "project", new Tuple<string, string>("810", "DEG_ Project") },
-            { "task", new Tuple<string, string>("820", "DEG_ Task") },
-            { "fixed price item", new Tuple<string, string>("795", "DEG_ Fixed Price Item") },
-            { "fixed price item [post]", new Tuple<string, string>("733", "DEG_ Fixed Price Item [post]") },
-            { "assignment", new Tuple<string, string>("812", "DEG_ Assignment") },
-            { "project administrator", new Tuple<string, string>("857", "Project Administrators") },
-            { "labor category project", new Tuple<string, string>("817", "DEG_ Labor Category - Project") },
-            { "project invoice setup", new Tuple<string, string>("859", "Project Invoice Setup") },
+    /// <summary>
+    /// Class RoundarchUnanetSetting.
+    /// </summary>
+    /// <seealso cref="Automa.IO.Unanet.IUnanetSettings" />
+    public class RoundarchUnanetSetting : IUnanetSettings
+    {
+        public string UnanetUri => "https://roundarch.unanet.biz/roundarch/action";
+        public string LegalEntity => "75-00-DEG-00 - Digital Evolution Group, LLC";
+        public (string, string) DefaultOrg => ("2845", "75-00-DEG-00");
+        public string WipAcct => "1420";
 
-            // Person
-            { "person", new Tuple<string, string>("811", "DEG_ Person") },
-            { "alternate", new Tuple<string, string>("824", "Alternate") },
-            { "approval group", new Tuple<string, string>("825", "Approval Group") },
+        // EXPORTS
+        public (string, string) location_master => ("818", "DEG_ Location - Master.csv");
+        public (string, string) labor_category_master => ("814", "DEG_ Labor Category - Master.csv");
+        //public (string, string) vendor_profile => ("741", "DEG_ Vendor Profile.csv");
 
-            // Time/Invoice
-            { "time", new Tuple<string, string>("819", "DEG_ Time") },
-            { "invoice", new Tuple<string, string>("724", "Invoice Export") },
-        };
+        // Organization
+        public (string, string) organization => ("734", "DEG_ Organization.csv");
+        public (string, string) customer_profile => ("828", "Customer Profile.csv");
+        public (string, string) organization_address => ("847", "Organization Address.csv");
+        public (string, string) organization_contact => ("848", "Organization Contact.csv");
 
-        #endregion
+        // Project
+        public (string, string) project => ("810", "DEG_ Project.csv");
+        public (string, string) task => ("820", "DEG_ Task.csv");
+        public (string, string) fixed_price_item => ("873", "DEG_ Fixed Price Item.csv");
+        public (string, string) fixed_price_item_post => ("874", "DEG_ Fixed Price Item [post].csv");
+        public (string, string) assignment => ("812", "DEG_ Assignment.csv");
+        public (string, string) project_administrator => ("857", "Project Administrators.csv");
+        public (string, string) labor_category_project => ("817", "DEG_ Labor Category - Project.csv");
+        public (string, string) project_invoice_setup => ("859", "Project Invoice Setup.csv");
 
-        #region Imports
+        // Person
+        public (string, string) person => ("811", "DEG_ Person.csv");
+        public (string, string) alternate => ("824", "Alternate.csv");
+        public (string, string) approval_group => ("825", "Approval Group.csv");
 
-        public readonly static Dictionary<string, string> Imports = new Dictionary<string, string>
-        {
-            { "credit card - generic", "GenericCreditCardImport" },
-        };
+        // Time/Invoice
+        public (string, string) time => ("819", "DEG_ Time.csv");
+        public (string, string) invoice => ("724", "Invoice Export.csv");
 
-        #endregion
+        // IMPORTS
+        public (string, string) credit_card_generic => ("GenericCreditCardImport", @"C:\GenericCreditCard.csv");
+    }
+
+    /// <summary>
+    /// Class RoundarchSandUnanetSetting.
+    /// </summary>
+    /// <seealso cref="Automa.IO.Unanet.IUnanetSettings" />
+    public class RoundarchSandUnanetSetting : IUnanetSettings
+    {
+        public string UnanetUri => "https://roundarch-sand.unanet.biz/roundarch-sand/action";
+        public string LegalEntity => "75-00-DEG-00 - Digital Evolution Group, LLC";
+        public (string, string) DefaultOrg => ("2845", "75-00-DEG-00");
+        public string WipAcct => "1420";
+
+        // EXPORTS
+        public (string, string) location_master => ("0", "DEG_ Location - Master.csv");
+        public (string, string) labor_category_master => ("0", "DEG_ Labor Category - Master.csv");
+        //public (string, string) vendor_profile => ("0", "DEG_ Vendor Profile.csv");
+
+        // Organization
+        public (string, string) organization => ("0", "DEG_ Organization.csv");
+        public (string, string) customer_profile => ("0", "Customer Profile.csv");
+        public (string, string) organization_address => ("0", "Organization Address.csv");
+        public (string, string) organization_contact => ("0", "Organization Contact.csv");
+
+        // Project
+        public (string, string) project => ("0", "DEG_ Project.csv");
+        public (string, string) task => ("0", "DEG_ Task.csv");
+        public (string, string) fixed_price_item => ("0", "DEG_ Fixed Price Item.csv");
+        public (string, string) fixed_price_item_post => ("0", "DEG_ Fixed Price Item [post].csv");
+        public (string, string) assignment => ("0", "DEG_ Assignment.csv");
+        public (string, string) project_administrator => ("0", "Project Administrators.csv");
+        public (string, string) labor_category_project => ("0", "DEG_ Labor Category - Project.csv");
+        public (string, string) project_invoice_setup => ("0", "Project Invoice Setup.csv");
+
+        // Person
+        public (string, string) person => ("0", "DEG_ Person.csv");
+        public (string, string) alternate => ("0", "Alternate.csv");
+        public (string, string) approval_group => ("0", "Approval Group.csv");
+
+        // Time/Invoice
+        public (string, string) time => ("0", "DEG_ Time.csv");
+        public (string, string) invoice => ("0", "Invoice Export.csv");
+
+        // IMPORTS
+        public (string, string) credit_card_generic => ("GenericCreditCardImport", @"C:\GenericCreditCard.csv");
     }
 }
 

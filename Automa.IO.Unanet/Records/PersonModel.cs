@@ -116,15 +116,15 @@ namespace Automa.IO.Unanet.Records
         public string vendor_invoice_person { get; set; }
         public string po_form_title { get; set; }
 
-        public static Task<bool> ExportFileAsync(UnanetClient una, string sourceFolder, string legalEntity = "75-00-DEG-00 - Digital Evolution Group, LLC")
+        public static Task<bool> ExportFileAsync(UnanetClient una, string sourceFolder, string legalEntity = null)
         {
-            var filePath = Path.Combine(sourceFolder, $"{una.Exports["person"].Item2}.csv");
+            var filePath = Path.Combine(sourceFolder, una.Settings.person.file);
             if (File.Exists(filePath))
                 File.Delete(filePath);
-            return Task.Run(() => una.GetEntitiesByExport(una.Exports["person"].Item1, f =>
+            return Task.Run(() => una.GetEntitiesByExport(una.Settings.person.key, f =>
             {
                 f.Checked["suppressOutput"] = true;
-                f.FromSelect("legalEntity", legalEntity);
+                f.FromSelect("legalEntity", legalEntity ?? una.Settings.LegalEntity);
                 f.Checked["exempt"] = true; f.Checked["nonExempt"] = true; f.Checked["nonEmployee"] = true;
             }, sourceFolder));
         }
@@ -136,7 +136,7 @@ namespace Automa.IO.Unanet.Records
                 .Replace(",projectLead", string.Empty)
                 .Replace(",poOwner", string.Empty)
                 .Substring(1);
-            var filePath = Path.Combine(sourceFolder, $"{una.Exports["person"].Item2}.csv");
+            var filePath = Path.Combine(sourceFolder, una.Settings.person.file);
             using (var sr = File.OpenRead(filePath))
                 return CsvReader.Read(sr, x => new PersonModel
                 {

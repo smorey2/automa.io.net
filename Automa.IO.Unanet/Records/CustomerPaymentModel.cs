@@ -18,7 +18,7 @@ namespace Automa.IO.Unanet.Records
 
         public class p_CustomerPayment : CustomerPaymentModel { }
 
-        public static ManageFlags ManageRecord(UnanetClient una, p_CustomerPayment s, out string last, Action<string, string> setInfo, string legalEntityKey = "2845", string legalEntity = "75-00-DEG-00 - Digital Evolution Group, LLC", string bankAcct = "1003 - Capital City_A_CHK")
+        public static ManageFlags ManageRecord(UnanetClient una, p_CustomerPayment s, out string last, Action<string, string> setInfo, string legalEntityKey = null, string legalEntity = null, string bankAcct = "1003 - Capital City_A_CHK")
         {
             if (!Unanet.Lookups.BankAccount.Value.TryGetValue(bankAcct, out var bankAcctKey))
                 throw new InvalidOperationException($"Can not find: {bankAcct}");
@@ -28,9 +28,9 @@ namespace Automa.IO.Unanet.Records
                 var cps = (string[])una.SubmitManage(HttpMethod.Post, "accounts_receivable/customer_payment", null,
                     out last, (z, f) =>
                 {
-                    var customers = Unanet.Una.GetAutoComplete("CP_CUSTOMER", $"{s.OrganizationCode} -", legalEntityKey: legalEntityKey);
+                    var customers = Unanet.Una.GetAutoComplete("CP_CUSTOMER", $"{s.OrganizationCode} -", legalEntityKey: legalEntityKey ?? una.Settings.DefaultOrg.key);
                     var customer = customers.Single();
-                    f.FromSelect("legalEntity", legalEntity);
+                    f.FromSelect("legalEntity", legalEntity ?? una.Settings.LegalEntity);
                     // customer payment
                     f.Values["bankAcct"] = bankAcct; f.Values["bankAcctKey"] = bankAcctKey;
                     f.Values["customer"] = customer.Value; f.Values["customerKey"] = customer.Key;

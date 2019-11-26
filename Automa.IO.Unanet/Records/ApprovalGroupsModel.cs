@@ -12,7 +12,7 @@ namespace Automa.IO.Unanet.Records
         public string key { get; set; }
 
         public static Task<bool> ExportFileAsync(UnanetClient una, string sourceFolder) =>
-            Task.Run(() => una.GetEntitiesByExport(una.Exports["approval group"].Item1, f =>
+            Task.Run(() => una.GetEntitiesByExport(una.Settings.approval_group.key, f =>
               {
                   f.Checked["suppressOutput"] = true;
               }, sourceFolder));
@@ -28,7 +28,7 @@ namespace Automa.IO.Unanet.Records
         //public static IEnumerable<ApprovalGroupsModel> Read(UnanetClient una, string sourceFolder)
         //{
         //    var list = GetList(una);
-        //    var filePath = Path.Combine(sourceFolder, $"{una.Exports["approval group"].Item2}.csv");
+        //    var filePath = Path.Combine(sourceFolder, una.Settings.approval_group.file);
         //    return new CsvReader().Execute(sr, x => new ApprovalGroupsModel
         //        return cr.Execute(sr, x => new ApprovalGroupsModel
         //        {
@@ -43,7 +43,7 @@ namespace Automa.IO.Unanet.Records
 
         //public static IEnumerable<ApprovalGroupsModel> EnsureAndRead(UnanetClient una, string sourceFolder)
         //{
-        //    var filePath = Path.Combine(sourceFolder, $"{una.Exports["approval group"].Item2}.csv");
+        //    var filePath = Path.Combine(sourceFolder, una.Settings.approval_group.file);
         //    if (!File.Exists(filePath))
         //        ExportFileAsync(una, sourceFolder);
         //    return Read(una, sourceFolder);

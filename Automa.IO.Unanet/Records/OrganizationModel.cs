@@ -59,10 +59,10 @@ namespace Automa.IO.Unanet.Records
 
         public static Task<bool> ExportFileAsync(UnanetClient una, string sourceFolder, string type = "CUSTOMER")
         {
-            var filePath = Path.Combine(sourceFolder, $"{una.Exports["organization"].Item2}.csv");
+            var filePath = Path.Combine(sourceFolder, una.Settings.organization.file);
             if (File.Exists(filePath))
                 File.Delete(filePath);
-            return Task.Run(() => una.GetEntitiesByExport(una.Exports["organization"].Item1, f =>
+            return Task.Run(() => una.GetEntitiesByExport(una.Settings.organization.key, f =>
             {
                 f.Checked["suppressOutput"] = true;
                 f.FromSelect("organizationtype", type);
@@ -80,7 +80,7 @@ namespace Automa.IO.Unanet.Records
         public static IEnumerable<OrganizationModel> Read(UnanetClient una, string sourceFolder, string type = "CUSTOMER")
         {
             var list = GetList(una, type);
-            var filePath = Path.Combine(sourceFolder, $"{una.Exports["organization"].Item2}.csv");
+            var filePath = Path.Combine(sourceFolder, una.Settings.organization.file);
             using (var sr = File.OpenRead(filePath))
                 return CsvReader.Read(sr, x => new OrganizationModel
                 {
@@ -134,7 +134,7 @@ namespace Automa.IO.Unanet.Records
 
         public static IEnumerable<OrganizationModel> EnsureAndRead(UnanetClient una, string sourceFolder, string type)
         {
-            var filePath = Path.Combine(sourceFolder, $"{una.Exports["organization"].Item2}.csv");
+            var filePath = Path.Combine(sourceFolder, una.Settings.organization.file);
             if (!File.Exists(filePath))
                 ExportFileAsync(una, sourceFolder);
             return Read(una, sourceFolder, type);

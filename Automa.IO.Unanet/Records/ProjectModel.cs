@@ -136,21 +136,21 @@ namespace Automa.IO.Unanet.Records
         // custom
         public string project_org_codeKey { get; set; }
 
-        public static Task<bool> ExportFileAsync(UnanetClient una, string sourceFolder, string legalEntity = "75-00-DEG-00 - Digital Evolution Group, LLC")
+        public static Task<bool> ExportFileAsync(UnanetClient una, string sourceFolder, string legalEntity = null)
         {
-            var filePath = Path.Combine(sourceFolder, $"{una.Exports["project"].Item2}.csv");
+            var filePath = Path.Combine(sourceFolder, una.Settings.project.file);
             if (File.Exists(filePath))
                 File.Delete(filePath);
-            return Task.Run(() => una.GetEntitiesByExport(una.Exports["project"].Item1, f =>
+            return Task.Run(() => una.GetEntitiesByExport(una.Settings.project.key, f =>
             {
                 f.Checked["suppressOutput"] = true;
-                f.FromSelect("legalEntity", legalEntity);
+                f.FromSelect("legalEntity", legalEntity ?? una.Settings.LegalEntity);
             }, sourceFolder));
         }
 
         public static IEnumerable<ProjectModel> Read(UnanetClient una, string sourceFolder)
         {
-            var filePath = Path.Combine(sourceFolder, $"{una.Exports["project"].Item2}.csv");
+            var filePath = Path.Combine(sourceFolder, una.Settings.project.file);
             using (var sr = File.OpenRead(filePath))
                 return CsvReader.Read(sr, x => new ProjectModel
                 {

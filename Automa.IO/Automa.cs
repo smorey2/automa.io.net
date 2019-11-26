@@ -19,6 +19,11 @@ namespace Automa.IO
         /// <value>The cookies.</value>
         CookieCollection Cookies { get; set; }
         /// <summary>
+        /// Gets the driver.
+        /// </summary>
+        /// <value>The driver.</value>
+        IWebDriver Driver { get; }
+        /// <summary>
         /// Logins this instance.
         /// </summary>
         /// <param name="tag">The tag.</param>
@@ -49,6 +54,7 @@ namespace Automa.IO
     internal class EmptyAutoma : IAutoma
     {
         public CookieCollection Cookies { get; set; } = new CookieCollection();
+        public IWebDriver Driver => null;
         public void Dispose() { }
         public void Login(object tag = null, decimal timeoutInSeconds = -1) { }
         public object SelectApplication(string application, object tag = null, decimal selectTimeoutInSeconds = -1) => throw new NotSupportedException();
@@ -115,14 +121,20 @@ namespace Automa.IO
 
         }
 
+        static string CookieValueEncode(string value) => value.Replace(",", "%2C");
+        static string CookieValueDecode(string value) => value.Replace("%2C", ",");
+
         /// <summary>
         /// Gets or sets the default timeout is seconds.
         /// </summary>
         /// <value>The default timeout is seconds.</value>
         public decimal DefaultTimeoutIsSeconds { get; set; }
 
-        static string CookieValueEncode(string value) => value.Replace(",", "%2C");
-        static string CookieValueDecode(string value) => value.Replace("%2C", ",");
+        /// <summary>
+        /// Gets the driver.
+        /// </summary>
+        /// <value>The driver.</value>
+        public IWebDriver Driver => _d;
 
         /// <summary>
         /// Gets the cookies.

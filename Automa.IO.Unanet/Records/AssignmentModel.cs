@@ -43,10 +43,10 @@ namespace Automa.IO.Unanet.Records
 
         public static Task<bool> ExportFileAsync(UnanetClient una, string sourceFolder)
         {
-            var filePath = Path.Combine(sourceFolder, $"{una.Exports["assignment"].Item2}.csv");
+            var filePath = Path.Combine(sourceFolder, una.Settings.assignment.file);
             if (File.Exists(filePath))
                 File.Delete(filePath);
-            return Task.Run(() => una.GetEntitiesByExport(una.Exports["assignment"].Item1, f =>
+            return Task.Run(() => una.GetEntitiesByExport(una.Settings.assignment.key, f =>
             {
                 f.Checked["suppressOutput"] = true;
                 f.Checked["person_outputActive"] = true; f.Checked["person_outputInactive"] = true;
@@ -60,7 +60,7 @@ namespace Automa.IO.Unanet.Records
 
         public static IEnumerable<AssignmentModel> Read(UnanetClient una, string sourceFolder)
         {
-            var filePath = Path.Combine(sourceFolder, $"{una.Exports["assignment"].Item2}.csv");
+            var filePath = Path.Combine(sourceFolder, una.Settings.assignment.file);
             using (var sr = File.OpenRead(filePath))
                 return CsvReader.Read(sr, x => new AssignmentModel
                 {

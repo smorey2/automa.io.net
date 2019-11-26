@@ -25,22 +25,22 @@ namespace Automa.IO.Unanet.Records
         // custom
         public string project_codeKey { get; set; }
 
-        public static Task<bool> ExportFileAsync(UnanetClient una, string sourceFolder, string legalEntity = "75-00-DEG-00 - Digital Evolution Group, LLC")
+        public static Task<bool> ExportFileAsync(UnanetClient una, string sourceFolder, string legalEntity = null)
         {
-            var filePath = Path.Combine(sourceFolder, $"{una.Exports["labor category project"].Item2}.csv");
+            var filePath = Path.Combine(sourceFolder, una.Settings.labor_category_project.file);
             if (File.Exists(filePath))
                 File.Delete(filePath);
-            return Task.Run(() => una.GetEntitiesByExport(una.Exports["labor category project"].Item1, f =>
+            return Task.Run(() => una.GetEntitiesByExport(una.Settings.labor_category_project.key, f =>
             {
                 f.Checked["suppressOutput"] = true;
-                f.FromSelect("legalEntity", legalEntity);
+                f.FromSelect("legalEntity", legalEntity ?? una.Settings.LegalEntity);
                 f.FromSelect("dateRange", "BOT to EOT");
             }, sourceFolder));
         }
 
         public static IEnumerable<ProjectLaborCategoryModel> Read(UnanetClient una, string sourceFolder)
         {
-            var filePath = Path.Combine(sourceFolder, $"{una.Exports["labor category project"].Item2}.csv");
+            var filePath = Path.Combine(sourceFolder, una.Settings.labor_category_project.file);
             using (var sr = File.OpenRead(filePath))
                 return CsvReader.Read(sr, x => new ProjectLaborCategoryModel
                 {
@@ -54,7 +54,7 @@ namespace Automa.IO.Unanet.Records
                     bill_rate = x[6].ToDecimal(),
                     //
                     effective_date = x[7].ToDateTime(),
-                    default_to_master_rate = x[8],                    
+                    default_to_master_rate = x[8],
                 }, 1).ToList();
         }
 

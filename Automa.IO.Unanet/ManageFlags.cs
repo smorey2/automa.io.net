@@ -6,10 +6,9 @@ namespace Automa.IO.Unanet
     public enum ManageFlags
     {
         None = 0x0,
-        Default = AllEntity | Export, // | Sync,
+        Default = AllEntity | Export | Sync,
         AllEntity = OrganizationAll | ProjectAll | PersonAll | TimeInvoiceAll,
         //AllEntity = FixedPrice,
-        //AllEntity = ProjectInvoiceSetup,
 
         // OPERATIONS
         Export = 0x1, Sync = 0x2,

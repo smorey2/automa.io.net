@@ -10,9 +10,7 @@ namespace Automa.IO.Unanet
     /// <seealso cref="Automa.IO.Automation" />
     public class UnanetAutomation : Automation
     {
-        string UnanetUri => !_sandbox ? $"https://{_unanetId}.unanet.biz/{_unanetId}/action" : $"https://{_unanetId}-sand.unanet.biz/{_unanetId}-sand/action";
-        readonly string _unanetId;
-        readonly bool _sandbox;
+        readonly IUnanetSettings _settings;
 
         /// <summary>
         /// Initializes a new instance of the <see cref="UnanetAutomation" /> class.
@@ -22,11 +20,7 @@ namespace Automa.IO.Unanet
         /// <param name="driver">The driver.</param>
         /// <param name="unanetId">The unanet identifier.</param>
         /// <param name="sandbox">if set to <c>true</c> [sandbox].</param>
-        public UnanetAutomation(AutomaClient client, IAutoma automa, IWebDriver driver, string unanetId, bool sandbox) : base(client, automa, driver)
-        {
-            _unanetId = unanetId;
-            _sandbox = sandbox;
-        }
+        public UnanetAutomation(AutomaClient client, IAutoma automa, IWebDriver driver, IUnanetSettings settings) : base(client, automa, driver) => _settings = settings;
 
         /// <summary>
         /// Tries the go to URL.
@@ -50,9 +44,9 @@ namespace Automa.IO.Unanet
         /// <exception cref="AutomaEx.LoginRequiredException"></exception>
         public override void Login(Func<CookieCollection, CookieCollection> cookies, NetworkCredential credential, object tag = null)
         {
-            _driver.Navigate().GoToUrl(UnanetUri + "/home");
+            _driver.Navigate().GoToUrl(_settings.UnanetUri + "/home");
             var url = _driver.Url;
-            if (!url.StartsWith(UnanetUri + "/home"))
+            if (!url.StartsWith(_settings.UnanetUri + "/home"))
                 throw new LoginRequiredException();
             // username
             var loginElement = _driver.FindElement(By.Name("username"));
@@ -63,7 +57,7 @@ namespace Automa.IO.Unanet
             // done
             passwordElement.SendKeys(Keys.Return);
             url = _driver.Url;
-            if (!url.StartsWith(UnanetUri + "/home"))
+            if (!url.StartsWith(_settings.UnanetUri + "/home"))
                 throw new LoginRequiredException();
             //cookies(_automa.Cookies);
         }

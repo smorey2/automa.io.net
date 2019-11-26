@@ -11,6 +11,10 @@ namespace Automa.IO.Unanet.Records
 {
     public class FixedPriceModel : ModelBase
     {
+        public string key { get; set; }
+        public DateTime? revenue_recognition_date { get; set; }
+        public decimal? revenue_recognition_amount { get; set; }
+        //
         public string project_org_code { get; set; }
         public string project_code { get; set; }
         public string task_name { get; set; }
@@ -22,23 +26,20 @@ namespace Automa.IO.Unanet.Records
         public string revenue_recognition_method { get; set; }
         public string delete { get; set; }
         //
-        public string key { get; set; }
-        public DateTime? revenue_recognition_date { get; set; }
-        public decimal? revenue_recognition_amount { get; set; }
-        //
         public bool posted { get; set; }
+        public bool locked { get; set; }
         public string project_codeKey { get; set; }
 
         public static Task<bool> ExportFileAsync(UnanetClient una, string sourceFolder)
         {
-            var filePath = Path.Combine(sourceFolder, $"{una.Exports["fixed price item"].Item2}.csv");
-            var filePath2 = Path.Combine(sourceFolder, $"{una.Exports["fixed price item [post]"].Item2}.csv");
+            var filePath = Path.Combine(sourceFolder, una.Settings.fixed_price_item.file);
+            var filePath2 = Path.Combine(sourceFolder, una.Settings.fixed_price_item_post.file);
             if (File.Exists(filePath))
                 File.Delete(filePath);
             if (File.Exists(filePath2))
                 File.Delete(filePath2);
             return Task.Run(() =>
-                una.GetEntitiesByExport(una.Exports["fixed price item"].Item1, f =>
+                una.GetEntitiesByExport(una.Settings.fixed_price_item.key, f =>
                 {
                     f.Checked["suppressOutput"] = true;
                     f.Values["dateRange_bDate"] = "BOT"; f.Values["dateRange_eDate"] = "EOT";
@@ -47,7 +48,7 @@ namespace Automa.IO.Unanet.Records
                     f.Checked["includePosted"] = true;
                     f.Checked["includeRevSchedules"] = true;
                 }, sourceFolder) &&
-                una.GetEntitiesByExport(una.Exports["fixed price item [post]"].Item1, f =>
+                una.GetEntitiesByExport(una.Settings.fixed_price_item_post.key, f =>
                 {
                     f.Checked["suppressOutput"] = true;
                     f.Values["dateRange_bDate"] = "BOT"; f.Values["dateRange_eDate"] = "EOT";
@@ -60,33 +61,35 @@ namespace Automa.IO.Unanet.Records
 
         public static IEnumerable<FixedPriceModel> Read(UnanetClient una, string sourceFolder)
         {
-            var filePath = Path.Combine(sourceFolder, $"{una.Exports["fixed price item"].Item2}.csv");
-            var filePath2 = Path.Combine(sourceFolder, $"{una.Exports["fixed price item [post]"].Item2}.csv");
-            using (var sr1 = File.OpenRead(filePath2))
+            var filePath = Path.Combine(sourceFolder, una.Settings.fixed_price_item.file);
+            var filePath2 = Path.Combine(sourceFolder, una.Settings.fixed_price_item_post.file);
+            using (var sr2 = File.OpenRead(filePath2))
             {
-                var post = new HashSet<string>(CsvReader.Read(sr1, x => x.Count > 9 ? x[9] : null, 1).ToList());
+                var post = new HashSet<string>(CsvReader.Read(sr2, x => x[0], 1).ToList());
                 using (var sr = File.OpenRead(filePath))
                     return CsvReader.Read(sr, x =>
                     {
-                        var description = x[3].ToString();
+                        var d = x[6].ToString();
+                        var d0 = d.IndexOf(","); //: d1 = d.IndexOf(":");
+                        var external_system_code = d0 != -1 && d.Length - d0 == 3 ? d.Substring(d0 + 1) : null; //: d0 != -1 && d0 < d1 ? d.Substring(0, d0) : null;
+                        var description = d0 != -1 && d.Length - d0 == 3 ? d.Substring(0, d0) : d; //: d0 != -1 && d0 < d1 ? d.Substring(d0 + 1) : d;
                         return new FixedPriceModel
                         {
-                            project_org_code = x[0],
-                            project_code = x[1],
-                            task_name = x[2].DecodeString(),
-                            external_system_code = null,
+                            key = x[0],
+                            revenue_recognition_date = x[1].ToDateTime(),
+                            revenue_recognition_amount = x[2].ToDecimal(),
+                            //
+                            project_org_code = x[3],
+                            project_code = x[4],
+                            task_name = x[5].DecodeString(),
+                            external_system_code = external_system_code,
                             description = description,
-                            bill_date = x[4].ToDateTime(),
-                            bill_on_completion = x[5],
-                            bill_amount = x[6],
-                            revenue_recognition_method = x[7],
-                            delete = x[8],
-                            //
-                            key = x.Count > 9 ? x[9] : null,
-                            revenue_recognition_date = x.Count > 10 ? x[10].ToDateTime() : null,
-                            revenue_recognition_amount = x.Count > 11 ? x[11].ToDecimal() : null,
-                            //
-                            posted = x.Count > 9 && !post.Contains(x[9]),
+                            bill_date = x[7].ToDateTime(),
+                            bill_on_completion = x[8],
+                            bill_amount = x[9],
+                            revenue_recognition_method = x[10],
+                            delete = x[11],
+                            posted = !post.Contains(x[0]),
                         };
                     }, 1).ToList();
             }
@@ -95,7 +98,7 @@ namespace Automa.IO.Unanet.Records
         public static string GetReadXml(UnanetClient una, string sourceFolder, string syncFileA = null)
         {
             var xml = new XElement("r", Read(una, sourceFolder).Select(x => new XElement("p", XAttribute("k", x.key),
-                XAttribute("poc", x.project_org_code), XAttribute("pc", x.project_code), XAttribute("tn", x.task_name), XAttribute("d", x.description),
+                XAttribute("poc", x.project_org_code), XAttribute("pc", x.project_code), XAttribute("tn", x.task_name), XAttribute("esc", x.external_system_code), XAttribute("d", x.description),
                 XAttribute("bd", x.bill_date), XAttribute("boc", x.bill_on_completion), XAttribute("ba", x.bill_amount), XAttribute("rrm", x.revenue_recognition_method),
                 XAttribute("rrd", x.revenue_recognition_date), XAttribute("rra", x.revenue_recognition_amount),
                 new XAttribute("p", x.posted ? 1 : 0)
@@ -114,22 +117,28 @@ namespace Automa.IO.Unanet.Records
             public string XCF { get; set; }
         }
 
-        public static ManageFlags ManageRecord(UnanetClient una, p_FixedPrice1 s, out string last)
+        public static ManageFlags ManageRecord(UnanetClient una, p_FixedPrice1 s, out string last, Action<string> lockFunc)
         {
-            throw new NotSupportedException();
             if (s.revenue_recognition_method == null)
                 throw new InvalidOperationException($"{s.project_code} not categorized");
             if (ManageRecordBase(s.key, s.XCF, 0, out var cf, out var add, out last))
                 return ManageFlags.FixedPriceChanged;
-            var method = !cf.Contains("tainted") ? add ? HttpMethod.Post : HttpMethod.Put : HttpMethod.Delete;
+            //throw new NotSupportedException();
+            var method = add ? HttpMethod.Post : HttpMethod.Put; // !cf.Contains("tainted") ? add ? HttpMethod.Post : HttpMethod.Put : HttpMethod.Delete;
             var r = una.SubmitSubManage("A", method, "projects/accounting/fixed_price_item", $"key={s.key}",
                 $"projectkey={s.project_codeKey}", null,
                 out last, (z, f) =>
             {
+                if (f.Types["description"] == "disabled")
+                {
+                    lockFunc(s.key);
+                    return null;
+                }
                 //if (add || cf.Contains("poc")) f.Values["xxxx"] = s.project_org_code;
                 //if (add || cf.Contains("pc")) f.Values["xxxx"] = s.project_code;
                 if (add || cf.Contains("tn")) f.FromSelectByPredicate("task", s.task_name, x => x.Value.StartsWith(s.task_name));
-                if (add || cf.Contains("d")) f.Values["description"] = s.description;
+                var description = !string.IsNullOrEmpty(s.external_system_code) ? $"{s.description},{s.external_system_code}" : s.description;
+                if (add || cf.Contains("esc") || cf.Contains("d") || cf.Contains("bind")) f.Values["description"] = description;
                 //
                 if (add || cf.Contains("bd")) f.Values["billDate"] = s.bill_date.FromDateTime();
                 if (add || cf.Contains("boc")) f.Checked["useWbsEndDate"] = s.bill_on_completion == "Y";

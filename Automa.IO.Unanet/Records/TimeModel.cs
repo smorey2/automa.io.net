@@ -37,18 +37,18 @@ namespace Automa.IO.Unanet.Records
         public string post_date { get; set; }
         public string additional_pay_rate { get; set; }
 
-        public static Task<bool> ExportFileAsync(UnanetClient una, string sourceFolder, int window, string legalEntity = "75-00-DEG-00 - Digital Evolution Group, LLC", Action<HtmlFormPost> func = null)
+        public static Task<bool> ExportFileAsync(UnanetClient una, string sourceFolder, int window, string legalEntity = null, Action<HtmlFormPost> func = null)
         {
-            var filePath = Path.Combine(sourceFolder, $"{una.Exports["time"].Item2}.csv");
+            var filePath = Path.Combine(sourceFolder, una.Settings.time.file);
             if (File.Exists(filePath))
                 File.Delete(filePath);
-            return Task.Run(() => una.GetEntitiesByExport(una.Exports["time"].Item1, f =>
+            return Task.Run(() => una.GetEntitiesByExport(una.Settings.time.key, f =>
             {
                 GetWindowDates(nameof(TimeModel), window, out var beginDate, out var endDate);
                 f.Checked["suppressOutput"] = true;
                 f.Values["dateType"] = "range";
                 f.Values["beginDate"] = beginDate.FromDateTime("BOT"); f.Values["endDate"] = endDate.FromDateTime("EOT");
-                f.FromSelect("legalEntity", legalEntity);
+                f.FromSelect("legalEntity", legalEntity ?? una.Settings.LegalEntity);
                 f.Checked["exempt"] = true; f.Checked["nonExempt"] = true; f.Checked["nonEmployee"] = true; f.Checked["subcontractor"] = true;
                 f.Checked["INUSE"] = true; f.Checked["SUBMITTED"] = true; f.Checked["APPROVING"] = true;
                 f.Checked["DISAPPROVED"] = true; f.Checked["COMPLETED"] = true; f.Checked["LOCKED"] = true;
@@ -63,7 +63,7 @@ namespace Automa.IO.Unanet.Records
 
         public static IEnumerable<TimeModel> Read(UnanetClient una, string sourceFolder)
         {
-            var filePath = Path.Combine(sourceFolder, $"{una.Exports["time"].Item2}.csv");
+            var filePath = Path.Combine(sourceFolder, una.Settings.time.file);
             using (var sr = File.OpenRead(filePath))
                 return CsvReader.Read(sr, x => new TimeModel
                 {
