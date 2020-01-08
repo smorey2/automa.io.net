@@ -41,7 +41,9 @@ namespace Automa.IO.Unanet
             DateTime beginWindowDate;
             switch (entity)
             {
+                case "Begin": beginWindowDate = BeginDate; break;
                 case nameof(TimeModel): beginWindowDate = BeginTimeWindowDate; break;
+                case "Assist": beginWindowDate = new DateTime(2019, 11, 1); break;
                 case nameof(InvoiceModel): beginWindowDate = BeginInvoiceWindowDate; break;
                 default: beginWindowDate = BeginDate; break;
             }

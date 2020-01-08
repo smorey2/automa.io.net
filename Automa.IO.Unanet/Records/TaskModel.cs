@@ -69,6 +69,23 @@ namespace Automa.IO.Unanet.Records
         public string limit_bill_to_funded { get; set; }
         public string limit_rev_to_funded { get; set; }
         public string owning_organization { get; set; }
+        //
+        public string allows_time { get; set; }
+        public string ts_non_emp_po_required { get; set; }
+        public string allows_expense { get; set; }
+        public string exp_non_emp_po_required { get; set; }
+        public string allows_item { get; set; }
+        //
+        public string user11 { get; set; }
+        public string user12 { get; set; }
+        public string user13 { get; set; }
+        public string user14 { get; set; }
+        public string user15 { get; set; }
+        public string user16 { get; set; }
+        public string user17 { get; set; }
+        public string user18 { get; set; }
+        public string user19 { get; set; }
+        public string user20 { get; set; }
         // custom
         public string project_codeKey { get; set; }
 
@@ -148,6 +165,23 @@ namespace Automa.IO.Unanet.Records
                     limit_bill_to_funded = x[47],
                     limit_rev_to_funded = x[48],
                     owning_organization = x[49],
+                    //
+                    allows_time = x[50],
+                    ts_non_emp_po_required = x[51],
+                    allows_expense = x[52],
+                    exp_non_emp_po_required = x[53],
+                    allows_item = x[54],
+                    //
+                    user11 = x[55],
+                    user12 = x[56],
+                    user13 = x[57],
+                    user14 = x[58],
+                    user15 = x[59],
+                    user16 = x[60],
+                    user17 = x[61],
+                    user18 = x[62],
+                    user19 = x[63],
+                    user20 = x[64],
                 }, 1).ToList();
         }
 
@@ -161,7 +195,9 @@ namespace Automa.IO.Unanet.Records
                 XAttribute("u1", x.user01), XAttribute("u2", x.user02), XAttribute("u3", x.user03), XAttribute("u4", x.user04), XAttribute("u5", x.user05), XAttribute("u6", x.user06), XAttribute("u7", x.user07), XAttribute("u8", x.user08), XAttribute("u9", x.user09), XAttribute("u10", x.user10),
                 XAttribute("bldc", x.budget_labor_dollars_cost), XAttribute("eldc", x.etc_labor_dollars_cost), XAttribute("etldc", x.est_tot_labor_dollars_cost), XAttribute("bedc", x.budget_expense_dollars_cost), XAttribute("eedc", x.etc_expense_dollars_cost), XAttribute("etedc", x.est_tot_expense_dollars_cost),
                 XAttribute("pt", x.project_type), XAttribute("d", x.duration), XAttribute("ea", x.enable_alerts), XAttribute("bt", x.billing_type),
-                XAttribute("bldcb", x.budget_labor_dollars_cost_burdened), XAttribute("bedcb", x.budget_expense_dollars_cost_burdened), XAttribute("fv", x.funded_value), XAttribute("lbtf", x.limit_bill_to_funded), XAttribute("lrtf", x.limit_rev_to_funded), XAttribute("oo", x.owning_organization)
+                XAttribute("bldcb", x.budget_labor_dollars_cost_burdened), XAttribute("bedcb", x.budget_expense_dollars_cost_burdened), XAttribute("fv", x.funded_value), XAttribute("lbtf", x.limit_bill_to_funded), XAttribute("lrtf", x.limit_rev_to_funded), XAttribute("oo", x.owning_organization),
+                XAttribute("at", x.allows_time), XAttribute("tnepr", x.ts_non_emp_po_required), XAttribute("ae", x.allows_expense), XAttribute("enepr", x.exp_non_emp_po_required), XAttribute("ai", x.allows_item),
+                XAttribute("u11", x.user11), XAttribute("u12", x.user12), XAttribute("u13", x.user13), XAttribute("u14", x.user14), XAttribute("u15", x.user15), XAttribute("u16", x.user16), XAttribute("u17", x.user17), XAttribute("u18", x.user18), XAttribute("u19", x.user19), XAttribute("u20", x.user20)
             )).ToArray()).ToString();
             if (syncFileA == null)
                 return xml;
@@ -242,6 +278,23 @@ namespace Automa.IO.Unanet.Records
                 //if (add || cf.Contains("lbtf")) f.Checked["limitBillToFunded"] = s.limit_bill_to_funded == "Y";
                 //if (add || cf.Contains("lrtf")) f.Checked["limitRevToFunded"] = s.limit_rev_to_funded == "Y";
                 if (add || cf.Contains("oo")) f.Values["tOOMenu"] = GetLookupValue(organizations, s.owning_organization);
+                //
+                if (add || cf.Contains("at")) f.Values["time_assignment_flag"] = s.allows_time;
+                if (add || cf.Contains("tnepr")) f.Values["ts_sub_po_required"] = s.ts_non_emp_po_required;
+                if (add || cf.Contains("ae")) f.Values["expense_assignment_flag"] = s.allows_expense;
+                if (add || cf.Contains("enepr")) f.Values["exp_sub_po_required"] = s.exp_non_emp_po_required;
+                if (add || cf.Contains("ai")) f.Values["item_assignment_flag"] = s.allows_item;
+                //
+                //if (add || cf.Contains("u11")) f.Values["udf_10"] = s.user11;
+                //if (add || cf.Contains("u12")) f.Values["udf_11"] = s.user12;
+                //if (add || cf.Contains("u13")) f.Values["udf_12"] = s.user13;
+                //if (add || cf.Contains("u14")) f.Values["udf_13"] = s.user14;
+                //if (add || cf.Contains("u15")) f.Values["udf_14"] = s.user15;
+                //if (add || cf.Contains("u16")) f.Values["udf_15"] = s.user16;
+                //if (add || cf.Contains("u17")) f.Values["udf_16"] = s.user17;
+                //if (add || cf.Contains("u18")) f.Values["udf_17"] = s.user18;
+                //if (add || cf.Contains("u19")) f.Values["udf_18"] = s.user19;
+                //if (add || cf.Contains("u20")) f.Values["udf_19"] = s.user20;
                 return f.ToString();
             });
             return r != null ?

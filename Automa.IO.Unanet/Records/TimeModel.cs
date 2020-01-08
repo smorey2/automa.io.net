@@ -37,14 +37,14 @@ namespace Automa.IO.Unanet.Records
         public string post_date { get; set; }
         public string additional_pay_rate { get; set; }
 
-        public static Task<bool> ExportFileAsync(UnanetClient una, string sourceFolder, int window, string legalEntity = null, Action<HtmlFormPost> func = null)
+        public static Task<bool> ExportFileAsync(UnanetClient una, string windowEntity, string sourceFolder, int window, string legalEntity = null, Action<HtmlFormPost> func = null)
         {
             var filePath = Path.Combine(sourceFolder, una.Settings.time.file);
             if (File.Exists(filePath))
                 File.Delete(filePath);
             return Task.Run(() => una.GetEntitiesByExport(una.Settings.time.key, f =>
             {
-                GetWindowDates(nameof(TimeModel), window, out var beginDate, out var endDate);
+                GetWindowDates(windowEntity ?? nameof(TimeModel), window, out var beginDate, out var endDate);
                 f.Checked["suppressOutput"] = true;
                 f.Values["dateType"] = "range";
                 f.Values["beginDate"] = beginDate.FromDateTime("BOT"); f.Values["endDate"] = endDate.FromDateTime("EOT");
