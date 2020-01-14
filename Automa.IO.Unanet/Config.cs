@@ -62,9 +62,9 @@
 
         // Organization
         public (string, string) organization => ("734", "DEG_ Organization.csv");
-        public (string, string) customer_profile => ("828", "Customer Profile.csv");
-        public (string, string) organization_address => ("847", "Organization Address.csv");
-        public (string, string) organization_contact => ("848", "Organization Contact.csv");
+        public (string, string) customer_profile => ("887", "Customer Profile.csv"); //: new
+        public (string, string) organization_address => ("906", "Organization Address.csv"); //: new
+        public (string, string) organization_contact => ("907", "Organization Contact.csv"); //: new
 
         // Project
         public (string, string) project => ("810", "DEG_ Project.csv");
@@ -72,14 +72,14 @@
         public (string, string) fixed_price_item => ("873", "DEG_ Fixed Price Item.csv");
         public (string, string) fixed_price_item_post => ("874", "DEG_ Fixed Price Item [post].csv");
         public (string, string) assignment => ("812", "DEG_ Assignment.csv");
-        public (string, string) project_administrator => ("857", "Project Administrators.csv");
+        public (string, string) project_administrator => ("917", "Project Administrators.csv"); //:new
         public (string, string) labor_category_project => ("817", "DEG_ Labor Category - Project.csv");
-        public (string, string) project_invoice_setup => ("859", "Project Invoice Setup.csv");
+        public (string, string) project_invoice_setup => ("919", "Project Invoice Setup.csv"); //:new
 
         // Person
         public (string, string) person => ("811", "DEG_ Person.csv");
-        public (string, string) alternate => ("824", "Alternate.csv");
-        public (string, string) approval_group => ("825", "Approval Group.csv");
+        public (string, string) alternate => ("883", "Alternate.csv"); //:new
+        public (string, string) approval_group => ("884", "Approval Group.csv"); //:new
 
         // Time/Invoice
         public (string, string) time => ("819", "DEG_ Time.csv");

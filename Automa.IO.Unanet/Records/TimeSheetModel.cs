@@ -156,7 +156,7 @@ namespace Automa.IO.Unanet.Records
             f.Add("timesheetkey", "text", $"{s.KeySheet}");
             for (var i = 0; i < 7; i++)
                 f.Add($"date_{i}", "text", s.Meta.Dates[i].ToString("M/d/yyyy"));
-            f.Add("rows", "text", s.Rows.Count.ToString());
+            f.Add("timeRows", "text", s.Rows.Count.ToString());
             f.Add("columns", "text", "7");
             // rows
             for (var i = 0; i < s.Rows.Count; i++)
