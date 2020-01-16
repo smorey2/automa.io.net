@@ -83,16 +83,20 @@ namespace Automa.IO.Unanet.Records
             public string XCF { get; set; }
         }
 
-        public static ManageFlags ManageRecord(UnanetClient una, p_OrganizationAddress1 s, out string last)
+        public static ManageFlags ManageRecord(UnanetClient una, p_OrganizationAddress1 s, out Dictionary<string, (Type, object)> fields, out string last, Action<p_OrganizationAddress1> bespoke = null)
         {
             string ToStreetAddress()
             {
                 var b = new StringBuilder();
-                if (!string.IsNullOrEmpty(s.street_address1)) b.AppendLine(s.street_address1);
-                if (!string.IsNullOrEmpty(s.street_address2)) b.AppendLine(s.street_address2);
-                if (!string.IsNullOrEmpty(s.street_address3)) b.AppendLine(s.street_address3);
+                if (!string.IsNullOrEmpty(_t(s.street_address1, nameof(s.street_address1)))) b.AppendLine(s.street_address1);
+                if (!string.IsNullOrEmpty(_t(s.street_address2, nameof(s.street_address2)))) b.AppendLine(s.street_address2);
+                if (!string.IsNullOrEmpty(_t(s.street_address3, nameof(s.street_address3)))) b.AppendLine(s.street_address3);
                 return b.ToString();
             }
+            var _f = fields = new Dictionary<string, (Type, object)>();
+            T _t<T>(T value, string name) { _f[name] = (typeof(T), value); return value; }
+            //
+            bespoke?.Invoke(s);
             if (ManageRecordBase(null, s.XCF, 1, out var cf, out var add, out last))
                 return ManageFlags.OrganizationAddressChanged;
             var list = add ? null : GetList(una, s.organization_codeKey);
@@ -107,16 +111,16 @@ namespace Automa.IO.Unanet.Records
                 $"orgKey={s.organization_codeKey}", "&streetAddress=&city=&state=&postalCode=&country=",
                 out last, (z, f) =>
             {
-                //if (add || cf.Contains("oc")) f.Values["xxx"] = s.organization_code;
+                //if (add || cf.Contains("oc")) f.Values["xxx"] = _t(s.organization_code, nameof(s.organization_code))s.;
                 if (add || cf.Contains("sa1") || cf.Contains("sa2") || cf.Contains("sa3")) f.Values["streetAddress"] = ToStreetAddress();
-                if (add || cf.Contains("c")) f.Values["city"] = s.city;
-                if (add || cf.Contains("sp")) f.Values["state"] = s.state_province;
-                if (add || cf.Contains("pc")) f.Values["postalCode"] = s.postal_code;
-                if (add || cf.Contains("c2")) f.Values["country"] = s.country;
+                if (add || cf.Contains("c")) f.Values["city"] = _t(s.city, nameof(s.city));
+                if (add || cf.Contains("sp")) f.Values["state"] = _t(s.state_province, nameof(s.state_province));
+                if (add || cf.Contains("pc")) f.Values["postalCode"] = _t(s.postal_code, nameof(s.postal_code));
+                if (add || cf.Contains("c2")) f.Values["country"] = _t(s.country, nameof(s.country));
                 //
-                if (add || cf.Contains("dbt")) f.Checked["billTo"] = s.default_bill_to == "Y";
-                if (add || cf.Contains("dst")) f.Checked["shipTo"] = s.default_ship_to == "Y";
-                if (add || cf.Contains("drt")) f.Checked["remitTo"] = s.default_remit_to == "Y";
+                if (add || cf.Contains("dbt")) f.Checked["billTo"] = _t(s.default_bill_to, nameof(s.default_bill_to)) == "Y";
+                if (add || cf.Contains("dst")) f.Checked["shipTo"] = _t(s.default_ship_to, nameof(s.default_ship_to)) == "Y";
+                if (add || cf.Contains("drt")) f.Checked["remitTo"] = _t(s.default_remit_to, nameof(s.default_remit_to)) == "Y";
                 return f.ToString();
             });
             return r != null ?

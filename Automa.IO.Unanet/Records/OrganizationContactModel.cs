@@ -1,4 +1,5 @@
 ﻿using ExcelTrans.Services;
+using System;
 using System.Collections.Generic;
 using System.IO;
 using System.Linq;
@@ -130,8 +131,12 @@ namespace Automa.IO.Unanet.Records
             public string XCF { get; set; }
         }
 
-        public static ManageFlags ManageRecord(UnanetClient una, p_OrganizationContact1 s, out string last)
+        public static ManageFlags ManageRecord(UnanetClient una, p_OrganizationContact1 s, out Dictionary<string, (Type, object)> fields, out string last, Action<p_OrganizationContact1> bespoke = null)
         {
+            var _f = fields = new Dictionary<string, (Type, object)>();
+            T _t<T>(T value, string name) { _f[name] = (typeof(T), value); return value; }
+            //
+            bespoke?.Invoke(s);
             if (ManageRecordBase(null, s.XCF, 1, out var cf, out var add, out last))
                 return ManageFlags.OrganizationContactChanged;
             var r = una.SubmitSubManage("Z", add ? HttpMethod.Post : HttpMethod.Put, "aaa", $"aaa={s.Id}",

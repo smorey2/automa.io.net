@@ -163,18 +163,22 @@ namespace Automa.IO.Unanet.Records
             public string XCF { get; set; }
         }
 
-        public static ManageFlags ManageRecord(UnanetClient una, p_Organization1 s, out string last)
+        public static ManageFlags ManageRecord(UnanetClient una, p_Organization1 s, out Dictionary<string, (Type, object)> fields, out string last, Action<p_Organization1> bespoke = null)
         {
+            var _f = fields = new Dictionary<string, (Type, object)>();
+            T _t<T>(T value, string name) { _f[name] = (typeof(T), value); return value; }
+            //
+            bespoke?.Invoke(s);
             if (ManageRecordBase(s.key, s.XCF, 0, out var cf, out var add, out last))
                 return ManageFlags.OrganizationChanged;
             var r = una.SubmitManage(add ? HttpMethod.Post : HttpMethod.Put, "organizations",
                 $"orgKey={s.key}",
                 out last, (z, f) =>
             {
-                if (add || cf.Contains("oc")) f.Values["orgCode"] = s.organization_code;
-                if (add || cf.Contains("on")) f.Values["orgName"] = s.organization_name;
+                if (add || cf.Contains("oc")) f.Values["orgCode"] = _t(s.organization_code, nameof(s.organization_code));
+                if (add || cf.Contains("on")) f.Values["orgName"] = _t(s.organization_name, nameof(s.organization_name));
                 if (add || cf.Contains("poc"))
-                    if (s.parent_org_code == "CLIENT_TRADE")
+                    if (_t(s.parent_org_code, nameof(s.parent_org_code)) == "CLIENT_TRADE")
                     {
                         //f.Values["poupdate"] = "Y";
                         f.Values["porg"] = "CLIENT_TRADE - Client, Trade";
@@ -187,50 +191,50 @@ namespace Automa.IO.Unanet.Records
                         f.Values["parentOrg"] = "507";
                     }
                 //
-                //if (add || cf.Contains("ot")) f.Values["xxx"] = s.org_type;
-                if (add || cf.Contains("s")) f.Values["orgSize"] = s.size;
-                if (add || cf.Contains("esc") || cf.Contains("bind")) f.Values["externalSystemCode"] = s.external_system_code;
-                if (add || cf.Contains("sic")) f.Values["sicCode"] = s.sic_code;
-                if (add || cf.Contains("c")) f.Values["classification"] = s.classification;
-                if (add || cf.Contains("i")) f.Values["industry"] = s.industry;
-                if (add || cf.Contains("s2")) f.Values["sector"] = s.sector;
-                if (add || cf.Contains("ss")) f.Values["stockSymbol"] = s.stock_symbol;
-                if (add || cf.Contains("u")) f.Values["homepage"] = s.url;
+                //if (add || cf.Contains("ot")) f.Values["xxx"] = _t(s.org_type, nameof(s.org_type));
+                if (add || cf.Contains("s")) f.Values["orgSize"] = _t(s.size, nameof(s.size));
+                if (add || cf.Contains("esc") || cf.Contains("bind")) f.Values["externalSystemCode"] = _t(s.external_system_code, nameof(s.external_system_code));
+                if (add || cf.Contains("sic")) f.Values["sicCode"] = _t(s.sic_code, nameof(s.sic_code));
+                if (add || cf.Contains("c")) f.Values["classification"] = _t(s.classification, nameof(s.classification));
+                if (add || cf.Contains("i")) f.Values["industry"] = _t(s.industry, nameof(s.industry));
+                if (add || cf.Contains("s2")) f.Values["sector"] = _t(s.sector, nameof(s.sector));
+                if (add || cf.Contains("ss")) f.Values["stockSymbol"] = _t(s.stock_symbol, nameof(s.stock_symbol));
+                if (add || cf.Contains("u")) f.Values["homepage"] = _t(s.url, nameof(s.url));
                 //
-                if (add || cf.Contains("u1")) f.Values["udf_0"] = s.user01;
-                if (add || cf.Contains("u2")) f.Values["udf_1"] = s.user02;
-                //if (add || cf.Contains("u3")) f.Values["udf_2"] = s.user03;
-                //if (add || cf.Contains("u4")) f.Values["udf_3"] = s.user04;
-                if (add || cf.Contains("u5")) f.Values["udf_4"] = s.user05;
-                if (add || cf.Contains("u6")) f.Values["udf_5"] = s.user06;
-                //if (add || cf.Contains("u7")) f.Values["udf_6"] = s.user07;
-                if (add || cf.Contains("u8")) f.Values["udf_7"] = s.user08;
-                if (add || cf.Contains("u9")) f.Values["udf_8"] = s.user09;
-                if (add || cf.Contains("u10")) f.Values["udf_9"] = s.user10;
+                if (add || cf.Contains("u1")) f.Values["udf_0"] = _t(s.user01, nameof(s.user01));
+                if (add || cf.Contains("u2")) f.Values["udf_1"] = _t(s.user02, nameof(s.user02));
+                //if (add || cf.Contains("u3")) f.Values["udf_2"] = _t(s.user03, nameof(s.user03));
+                //if (add || cf.Contains("u4")) f.Values["udf_3"] = _t(s.user04, nameof(s.user04));
+                if (add || cf.Contains("u5")) f.Values["udf_4"] = _t(s.user05, nameof(s.user05));
+                if (add || cf.Contains("u6")) f.Values["udf_5"] = _t(s.user06, nameof(s.user06));
+                //if (add || cf.Contains("u7")) f.Values["udf_6"] = _t(s.user07, nameof(s.user07));
+                if (add || cf.Contains("u8")) f.Values["udf_7"] = _t(s.user08, nameof(s.user08));
+                if (add || cf.Contains("u9")) f.Values["udf_8"] = _t(s.user09, nameof(s.user09));
+                if (add || cf.Contains("u10")) f.Values["udf_9"] = _t(s.user10, nameof(s.user10));
                 //
-                if (add || cf.Contains("fo")) f.Checked["financialOrg"] = s.financial_org == "Y";
+                if (add || cf.Contains("fo")) f.Checked["financialOrg"] = _t(s.financial_org, nameof(s.financial_org)) == "Y";
                 if (s.financial_org == "Y")
                 {
-                    if (add || cf.Contains("le")) f.FromSelectByKey("legalEntity", s.legal_entity);
-                    //if (add || cf.Contains("lec")) f.Values["xxxx"] = s.legal_entity_code;
-                    if (add || cf.Contains("dgpo")) f.FromSelect("defaultGLPostOrg", s.default_gl_post_org);
-                    if (add || cf.Contains("ea")) f.Checked["entryAllowed"] = s.entry_allowed == "Y";
+                    if (add || cf.Contains("le")) f.FromSelectByKey("legalEntity", _t(s.legal_entity, nameof(s.legal_entity)));
+                    //if (add || cf.Contains("lec")) f.Values["xxxx"] = _t(s.legal_entity_code, nameof(s.legal_entity_code));
+                    if (add || cf.Contains("dgpo")) f.FromSelect("defaultGLPostOrg", _t(s.default_gl_post_org, nameof(s.default_gl_post_org)));
+                    if (add || cf.Contains("ea")) f.Checked["entryAllowed"] = _t(s.entry_allowed, nameof(s.entry_allowed)) == "Y";
                     if (s.entry_allowed == "Y")
                     {
-                        if (add || cf.Contains("ebd")) f.Values["beginDate"] = s.entry_begin_date;
-                        if (add || cf.Contains("eed")) f.Values["endDate"] = s.entry_end_date;
+                        if (add || cf.Contains("ebd")) f.Values["beginDate"] = _t(s.entry_begin_date, nameof(s.entry_begin_date));
+                        if (add || cf.Contains("eed")) f.Values["endDate"] = _t(s.entry_end_date, nameof(s.entry_end_date));
                     }
-                    //if (add || cf.Contains("fp")) f.Values["finParentOrg"] = s.financial_parent;
-                    //if (add || cf.Contains("cpp")) f.Values["costPoolParentOrg"] = s.cost_pool_parent;
+                    //if (add || cf.Contains("fp")) f.Values["finParentOrg"] = _t(s.financial_parent, nameof(s.financial_parent));
+                    //if (add || cf.Contains("cpp")) f.Values["costPoolParentOrg"] = _t(s.cost_pool_parent, nameof(s.cost_pool_parent));
                 }
                 //
-                if (add || cf.Contains("a")) f.Checked["active"] = s.active == "Y";
-                if (add || cf.Contains("v_1")) f.Checked["vendor1099"] = s.vendor_1099 == "Y";
-                if (add || cf.Contains("rn_1")) f.Values["recipientName"] = s.recipient_name_1099;
-                if (add || cf.Contains("e_1")) f.Values["recipientEmail"] = s.email_1099;
-                if (add || cf.Contains("ftit")) f.FromSelectByKey("fedTaxIdType", s.federal_tax_id_type);
-                if (add || cf.Contains("fti")) f.Values["fedTaxId"] = s.federal_tax_id;
-                //if (add || cf.Contains("swpcn")) f.Values["xxxx"] = s.start_with_proj_code_number;
+                if (add || cf.Contains("a")) f.Checked["active"] = _t(s.active, nameof(s.active)) == "Y";
+                if (add || cf.Contains("v_1")) f.Checked["vendor1099"] = _t(s.vendor_1099, nameof(s.vendor_1099)) == "Y";
+                if (add || cf.Contains("rn_1")) f.Values["recipientName"] = _t(s.recipient_name_1099, nameof(s.recipient_name_1099));
+                if (add || cf.Contains("e_1")) f.Values["recipientEmail"] = _t(s.email_1099, nameof(s.email_1099));
+                if (add || cf.Contains("ftit")) f.FromSelectByKey("fedTaxIdType", _t(s.federal_tax_id_type, nameof(s.federal_tax_id_type)));
+                if (add || cf.Contains("fti")) f.Values["fedTaxId"] = _t(s.federal_tax_id, nameof(s.federal_tax_id));
+                //if (add || cf.Contains("swpcn")) f.Values["xxxx"] = _t(s.start_with_proj_code_number, nameof(s.start_with_proj_code_number));
                 //
                 if (add) f.FromSelect("orgType", "CUSTOMER");
                 f.Add("button_save", "action", null);

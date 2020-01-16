@@ -115,8 +115,12 @@ namespace Automa.IO.Unanet.Records
             public string XCF { get; set; }
         }
 
-        public static ManageFlags ManageRecord(UnanetClient una, p_CustomerProfile1 s, out string last)
+        public static ManageFlags ManageRecord(UnanetClient una, p_CustomerProfile1 s, out Dictionary<string, (Type, object)> fields, out string last, Action<p_CustomerProfile1> bespoke = null)
         {
+            var _f = fields = new Dictionary<string, (Type, object)>();
+            T _t<T>(T value, string name) { _f[name] = (typeof(T), value); return value; }
+            //
+            bespoke?.Invoke(s);
             if (ManageRecordBase(null, s.XCF, 1, out var cf, out var add, out last))
                 return ManageFlags.CustomerProfileChanged;
             var list = add ? null : GetList(una, s.organization_codeKey);
@@ -126,21 +130,21 @@ namespace Automa.IO.Unanet.Records
                 $"orgKey={s.organization_codeKey}", "legalEntityOrg=-1&paymentTerm=1&active=true",
                 out last, (z, f) =>
             {
-                //if (add || cf.Contains("oc")) f.FromSelect("xxx", s.organization_code);
-                if (add || cf.Contains("lec")) f.FromSelect("legalEntityOrg", s.legal_entity_code ?? f.Selects["legalEntityOrg"].FirstOrDefault().Value);
-                if (add || cf.Contains("a")) f.Checked["active"] = s.active == "Y";
-                if (add || cf.Contains("pt")) f.FromSelect("paymentTerm", s.payment_terms);
+                //if (add || cf.Contains("oc")) f.FromSelect("xxx", _t(s.organization_code, nameof(s.organization_code)));
+                if (add || cf.Contains("lec")) f.FromSelect("legalEntityOrg", _t(s.legal_entity_code, nameof(s.legal_entity_code)) ?? f.Selects["legalEntityOrg"].FirstOrDefault().Value);
+                if (add || cf.Contains("a")) f.Checked["active"] = _t(s.active, nameof(s.active)) == "Y";
+                if (add || cf.Contains("pt")) f.FromSelect("paymentTerm", _t(s.payment_terms, nameof(s.payment_terms)));
                 //
-                //if (add || cf.Contains("u1")) f.Values["udf_0"] = s.user01;
-                //if (add || cf.Contains("u2")) f.Values["udf_1"] = s.user02;
-                //if (add || cf.Contains("u3")) f.Values["udf_2"] = s.user03;
-                //if (add || cf.Contains("u4")) f.Values["udf_3"] = s.user04;
-                //if (add || cf.Contains("u5")) f.Values["udf_4"] = s.user05;
-                //if (add || cf.Contains("u6")) f.Values["udf_5"] = s.user06;
-                //if (add || cf.Contains("u7")) f.Values["udf_6"] = s.user07;
-                //if (add || cf.Contains("u8")) f.Values("udf_7", s.user08);
-                //if (add || cf.Contains("u9")) f.Values["udf_8"] = s.user09;
-                //if (add || cf.Contains("u10")) f.Values["udf_9"] = s.user10;
+                //if (add || cf.Contains("u1")) f.Values["udf_0"] = _t(s.user01, nameof(s.user01));
+                //if (add || cf.Contains("u2")) f.Values["udf_1"] = _t(s.user02, nameof(s.user02));
+                //if (add || cf.Contains("u3")) f.Values["udf_2"] = _t(s.user03, nameof(s.user03));
+                //if (add || cf.Contains("u4")) f.Values["udf_3"] = _t(s.user04, nameof(s.user04));
+                //if (add || cf.Contains("u5")) f.Values["udf_4"] = _t(s.user05, nameof(s.user05));
+                //if (add || cf.Contains("u6")) f.Values["udf_5"] = _t(s.user06, nameof(s.user06));
+                //if (add || cf.Contains("u7")) f.Values["udf_6"] = _t(s.user07, nameof(s.user07));
+                //if (add || cf.Contains("u8")) f.Values("udf_7", _t(s.user08, nameof(s.user08)));
+                //if (add || cf.Contains("u9")) f.Values["udf_8"] = _t(s.user09, nameof(s.user09));
+                //if (add || cf.Contains("u10")) f.Values["udf_9"] = _t(s.user10, nameof(s.user10));
                 return f.ToString();
             });
             return r != null ?

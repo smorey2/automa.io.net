@@ -78,8 +78,12 @@ namespace Automa.IO.Unanet.Records
             public string XCF { get; set; }
         }
 
-        public static ManageFlags ManageRecord(UnanetClient una, p_ProjectLaborCategory1 s, out string last)
+        public static ManageFlags ManageRecord(UnanetClient una, p_ProjectLaborCategory1 s, out Dictionary<string, (Type, object)> fields, out string last, Action<p_ProjectLaborCategory1> bespoke = null)
         {
+            var _f = fields = new Dictionary<string, (Type, object)>();
+            T _t<T>(T value, string name) { _f[name] = (typeof(T), value); return value; }
+            //
+            bespoke?.Invoke(s);
             if (ManageRecordBase(null, s.XCF, 1, out var cf, out var add, out last))
                 return ManageFlags.ProjectLaborCategoryChanged;
             var laborCategories = Unanet.Lookups.LaborCategories.Value;
@@ -87,8 +91,8 @@ namespace Automa.IO.Unanet.Records
                 $"projectkey={s.project_codeKey}", "blindInsert=false&list=true&reload=true&canEditBill=true&canEditCost=true&canViewBill=true&canViewCost=true&labor_category_dbValue=&labor_category_filterInactiveLabCat=false&showLaborCategory=false",
                 out last, (z, f) =>
                 {
-                    if (add) f.Values["assign"] = laborCategories[s.labor_category]; // LOOKUP
-                    if (!add && cf.Contains("dtmr")) f.FromSelectByKey("master", s.default_to_master_rate == "Y" ? "true" : "false");
+                    if (add) f.Values["assign"] = laborCategories[_t(s.labor_category, nameof(s.labor_category))]; // LOOKUP
+                    if (!add && cf.Contains("dtmr")) f.FromSelectByKey("master", _t(s.default_to_master_rate, nameof(s.default_to_master_rate)) == "Y" ? "true" : "false");
 
                     // edit rate row for effective_date|exempt_status|costStructLabor|bill_rate|cost_rate
                     if (!add && (cf.Contains("ed") || cf.Contains("br") || cf.Contains("cr")))
@@ -103,10 +107,10 @@ namespace Automa.IO.Unanet.Records
                             (x.StartsWith("billRate_") && x != "billRate_0") ||
                             (x.StartsWith("costRate_") && x != "costRate_0")).ToArray());
                         }
-                        if (cf.Contains("ed") && s.effective_date != UnanetClient.BOT)
+                        if (cf.Contains("ed") && _t(s.effective_date, nameof(s.effective_date)) != UnanetClient.BOT)
                             throw new InvalidOperationException($"MANUAL: {nameof(s.effective_date)} not BOT");
-                        if (cf.Contains("br")) f.Values["billRate_0"] = s.bill_rate.ToString();
-                        if (cf.Contains("cr")) f.Values["costRate_0"] = s.cost_rate.ToString();
+                        if (cf.Contains("br")) f.Values["billRate_0"] = _t(s.bill_rate, nameof(s.bill_rate)).ToString();
+                        if (cf.Contains("cr")) f.Values["costRate_0"] = _t(s.cost_rate, nameof(s.cost_rate)).ToString();
                     }
                     if (add) f.Add("button_save", "action", null);
                     else f.Action = f.Action.Replace("/list", "/save");

@@ -286,9 +286,10 @@ namespace Automa.IO.Unanet.Records
                 : statusString.Contains("COMPLETED") ? SheetStatus.Completed
                 : statusString.Contains("LOCKED") ? SheetStatus.Locked
                 : SheetStatus.Missing;
-            return status == SheetStatus.Inuse || status == SheetStatus.InuseAdjustment
-                ? ParseEdit(source, keySheet, status)
-                : ParseView(source, keySheet, status);
+            var view = source.Contains("setSubsectionTitle('");
+            return view // status != SheetStatus.Inuse &&| status != SheetStatus.InuseAdjustment
+                ? ParseView(source, keySheet, status)
+                : ParseEdit(source, keySheet, status);
         }
 
         static TimeSheetModel ParseView(string source, int keySheet, SheetStatus status)
@@ -353,22 +354,36 @@ namespace Automa.IO.Unanet.Records
                     .Select(m => ((int?)int.Parse(m.Groups[1].Value), HttpUtility.UrlDecode(m.Groups[2].Value))).ToDictionary(x => x.Item1.Value),
                 Paycodes = Regex.Matches(source.ExtractSpanInner("var paycodesByKey = new KeyedSet();", "var projects = [];"), @"put\(([\d]+).*\('([^']*)'\)").Cast<Match>()
                     .Select(m => ((int?)int.Parse(m.Groups[1].Value), HttpUtility.UrlDecode(m.Groups[2].Value))).ToDictionary(x => x.Item1.Value),
-                LaborCategories = Regex.Matches(source.ExtractSpanInner("mLabCats = [];", "labCats = mLabCats;"), @"put\(([\d]+).*\('([^']*)'\)", RegexOptions.Multiline).Cast<Match>()
-                    .Select(m => ((int?)int.Parse(m.Groups[1].Value), HttpUtility.UrlDecode(m.Groups[2].Value))).ToDictionary(x => x.Item1.Value),
+                LaborCategories = source.Contains("mLabCats = [];")
+                    ? Regex.Matches(source.ExtractSpanInner("mLabCats = [];", "labCats = mLabCats;"), @"put\(([\d]+).*\('([^']*)'\)", RegexOptions.Multiline).Cast<Match>()
+                    .Select(m => ((int?)int.Parse(m.Groups[1].Value), HttpUtility.UrlDecode(m.Groups[2].Value))).ToDictionary(x => x.Item1.Value)
+                    : new Dictionary<int, (int?, string)>(),
                 Dates = Regex.Matches(source.ExtractSpanInner("var dates = [];", "var titoWindow = null;"), @"Date\(([\d]+),([\d]+),([\d]+)\)", RegexOptions.Multiline).Cast<Match>()
                     .Select(m => new DateTime(int.Parse(m.Groups[1].Value), int.Parse(m.Groups[2].Value) + 1, int.Parse(m.Groups[3].Value))).ToList(),
             };
             // projects
             int lastIdx = 0;
+            var laborCategories = meta.LaborCategories;
             meta.Projects = Regex.Matches(source, @"Project\(([\d]+).*?\('([^']*)'\).*projecttypes\[([\d]+)\].*pcBK\[([\d]+)\]", RegexOptions.Multiline).Cast<Match>()
                .Select(m =>
                {
                    var startIdx = m.Captures[0].Index;
-                   var labcats = source.IndexOf("mLabCats", lastIdx, startIdx - lastIdx) != -1
-                        ? meta.LaborCategories
-                        : Regex.Matches(source.ExtractSpanInner("pLabCats = [];", "labCats = pLabCats;", lastIdx, startIdx) ?? "", @"get.([\d]+)", RegexOptions.Multiline).Cast<Match>()
-                            .Select(n => (int?)int.Parse(n.Groups[1].Value)).ToList()
-                            .Select(x => meta.LaborCategories[x.Value]).ToDictionary(x => x.key.Value);
+                   Dictionary<int, (int?, string)> labcats;
+                   if (source.IndexOf("labCats = mLabCats;", lastIdx, startIdx - lastIdx) != -1)
+                       labcats = meta.LaborCategories;
+                   else
+                   {
+                       var labcats0 = Regex.Matches(source.ExtractSpanInner("pLabCats = [];", "labCats = pLabCats;", lastIdx, startIdx) ?? "", @"put\(([\d]+).*\('([^']*)'\)", RegexOptions.Multiline).Cast<Match>()
+                            .Select(n => ((int?)int.Parse(n.Groups[1].Value), HttpUtility.UrlDecode(n.Groups[2].Value))).ToDictionary(x => x.Item1.Value);
+                       var labcats1 = Regex.Matches(source.ExtractSpanInner("pLabCats = [];", "labCats = pLabCats;", lastIdx, startIdx) ?? "", @"get\(([\d]+)\)", RegexOptions.Multiline).Cast<Match>()
+                            .Select(n => int.Parse(n.Groups[1].Value)).ToList();
+                       labcats = labcats0;
+                       foreach (var x in labcats0)
+                           laborCategories.Add(x.Key, x.Value);
+                       foreach (var x in labcats1)
+                           if (laborCategories.TryGetValue(x, out var value))
+                               labcats.Add(x, value);
+                   }
                    var tasks = Regex.Matches(source.ExtractSpanInner("tasks = [];", "paycodes = [", lastIdx, startIdx) ?? "", @"Task\(([\d]+).*\('([^']*)'\)", RegexOptions.Multiline).Cast<Match>()
                         .Select(n => ((int?)int.Parse(n.Groups[1].Value), HttpUtility.UrlDecode(n.Groups[2].Value))).ToDictionary(x => x.Item1.Value);
                    var paycodes = Regex.Matches(source.ExtractSpanInner("paycodes = [", "];", lastIdx, startIdx) ?? "", @"pcBK\[([\d]+)\]", RegexOptions.Multiline).Cast<Match>()

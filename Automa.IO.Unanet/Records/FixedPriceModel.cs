@@ -117,8 +117,12 @@ namespace Automa.IO.Unanet.Records
             public string XCF { get; set; }
         }
 
-        public static ManageFlags ManageRecord(UnanetClient una, p_FixedPrice1 s, out string last, Action<string> lockFunc)
+        public static ManageFlags ManageRecord(UnanetClient una, p_FixedPrice1 s, out Dictionary<string, (Type, object)> fields, out string last, Action<string> lockFunc, Action<p_FixedPrice1> bespoke = null)
         {
+            var _f = fields = new Dictionary<string, (Type, object)>();
+            T _t<T>(T value, string name) { _f[name] = (typeof(T), value); return value; }
+            //
+            bespoke?.Invoke(s);
             if (s.revenue_recognition_method == null)
                 throw new InvalidOperationException($"{s.project_code} not categorized");
             if (ManageRecordBase(s.key, s.XCF, 0, out var cf, out var add, out last))
@@ -134,15 +138,16 @@ namespace Automa.IO.Unanet.Records
                     lockFunc(s.key);
                     return null;
                 }
-                //if (add || cf.Contains("poc")) f.Values["xxxx"] = s.project_org_code;
-                //if (add || cf.Contains("pc")) f.Values["xxxx"] = s.project_code;
-                if (add || cf.Contains("tn")) f.FromSelectByPredicate("task", s.task_name, x => x.Value.StartsWith(s.task_name));
-                var description = !string.IsNullOrEmpty(s.external_system_code) ? $"{s.description},{s.external_system_code}" : s.description;
+                //if (add || cf.Contains("poc")) f.Values["xxxx"] = _t(s.project_org_code, nameof(s.project_org_code));
+                //if (add || cf.Contains("pc")) f.Values["xxxx"] = _t(s.project_code, nameof(s.project_code));
+                if (add || cf.Contains("tn")) f.FromSelectByPredicate("task", _t(s.task_name, nameof(s.task_name)), x => x.Value.StartsWith(s.task_name));
+                var description = _t(s.description, nameof(s.description));
+                var description2 = !string.IsNullOrEmpty(_t(s.external_system_code, nameof(s.external_system_code))) ? $"{description},{s.external_system_code}" : description;
                 if (add || cf.Contains("esc") || cf.Contains("d") || cf.Contains("bind")) f.Values["description"] = description;
                 //
-                if (add || cf.Contains("bd")) f.Values["billDate"] = s.bill_date.FromDateTime();
-                if (add || cf.Contains("boc")) f.Checked["useWbsEndDate"] = s.bill_on_completion == "Y";
-                if (add || cf.Contains("ba")) f.Values["amount"] = s.bill_amount;
+                if (add || cf.Contains("bd")) f.Values["billDate"] = _t(s.bill_date, nameof(s.bill_date)).FromDateTime();
+                if (add || cf.Contains("boc")) f.Checked["useWbsEndDate"] = _t(s.bill_on_completion, nameof(s.bill_on_completion)) == "Y";
+                if (add || cf.Contains("ba")) f.Values["amount"] = _t(s.bill_amount, nameof(s.bill_amount));
                 var recMethod = s.revenue_recognition_method == "WHEN_BILLED" ? "1"
                     : s.revenue_recognition_method == "PERCENT_COMPLETE" ? "2"
                     : s.revenue_recognition_method == "CUSTOM_SCHEDULE" ? "3"

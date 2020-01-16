@@ -213,8 +213,12 @@ namespace Automa.IO.Unanet.Records
             public string XCF { get; set; }
         }
 
-        public static ManageFlags ManageRecord(UnanetClient una, p_Task1 s, out string last)
+        public static ManageFlags ManageRecord(UnanetClient una, p_Task1 s, out Dictionary<string, (Type, object)> fields, out string last, Action<p_Task1> bespoke = null)
         {
+            var _f = fields = new Dictionary<string, (Type, object)>();
+            T _t<T>(T value, string name) { _f[name] = (typeof(T), value); return value; }
+            //
+            bespoke?.Invoke(s);
             if (ManageRecordBase(s.key, s.XCF, 0, out var cf, out var add, out last))
                 return ManageFlags.TaskChanged;
             var organizations = Unanet.Lookups.CostCenters.Value;
@@ -223,78 +227,78 @@ namespace Automa.IO.Unanet.Records
                 $"projectkey={s.project_codeKey}", null,
                 out last, (z, f) =>
             {
-                //if (add || cf.Contains("poc")) f.Values["xxxx"] = s.project_org_code;
-                //if (add || cf.Contains("pc")) f.Values["xxxx"] = s.project_code;
-                if (add || cf.Contains("tn")) f.Values["taskName"] = s.task_name;
-                if (add || cf.Contains("a")) f.Checked["active"] = s.active == "Y";
+                //if (add || cf.Contains("poc")) f.Values["xxxx"] = _t(s.project_org_code, nameof(s.project_org_code));
+                //if (add || cf.Contains("pc")) f.Values["xxxx"] = _t(s.project_code, nameof(s.project_code));
+                if (add || cf.Contains("tn")) f.Values["taskName"] = _t(s.task_name, nameof(s.task_name));
+                if (add || cf.Contains("a")) f.Checked["active"] = _t(s.active, nameof(s.active)) == "Y";
                 //
-                if (add || cf.Contains("osd")) f.Values["orig_start_date"] = s.original_start_date.FromDateTime();
-                if (add || cf.Contains("oed")) f.Values["orig_end_date"] = s.original_end_date.FromDateTime();
-                if (add || cf.Contains("rsd")) f.Values["rev_start_date"] = s.revised_start_date.FromDateTime("BOT");
-                if (add || cf.Contains("red")) f.Values["rev_end_date"] = s.revised_end_date.FromDateTime("EOT");
-                if (add || cf.Contains("cd")) f.Values["completed"] = s.completed_date.FromDateTime();
+                if (add || cf.Contains("osd")) f.Values["orig_start_date"] = _t(s.original_start_date, nameof(s.original_start_date)).FromDateTime();
+                if (add || cf.Contains("oed")) f.Values["orig_end_date"] = _t(s.original_end_date, nameof(s.original_end_date)).FromDateTime();
+                if (add || cf.Contains("rsd")) f.Values["rev_start_date"] = _t(s.revised_start_date, nameof(s.revised_start_date)).FromDateTime("BOT");
+                if (add || cf.Contains("red")) f.Values["rev_end_date"] = _t(s.revised_end_date, nameof(s.revised_end_date)).FromDateTime("EOT");
+                if (add || cf.Contains("cd")) f.Values["completed"] = _t(s.completed_date, nameof(s.completed_date)).FromDateTime();
                 //
-                if (add || cf.Contains("pc2")) f.Values["percentComplete"] = s.percent_complete;
-                if (add || cf.Contains("s")) f.Values["status"] = s.status;
-                if (add || cf.Contains("o")) f.Values["output"] = s.output;
-                if (add || cf.Contains("esc") || cf.Contains("bind")) f.Values["externalSystemCode"] = s.external_system_code;
-                if (add || cf.Contains("bh")) f.Values["hours_budget"] = s.budget_hours;
-                if (add || cf.Contains("eh")) f.Values["hours_etc"] = s.etc_hours;
-                if (add || cf.Contains("eth")) f.Values["hours_tot"] = s.est_tot_hours;
+                if (add || cf.Contains("pc2")) f.Values["percentComplete"] = _t(s.percent_complete, nameof(s.percent_complete));
+                if (add || cf.Contains("s")) f.Values["status"] = _t(s.status, nameof(s.status));
+                if (add || cf.Contains("o")) f.Values["output"] = _t(s.output, nameof(s.output));
+                if (add || cf.Contains("esc") || cf.Contains("bind")) f.Values["externalSystemCode"] = _t(s.external_system_code, nameof(s.external_system_code));
+                if (add || cf.Contains("bh")) f.Values["hours_budget"] = _t(s.budget_hours, nameof(s.budget_hours));
+                if (add || cf.Contains("eh")) f.Values["hours_etc"] = _t(s.etc_hours, nameof(s.etc_hours));
+                if (add || cf.Contains("eth")) f.Values["hours_tot"] = _t(s.est_tot_hours, nameof(s.est_tot_hours));
                 //
-                if (add || cf.Contains("bldb")) f.Values["labor_budget_bill"] = s.budget_labor_dollars_bill;
-                if (add || cf.Contains("eldb")) f.Values["labor_etc_bill"] = s.etc_labor_dollars_bill;
-                if (add || cf.Contains("etldb")) f.Values["labor_tot_bill"] = s.est_tot_labor_dollars_bill;
-                if (add || cf.Contains("bedb")) f.Values["expense_budget_bill"] = s.budget_expense_dollars_bill;
-                if (add || cf.Contains("eedb")) f.Values["expense_etc_bill"] = s.etc_expense_dollars_bill;
-                if (add || cf.Contains("etedb")) f.Values["expense_tot_bill"] = s.est_tot_expense_dollars_bill;
+                if (add || cf.Contains("bldb")) f.Values["labor_budget_bill"] = _t(s.budget_labor_dollars_bill, nameof(s.budget_labor_dollars_bill));
+                if (add || cf.Contains("eldb")) f.Values["labor_etc_bill"] = _t(s.etc_labor_dollars_bill, nameof(s.etc_labor_dollars_bill));
+                if (add || cf.Contains("etldb")) f.Values["labor_tot_bill"] = _t(s.est_tot_labor_dollars_bill, nameof(s.est_tot_labor_dollars_bill));
+                if (add || cf.Contains("bedb")) f.Values["expense_budget_bill"] = _t(s.budget_expense_dollars_bill, nameof(s.budget_expense_dollars_bill));
+                if (add || cf.Contains("eedb")) f.Values["expense_etc_bill"] = _t(s.etc_expense_dollars_bill, nameof(s.etc_expense_dollars_bill));
+                if (add || cf.Contains("etedb")) f.Values["expense_tot_bill"] = _t(s.est_tot_expense_dollars_bill, nameof(s.est_tot_expense_dollars_bill));
                 //
-                //if (add || cf.Contains("u1")) f.Values["udf_0"] = s.user01;
-                //if (add || cf.Contains("u2")) f.Values["udf_1"] = s.user02;
-                //if (add || cf.Contains("u3")) f.Values["udf_2"] = s.user03;
-                //if (add || cf.Contains("u4")) f.Values["udf_3"] = s.user04;
-                //if (add || cf.Contains("u5")) f.Values["udf_4"] = s.user05;
-                //if (add || cf.Contains("u6")) f.Values["udf_5"] = s.user06;
-                //if (add || cf.Contains("u7")) f.Values["udf_6"] = s.user07;
-                if (add || cf.Contains("u8")) f.FromSelect("udf_7", s.user08);
-                //if (add || cf.Contains("u9")) f.Values["udf_8"] = s.user09;
-                //if (add || cf.Contains("u10")) f.Values["udf_9"] = s.user10;
+                //if (add || cf.Contains("u1")) f.Values["udf_0"] = _t(s.user01, nameof(s.user01));
+                //if (add || cf.Contains("u2")) f.Values["udf_1"] = _t(s.user02, nameof(s.user02));
+                //if (add || cf.Contains("u3")) f.Values["udf_2"] = _t(s.user03, nameof(s.user03));
+                //if (add || cf.Contains("u4")) f.Values["udf_3"] = _t(s.user04, nameof(s.user04));
+                //if (add || cf.Contains("u5")) f.Values["udf_4"] = _t(s.user05, nameof(s.user05));
+                //if (add || cf.Contains("u6")) f.Values["udf_5"] = _t(s.user06, nameof(s.user06));
+                //if (add || cf.Contains("u7")) f.Values["udf_6"] = _t(s.user07, nameof(s.user07));
+                if (add || cf.Contains("u8")) f.FromSelect("udf_7", _t(s.user08, nameof(s.user08)));
+                //if (add || cf.Contains("u9")) f.Values["udf_8"] = _t(s.user09, nameof(s.user09));
+                //if (add || cf.Contains("u10")) f.Values["udf_9"] = _t(s.user10, nameof(s.user10));
                 //
-                if (add || cf.Contains("bldc")) f.Values["labor_budget_cost"] = s.budget_labor_dollars_cost;
-                if (add || cf.Contains("eldc")) f.Values["labor_etc_cost"] = s.etc_labor_dollars_cost;
-                if (add || cf.Contains("etldc")) f.Values["labor_tot_cost"] = s.est_tot_labor_dollars_cost;
-                if (add || cf.Contains("bedc")) f.Values["expense_budget_cost"] = s.budget_expense_dollars_cost;
-                if (add || cf.Contains("eedc")) f.Values["expense_etc_cost"] = s.etc_expense_dollars_cost;
-                if (add || cf.Contains("etedc")) f.Values["expense_tot_cost"] = s.est_tot_expense_dollars_cost;
+                if (add || cf.Contains("bldc")) f.Values["labor_budget_cost"] = _t(s.budget_labor_dollars_cost, nameof(s.budget_labor_dollars_cost));
+                if (add || cf.Contains("eldc")) f.Values["labor_etc_cost"] = _t(s.etc_labor_dollars_cost, nameof(s.etc_labor_dollars_cost));
+                if (add || cf.Contains("etldc")) f.Values["labor_tot_cost"] = _t(s.est_tot_labor_dollars_cost, nameof(s.est_tot_labor_dollars_cost));
+                if (add || cf.Contains("bedc")) f.Values["expense_budget_cost"] = _t(s.budget_expense_dollars_cost, nameof(s.budget_expense_dollars_cost));
+                if (add || cf.Contains("eedc")) f.Values["expense_etc_cost"] = _t(s.etc_expense_dollars_cost, nameof(s.etc_expense_dollars_cost));
+                if (add || cf.Contains("etedc")) f.Values["expense_tot_cost"] = _t(s.est_tot_expense_dollars_cost, nameof(s.est_tot_expense_dollars_cost));
                 //
-                if (add || cf.Contains("pt")) f.FromSelect("pjtType", s.project_type);
-                if (add || cf.Contains("d")) f.Values["duration"] = s.duration;
-                if (add || cf.Contains("ea")) f.Checked["alertable"] = s.enable_alerts == "Y";
-                if (add || cf.Contains("bt")) f.FromSelect("billType", s.billing_type);
+                if (add || cf.Contains("pt")) f.FromSelect("pjtType", _t(s.project_type, nameof(s.project_type)));
+                if (add || cf.Contains("d")) f.Values["duration"] = _t(s.duration, nameof(s.duration));
+                if (add || cf.Contains("ea")) f.Checked["alertable"] = _t(s.enable_alerts, nameof(s.enable_alerts)) == "Y";
+                if (add || cf.Contains("bt")) f.FromSelect("billType", _t(s.billing_type, nameof(s.billing_type)));
                 //
-                if (add || cf.Contains("bldcb")) f.Values["labor_burden_cost"] = s.budget_labor_dollars_cost_burdened;
-                if (add || cf.Contains("bedcb")) f.Values["expense_burden_cost"] = s.budget_expense_dollars_cost_burdened;
-                if (add || cf.Contains("fv")) f.Values["funded_value"] = s.funded_value;
-                //if (add || cf.Contains("lbtf")) f.Checked["limitBillToFunded"] = s.limit_bill_to_funded == "Y";
-                //if (add || cf.Contains("lrtf")) f.Checked["limitRevToFunded"] = s.limit_rev_to_funded == "Y";
-                if (add || cf.Contains("oo")) f.Values["tOOMenu"] = GetLookupValue(organizations, s.owning_organization);
+                if (add || cf.Contains("bldcb")) f.Values["labor_burden_cost"] = _t(s.budget_labor_dollars_cost_burdened, nameof(s.budget_labor_dollars_cost_burdened));
+                if (add || cf.Contains("bedcb")) f.Values["expense_burden_cost"] = _t(s.budget_expense_dollars_cost_burdened, nameof(s.budget_expense_dollars_cost_burdened));
+                if (add || cf.Contains("fv")) f.Values["funded_value"] = _t(s.funded_value, nameof(s.funded_value));
+                //if (add || cf.Contains("lbtf")) f.Checked["limitBillToFunded"] = _t(s.limit_bill_to_funded, nameof(s.limit_bill_to_funded)) == "Y";
+                //if (add || cf.Contains("lrtf")) f.Checked["limitRevToFunded"] = _t(s.limit_rev_to_funded, nameof(s.limit_rev_to_funded)) == "Y";
+                if (add || cf.Contains("oo")) f.Values["tOOMenu"] = GetLookupValue(organizations, _t(s.owning_organization, nameof(s.owning_organization)));
                 //
-                if (add || cf.Contains("at")) f.Values["time_assignment_flag"] = s.allows_time;
-                if (add || cf.Contains("tnepr")) f.Values["ts_sub_po_required"] = s.ts_non_emp_po_required;
-                if (add || cf.Contains("ae")) f.Values["expense_assignment_flag"] = s.allows_expense;
-                if (add || cf.Contains("enepr")) f.Values["exp_sub_po_required"] = s.exp_non_emp_po_required;
-                if (add || cf.Contains("ai")) f.Values["item_assignment_flag"] = s.allows_item;
+                if (add || cf.Contains("at")) f.Values["time_assignment_flag"] = _t(s.allows_time, nameof(s.allows_time));
+                if (add || cf.Contains("tnepr")) f.Values["ts_sub_po_required"] = _t(s.ts_non_emp_po_required, nameof(s.ts_non_emp_po_required));
+                if (add || cf.Contains("ae")) f.Values["expense_assignment_flag"] = _t(s.allows_expense, nameof(s.allows_expense));
+                if (add || cf.Contains("enepr")) f.Values["exp_sub_po_required"] = _t(s.exp_non_emp_po_required, nameof(s.exp_non_emp_po_required));
+                if (add || cf.Contains("ai")) f.Values["item_assignment_flag"] = _t(s.allows_item, nameof(s.allows_item));
                 //
-                //if (add || cf.Contains("u11")) f.Values["udf_10"] = s.user11;
-                //if (add || cf.Contains("u12")) f.Values["udf_11"] = s.user12;
-                //if (add || cf.Contains("u13")) f.Values["udf_12"] = s.user13;
-                //if (add || cf.Contains("u14")) f.Values["udf_13"] = s.user14;
-                //if (add || cf.Contains("u15")) f.Values["udf_14"] = s.user15;
-                //if (add || cf.Contains("u16")) f.Values["udf_15"] = s.user16;
-                //if (add || cf.Contains("u17")) f.Values["udf_16"] = s.user17;
-                //if (add || cf.Contains("u18")) f.Values["udf_17"] = s.user18;
-                //if (add || cf.Contains("u19")) f.Values["udf_18"] = s.user19;
-                //if (add || cf.Contains("u20")) f.Values["udf_19"] = s.user20;
+                //if (add || cf.Contains("u11")) f.Values["udf_10"] = _t(s.user11, nameof(s.user11));
+                //if (add || cf.Contains("u12")) f.Values["udf_11"] = _t(s.user12, nameof(s.user12));
+                //if (add || cf.Contains("u13")) f.Values["udf_12"] = _t(s.user13, nameof(s.user13));
+                //if (add || cf.Contains("u14")) f.Values["udf_13"] = _t(s.user14, nameof(s.user14));
+                //if (add || cf.Contains("u15")) f.Values["udf_14"] = _t(s.user15, nameof(s.user15));
+                //if (add || cf.Contains("u16")) f.Values["udf_15"] = _t(s.user16, nameof(s.user16));
+                //if (add || cf.Contains("u17")) f.Values["udf_16"] = _t(s.user17, nameof(s.user17));
+                //if (add || cf.Contains("u18")) f.Values["udf_17"] = _t(s.user18, nameof(s.user18));
+                //if (add || cf.Contains("u19")) f.Values["udf_18"] = _t(s.user19, nameof(s.user19));
+                //if (add || cf.Contains("u20")) f.Values["udf_19"] = _t(s.user20, nameof(s.user20));
                 return f.ToString();
             });
             return r != null ?

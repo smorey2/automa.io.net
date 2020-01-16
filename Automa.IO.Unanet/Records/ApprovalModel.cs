@@ -26,6 +26,18 @@ namespace Automa.IO.Unanet.Records
             public string KeyType { get; set; }
             public string Name { get; set; }
             public string PersonName { get; set; }
+        }
+
+        public class GridExpenseRow : GridRow
+        {
+            public string SomeId { get; set; }
+            public decimal? Amount { get; set; }
+            public string Expense { get; set; }
+            public string Comments { get; set; }
+        }
+
+        public class GridTimeRow : GridRow
+        {
             public DateTime Week { get; set; }
             public decimal? Hours { get; set; }
             public string Status { get; set; }
@@ -44,7 +56,7 @@ namespace Automa.IO.Unanet.Records
         public static bool Approve(UnanetClient una, string type, string method, (string key, string keyType)? key, string comments, string personName, out string last)
         {
             var found = FindApproval(una, type, personName, out last);
-            if (last != null || found.grid.Rows == null)
+            if (last != null || found.grid?.Rows == null)
                 return false;
             GridRow row;
             switch (method)
@@ -127,13 +139,13 @@ namespace Automa.IO.Unanet.Records
                 f.Values[prefix] = "true";
                 f.Add($"{prefix}_{key}", "value", "true");
                 f.Add($"{prefix}_{key}_Time", "value", "true");
-                f.Add($"{prefix}_{key}_Leave", "value", "true");
-                f.Add($"{prefix}_{key}_Expense", "value", "true");
-                f.Add($"{prefix}_{key}_ExpenseRequest", "value", "true");
-                f.Add($"{prefix}_{key}_PR", "value", "true");
-                f.Add($"{prefix}_{key}_PO", "value", "true");
-                f.Add($"{prefix}_{key}_VI", "value", "true");
-                f.Add($"{prefix}_{key}_POVI", "value", "true");
+                f.Add($"{prefix}_{key}_Leave", "value", "false");
+                f.Add($"{prefix}_{key}_Expense", "value", "false");
+                f.Add($"{prefix}_{key}_ExpenseRequest", "value", "false");
+                f.Add($"{prefix}_{key}_PR", "value", "false");
+                f.Add($"{prefix}_{key}_PO", "value", "false");
+                f.Add($"{prefix}_{key}_VI", "value", "false");
+                f.Add($"{prefix}_{key}_POVI", "value", "false");
                 var body = f.ToString();
                 var url = una.GetPostUrl(f.Action);
                 d0 = una.PostValue(HttpMethod.Post, url, body, null, out last);
@@ -160,27 +172,48 @@ namespace Automa.IO.Unanet.Records
                 .Select(x => new Grid
                 {
                     Label = x.a.Attributes["id"].Value.Substring(6),
-                    Key = int.Parse(x.a.Attributes["id"].Value.Substring(prefix.Length + 7).Replace("-a", "")),
+                    Key = int.Parse(x.a.Attributes["id"].Value.Substring(prefix.Length + 7).Replace("-a", string.Empty)),
                     Name = x.a.InnerText.Remove(x.a.InnerText.IndexOf("(")).Trim(),
                     PersonName = x.a.InnerText.ExtractSpanInner("(", ")").ToUpperInvariant(),
                     Rows = x.b.SelectNodes($"//tr[starts-with(@id,'{prefix}')]")?.Select(y =>
                     {
                         var ats = y.Attributes["id"].Value.Substring(prefix.Length + 1).Split('_');
                         var tds = y.Descendants("td").ToArray();
-                        return new GridRow
+                        switch (ats[1])
                         {
-                            Label = y.Attributes["id"].Value,
-                            Key = ats[2],
-                            KeyType = ats[1],
-                            Name = tds[3].InnerText.Remove(tds[3].InnerText.IndexOf("(")).Trim(),
-                            PersonName = tds[3].InnerText.ExtractSpanInner("(", ")").ToUpperInvariant(),
-                            Week = DateTime.Parse(tds[4].InnerText.Remove(tds[4].InnerText.IndexOf("&"))),
-                            Hours = decimal.Parse(tds[5].InnerText),
-                            Status = tds[6].InnerText,
-                            StatusDate = DateTime.Parse(tds[7].InnerText),
-                            Comments = tds.Length > 8 ? tds[8].InnerText.Replace("&nbsp;", " ").Trim() : string.Empty,
-                        };
-                    }).ToDictionary(z => (z.Key, z.KeyType)),
+                            case "Expense":
+                                return (GridRow)new GridExpenseRow
+                                {
+                                    Label = y.Attributes["id"].Value,
+                                    Key = ats[2],
+                                    KeyType = ats[1],
+                                    Name = tds[4].InnerText.Remove(tds[4].InnerText.IndexOf("(")).Trim(),
+                                    PersonName = tds[4].InnerText.ExtractSpanInner("(", ")").ToUpperInvariant(),
+                                    //
+                                    SomeId = tds[5].InnerText,
+                                    Amount = decimal.Parse(tds[6].InnerText.Replace("$", string.Empty)),
+                                    Expense = tds[7].InnerText,
+                                    Comments = tds.Length > 8 ? tds[8].InnerText.Replace("&nbsp;", " ").Trim() : string.Empty,
+                                };
+                            case "Time":
+                                return (GridRow)new GridTimeRow
+                                {
+                                    Label = y.Attributes["id"].Value,
+                                    Key = ats[2],
+                                    KeyType = ats[1],
+                                    Name = tds[3].InnerText.Remove(tds[3].InnerText.IndexOf("(")).Trim(),
+                                    PersonName = tds[3].InnerText.ExtractSpanInner("(", ")").ToUpperInvariant(),
+                                    //
+                                    Week = DateTime.Parse(tds[4].InnerText.Remove(tds[4].InnerText.IndexOf("&"))),
+                                    Hours = decimal.Parse(tds[5].InnerText),
+                                    Status = tds[6].InnerText,
+                                    StatusDate = DateTime.Parse(tds[7].InnerText),
+                                    Comments = tds.Length > 8 ? tds[8].InnerText.Replace("&nbsp;", " ").Trim() : string.Empty,
+                                };
+                            default:
+                                return null;
+                        }
+                    }).Where(z => z != null).ToDictionary(z => (z.Key, z.KeyType)),
                 }).ToDictionary(x => x.Name);
             return r;
         }

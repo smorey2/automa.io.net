@@ -1,4 +1,5 @@
 ﻿using ExcelTrans.Services;
+using System;
 using System.Collections.Generic;
 using System.IO;
 using System.Linq;
@@ -83,8 +84,12 @@ namespace Automa.IO.Unanet.Records
             public string XCF { get; set; }
         }
 
-        public static ManageFlags ManageRecord(UnanetClient una, p_ProjectAdministrator1 s, out string last)
+        public static ManageFlags ManageRecord(UnanetClient una, p_ProjectAdministrator1 s, out Dictionary<string, (Type, object)> fields, out string last, Action<p_ProjectAdministrator1> bespoke = null)
         {
+            var _f = fields = new Dictionary<string, (Type, object)>();
+            T _t<T>(T value, string name) { _f[name] = (typeof(T), value); return value; }
+            //
+            bespoke?.Invoke(s);
             var canDelete = s.role != "projectManager";
             if (ManageRecordBase(null, s.XCF, 1, out var cf, out var add, out last, canDelete: canDelete))
                 return ManageFlags.ProjectAdministratorChanged;
