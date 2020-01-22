@@ -18,6 +18,7 @@ namespace Automa.IO.Unanet.Records
         public SheetStatus Status { get; set; }
         public Metadata Meta { get; set; }
         public List<Entry> Rows { get; set; }
+        public string[] Errors { get; set; }
 
         #region Classes
 
@@ -219,28 +220,41 @@ namespace Automa.IO.Unanet.Records
             custom?.Invoke(this, keySlip.r, keySlip.s);
         }
 
-        public void MoveEntry(int key, int project_codeKey, int task_nameKey, out string last, Action<TimeSheetModel, Entry, KeyValuePair<int, Slip>> custom = null)
+        public void MoveEntry(int key, int project_codeKey, int? task_nameKey, int? role_nameKey, out string last, Action<TimeSheetModel, Entry, KeyValuePair<int, Slip>> custom = null)
         {
             last = null;
             // find slip
             var keySlip = Rows.SelectMany(x => x.Slips, (r, s) => new { r, s }).FirstOrDefault(x => x.s.Value.Key == key);
             if (keySlip == null) { last = "unable to find src Slip"; return; }
             if (!keySlip.r.Slips.Remove(keySlip.s.Key)) throw new InvalidOperationException();
-            if (!Meta.Projects.TryGetValue(project_codeKey, out var project)) { last = "unable to find dst Project"; return; }
-            if (!project.Tasks.TryGetValue(task_nameKey, out var task)) { last = "unable to find dst Task"; return; }
             // clone row
             var clone = (Entry)keySlip.r.Clone();
+            // clone : project
+            if (!Meta.Projects.TryGetValue(project_codeKey, out var project)) { last = "unable to find dst Project"; return; }
             clone.Project = project;
-            clone.Task = task;
-            if (clone.Labcat.key != null && !project.Labcats.ContainsKey(clone.Labcat.key.Value))
+            // clone : task
+            if (task_nameKey != null)
+            {
+                if (!project.Tasks.TryGetValue(task_nameKey.Value, out var task)) { last = "unable to find dst Task"; return; }
+                clone.Task = task;
+            }
+            // clone : labcat
+            if (role_nameKey != null && project.Labcats.TryGetValue(role_nameKey.Value, out var role))
+                clone.Labcat = role;
+            else if (clone.Labcat.key != null && !project.Labcats.ContainsKey(clone.Labcat.key.Value))
                 clone.Labcat = project.Labcats.Values.First(x => x.value == "Other");
+            // clone : project-type
             if (clone.ProjectType.key != project.ProjectType.key)
             {
                 clone.ProjectType = project.ProjectType;
                 clone.Paycode = project.Paycode;
             }
-            if (clone.Paycode.key != null && !project.Paycodes.ContainsKey(clone.Paycode.key.Value))
+            // clone : paycode
+            if (clone.ProjectType.value == "ADMIN")
                 clone.Paycode = project.Paycode;
+            else if (clone.Paycode.key != null && !project.Paycodes.ContainsKey(clone.Paycode.key.Value))
+                clone.Paycode = project.Paycode;
+            // add slip
             var slip = keySlip.s; clone.Slips.Add(slip.Key, slip.Value);
             custom?.Invoke(this, clone, slip);
             // find or insert row
@@ -347,6 +361,14 @@ namespace Automa.IO.Unanet.Records
             var personString = title.ExtractSpanInner("Timesheet for", "(").Trim();
             var person = ((int?)null, personString);
             var week = DateTime.Parse(title.ExtractSpanInner("(", " ").Trim());
+            // errors
+            var errors = new List<string>();
+            var error = source.ExtractSpanInner("<div class=\"error\">", "</div>");
+            if (error != null)
+            {
+                errors.Add(error.ExtractSpanInner("<p class=\"main\">", "</p>")?.Trim());
+                errors.Add(error.ExtractSpanInner("<p class=\"sub-main\">", "<br></p>")?.Trim());
+            }
             // meta
             var meta = new Metadata
             {
@@ -449,6 +471,7 @@ namespace Automa.IO.Unanet.Records
                 Status = status,
                 Meta = meta,
                 Rows = rows,
+                Errors = errors.Where(x=>!string.IsNullOrEmpty(x)).ToArray(),
             };
         }
     }
