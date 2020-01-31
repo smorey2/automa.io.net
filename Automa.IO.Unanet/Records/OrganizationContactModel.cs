@@ -118,7 +118,7 @@ namespace Automa.IO.Unanet.Records
             )).ToArray()).ToString();
             if (syncFileA == null)
                 return xml;
-            var syncFile = string.Format(syncFileA, ".o_oc.xml");
+            var syncFile = string.Format(syncFileA, ".o_c.xml");
             if (!Directory.Exists(Path.GetDirectoryName(syncFile)))
                 Directory.CreateDirectory(Path.GetDirectoryName(syncFile));
             File.WriteAllText(syncFile, xml);

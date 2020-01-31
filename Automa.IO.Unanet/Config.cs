@@ -20,6 +20,9 @@
         (string key, string file) customer_profile { get; }
         (string key, string file) organization_address { get; }
         (string key, string file) organization_contact { get; }
+        (string key, string file) organization_contact_address { get; }
+        (string key, string file) organization_contact_email { get; }
+        (string key, string file) organization_contact_phone { get; }
 
         // Project
         (string key, string file) project { get; }
@@ -65,6 +68,9 @@
         public (string, string) customer_profile => ("887", "Customer Profile.csv"); //: new
         public (string, string) organization_address => ("906", "Organization Address.csv"); //: new
         public (string, string) organization_contact => ("907", "Organization Contact.csv"); //: new
+        public (string, string) organization_contact_address => ("908", "Organization Contact Address.csv"); //: new
+        public (string, string) organization_contact_email => ("909", "Organization Contact Email.csv"); //: new
+        public (string, string) organization_contact_phone => ("910", "Organization Contact Phone.csv"); //: new
 
         // Project
         public (string, string) project => ("810", "DEG_ Project.csv");
@@ -110,6 +116,9 @@
         public (string, string) customer_profile => ("0", "Customer Profile.csv");
         public (string, string) organization_address => ("0", "Organization Address.csv");
         public (string, string) organization_contact => ("0", "Organization Contact.csv");
+        public (string, string) organization_contact_address => ("0", "Organization Contact Address.csv");
+        public (string, string) organization_contact_email => ("0", "Organization Contact Email.csv");
+        public (string, string) organization_contact_phone => ("0", "Organization Contact Phone.csv");
 
         // Project
         public (string, string) project => ("0", "DEG_ Project.csv");

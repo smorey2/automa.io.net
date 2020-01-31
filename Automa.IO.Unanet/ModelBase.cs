@@ -43,7 +43,7 @@ namespace Automa.IO.Unanet
             {
                 case "Begin": beginWindowDate = BeginDate; break;
                 case nameof(TimeModel): beginWindowDate = BeginTimeWindowDate; break;
-                case "Assist": beginWindowDate = new DateTime(2019, 11, 1); break;
+                case "Assist": beginWindowDate = new DateTime(2020, 01, 01); break; //2019/11/1
                 case nameof(InvoiceModel): beginWindowDate = BeginInvoiceWindowDate; break;
                 default: beginWindowDate = BeginDate; break;
             }

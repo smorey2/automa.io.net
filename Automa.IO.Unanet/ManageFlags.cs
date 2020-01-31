@@ -8,23 +8,29 @@ namespace Automa.IO.Unanet
         None = 0x0,
         Default = AllEntity | Export | Sync,
         AllEntity = OrganizationAll | ProjectAll | PersonAll | TimeInvoiceAll,
-        //AllEntity = FixedPrice,
+        //AllEntity = OrganizationContact,
 
         // OPERATIONS
         Export = 0x1, Sync = 0x2,
 
         // GROUPS
         // 0x01 - Organization
-        OrganizationMask = 0x010000F0, OrganizationAll = Organization | CustomerProfile | OrganizationAddress | OrganizationContact,
+        OrganizationMask = 0x010000F0, OrganizationAll = Organization | CustomerProfile | OrganizationAddress, // | OrganizationContact | OrganizationContactEmail,
         Organization = 0x01000010,
         CustomerProfile = 0x01000020,
         OrganizationAddress = 0x01000040,
         OrganizationContact = 0x01000080,
+        OrganizationContactAddress = 0x01000100,
+        OrganizationContactEmail = 0x01000200,
+        OrganizationContactPhone = 0x01000400,
         // changed
         OrganizationChanged = Organization | Export,
         CustomerProfileChanged = CustomerProfile | Export,
         OrganizationAddressChanged = OrganizationAddress | Export,
         OrganizationContactChanged = OrganizationContact | Export,
+        OrganizationContactAddressChanged = OrganizationContactAddress | Export,
+        OrganizationContactEmailChanged = OrganizationContactEmail | Export,
+        OrganizationContactPhoneChanged = OrganizationContactPhone | Export,
 
         // 0x06 - Project
         ProjectMask = 0x06000F00, ProjectAll = Project | ProjectLaborCategory | Task /*| FixedPrice*/| Assignment | ProjectAdministrator | ProjectInvoiceSetup,
