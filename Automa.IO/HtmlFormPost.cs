@@ -318,10 +318,19 @@ namespace Automa.IO
         /// </summary>
         /// <param name="name">Name of the select.</param>
         /// <param name="value">The value.</param>
-        /// <param name="ignoreCase">if set to <c>true</c> [ignore case].</param>
+        /// <param name="comparisonType">Type of the comparison.</param>
         /// <returns><c>true</c> if XXXX, <c>false</c> otherwise.</returns>
-        public bool FromSelect(string name, string value, bool ignoreCase = true) =>
-            FromSelectByPredicate(name, value, x => string.Compare(x.Value, value, ignoreCase) == 0);
+        public bool FromSelect(string name, string value, StringComparison comparisonType = StringComparison.OrdinalIgnoreCase) =>
+            FromSelectByPredicate(name, value, x => x.Value.Equals(value, comparisonType));
+        /// <summary>
+        /// Froms the select.
+        /// </summary>
+        /// <param name="name">Name of the select.</param>
+        /// <param name="value">The value.</param>
+        /// <param name="comparisonType">Type of the comparison.</param>
+        /// <returns><c>true</c> if XXXX, <c>false</c> otherwise.</returns>
+        public bool FromSelectStartsWith(string name, string value, StringComparison comparisonType = StringComparison.OrdinalIgnoreCase) =>
+            FromSelectByPredicate(name, value, x => x.Value.StartsWith(value, comparisonType));
 
         /// <summary>
         /// Froms the multi checkbox.

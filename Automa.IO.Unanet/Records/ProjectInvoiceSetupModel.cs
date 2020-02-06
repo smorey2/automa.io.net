@@ -166,7 +166,7 @@ namespace Automa.IO.Unanet.Records
                 {
                     if (add || cf.Contains("pif")) f.FromSelect("invoiceFormat", _t(s.primary_invoice_format, nameof(s.primary_invoice_format)));
                     //if (add || cf.Contains("aif")) f.FromSelect("xxxx", _t(s.additional_invoice_formats, nameof(s.additional_invoice_formats)));
-                    if (add || cf.Contains("inf")) f.FromSelectByPredicate("invoiceNumber", _t(s.invoice_number_format, nameof(s.invoice_number_format)), x => x.Value.StartsWith(s.invoice_number_format));
+                    if (add || cf.Contains("inf")) f.FromSelectStartsWith("invoiceNumber", _t(s.invoice_number_format, nameof(s.invoice_number_format)));
                     if (add || cf.Contains("pt")) f.FromSelect("paymentTerm", _t(s.payment_terms, nameof(s.payment_terms)));
                 }
                 else
@@ -179,11 +179,11 @@ namespace Automa.IO.Unanet.Records
                 //
                 if (s.invoicing_option != "C")
                 {
-                    if (add || cf.Contains("btc")) f.FromSelect("bill_to_contact", _t(s.bill_to_contact, nameof(s.bill_to_contact)));
+                    if (add || cf.Contains("btc")) f.FromSelectStartsWith("bill_to_contact", _t(s.bill_to_contact, nameof(s.bill_to_contact)));
                     if (add || cf.Contains("bta")) f.FromSelect("bill_to_address", !string.IsNullOrEmpty(_t(s.bill_to_address, nameof(s.bill_to_address))) ? s.bill_to_address : f.Selects["bill_to_address"].First().Value);
-                    if (add || cf.Contains("stc")) f.FromSelect("ship_to_contact", _t(s.ship_to_contact, nameof(s.ship_to_contact)));
+                    if (add || cf.Contains("stc")) f.FromSelectStartsWith("ship_to_contact", _t(s.ship_to_contact, nameof(s.ship_to_contact)));
                     if (add || cf.Contains("sta")) f.FromSelect("ship_to_address", _t(s.ship_to_address, nameof(s.ship_to_address)));
-                    if (add || cf.Contains("rtc")) f.FromSelect("remit_to_contact", _t(s.remit_to_contact, nameof(s.remit_to_contact)));
+                    if (add || cf.Contains("rtc")) f.FromSelectStartsWith("remit_to_contact", _t(s.remit_to_contact, nameof(s.remit_to_contact)));
                     if (add || cf.Contains("rta")) f.FromSelect("remit_to_address", !string.IsNullOrEmpty(_t(s.remit_to_address, nameof(s.remit_to_address))) ? s.remit_to_address : f.Selects["remit_to_address"].First().Value);
                     if (add || cf.Contains("idm")) f.FromSelectByKey("invoice_delivery_opt", _t(s.invoice_delivery_method, nameof(s.invoice_delivery_method)));
                     if (add || cf.Contains("emt")) f.FromSelect("emailTemplate", _t(s.email_message_template, nameof(s.email_message_template)));
