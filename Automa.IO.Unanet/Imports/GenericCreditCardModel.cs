@@ -7,6 +7,7 @@ namespace Automa.IO.Unanet.Imports
     public class GenericCreditCardModel
     {
         [DisplayName("Account")] public string Account5 { get; set; }
+        public string PaymentMethod { get; set; }
         [DisplayName("Posting Date")] public string PostingDate { get; set; }
         [DisplayName("Amount USD")] public string Amount { get; set; }
         [DisplayName("Supplier")] public string Supplier { get; set; }
