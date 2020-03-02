@@ -425,7 +425,11 @@ namespace Automa.IO.Unanet.Records
             if (ManageRecordBase(null, s.XCF, 1, out var cf, out var add, out last))
                 return ManageFlags.OrganizationContactChanged;
             var list = add ? null : GetList(una, s.organization_codeKey);
-            var key = list?.Where(x => x.Value[3].Item1 == $"{s.last_name}, {s.first_name}").Single().Key;
+            //var key0 = list?.Where(x => string.Equals(x.Value[3].Item1, $"DEG, {s.last_name}", StringComparison.OrdinalIgnoreCase)).SingleOrDefault().Key;
+            var key1 = list?.Where(x => string.Equals(x.Value[3].Item1, $"{s.last_name}, {s.first_name}", StringComparison.OrdinalIgnoreCase)).SingleOrDefault().Key;
+            var key = key1;
+            if (!add && key == null)
+                throw new Exception("unable to find record");
             var r = una.SubmitSubManage("A", add ? HttpMethod.Post : HttpMethod.Put, "organizations/contacts", $"contactKey={key}&orgKey={s.organization_codeKey}",
                  $"orgKey={s.organization_codeKey}", null,
                 out last, (z, f) =>
