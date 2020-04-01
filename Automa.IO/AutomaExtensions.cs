@@ -786,8 +786,9 @@ namespace Automa.IO
                             if (data.CanSeek)
                                 data.Position = 0;
                         }
-                        using (var r = new StreamReader(data))
-                            onError(rs.StatusCode, r.ReadToEnd());
+                        if (onError != null)
+                            using (var r = new StreamReader(data))
+                                onError(rs.StatusCode, r.ReadToEnd());
                     }
                 throw;
             }

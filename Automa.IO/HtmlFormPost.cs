@@ -321,7 +321,7 @@ namespace Automa.IO
         /// <param name="comparisonType">Type of the comparison.</param>
         /// <returns><c>true</c> if XXXX, <c>false</c> otherwise.</returns>
         public bool FromSelect(string name, string value, StringComparison comparisonType = StringComparison.OrdinalIgnoreCase) =>
-            FromSelectByPredicate(name, value, x => x.Value.Equals(value, comparisonType));
+            FromSelectByPredicate(name, value, x => x.Value.Equals(value ?? string.Empty, comparisonType));
         /// <summary>
         /// Froms the select.
         /// </summary>
@@ -330,7 +330,7 @@ namespace Automa.IO
         /// <param name="comparisonType">Type of the comparison.</param>
         /// <returns><c>true</c> if XXXX, <c>false</c> otherwise.</returns>
         public bool FromSelectStartsWith(string name, string value, StringComparison comparisonType = StringComparison.OrdinalIgnoreCase) =>
-            FromSelectByPredicate(name, value, x => x.Value.StartsWith(value, comparisonType));
+            FromSelectByPredicate(name, value, x => x.Value.StartsWith(value ?? string.Empty, comparisonType));
 
         /// <summary>
         /// Froms the multi checkbox.

@@ -4,6 +4,7 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Net;
 using System.Net.Http;
+using System.Threading;
 using System.Web;
 
 namespace Automa.IO.Unanet
@@ -207,8 +208,20 @@ namespace Automa.IO.Unanet
             }
             // download
             {
-                var d0 = this.TryFunc(() => this.DownloadFile(executeFolder, HttpMethod.Get, $"{UnanetUri}/admin/export/downloadFile", body, interceptFilename: interceptFilename));
-                return true;
+                for (var attempt = 1; attempt <= 5; attempt++)
+                    try
+                    {
+                        Thread.Sleep(attempt * 1000);
+                        this.TryFunc(() => this.DownloadFile(executeFolder, HttpMethod.Get, $"{UnanetUri}/admin/export/downloadFile", body, interceptFilename: interceptFilename));
+                        return true;
+                    }
+                    catch (WebException e)
+                    {
+                        if (e.Message.Contains("500"))
+                            continue;
+                        throw;
+                    }
+                return false;
             }
         }
 
