@@ -313,11 +313,11 @@ namespace Automa.IO.Unanet
 
         #region Manage
 
-        public string PostValue(HttpMethod method, string entity, string entitySelect, string parentSelect, out string last)
+        public string PostValue(HttpMethod method, string entity, string entitySelect, string parentSelect, out string last, bool useSafeRead = false)
         {
             var d0 = this.TryFunc(() => method == HttpMethod.Get ?
-                this.DownloadData(HttpMethod.Get, $"{UnanetUri}/{entity}?{parentSelect}") :
-                this.DownloadData(HttpMethod.Post, $"{UnanetUri}/{entity}?{parentSelect}", entitySelect));
+                this.DownloadData(HttpMethod.Get, $"{UnanetUri}/{entity}?{parentSelect}", useSafeRead: useSafeRead) :
+                this.DownloadData(HttpMethod.Post, $"{UnanetUri}/{entity}?{parentSelect}", entitySelect, useSafeRead: useSafeRead));
             last = null;
             return d0;
         }

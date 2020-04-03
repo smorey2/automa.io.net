@@ -1,7 +1,9 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.Diagnostics;
+using System.IO;
 using System.Linq;
+using System.Net;
 using System.Net.Http;
 using System.Text;
 using System.Text.RegularExpressions;
@@ -45,6 +47,7 @@ namespace Automa.IO.Unanet.Records
         public class Metadata
         {
             public Dictionary<int, (int? key, string value)> ProjectTypes;
+            public Dictionary<string, (int? key, string value)> ProjectTypesByName;
             public Dictionary<int, (int? key, string value)> Paycodes;
             public Dictionary<int, (int? key, string value)> LaborCategories;
             public List<DateTime> Dates;
@@ -57,9 +60,11 @@ namespace Automa.IO.Unanet.Records
             public int Key { get; set; }
             public string Name { get; set; }
             public Dictionary<int, (int? key, string value)> Labcats { get; set; }
+            public Dictionary<string, (int? key, string value)> LabcatsByName { get; set; }
             public Dictionary<int, (int? key, string value)> Tasks { get; set; }
             public (int? key, string value) ProjectType { get; set; }
             public Dictionary<int, (int? key, string value)> Paycodes { get; set; }
+            public Dictionary<string, (int? key, string value)> PaycodesByName { get; set; }
             public (int? key, string value) Paycode { get; set; }
         }
 
@@ -127,11 +132,11 @@ namespace Automa.IO.Unanet.Records
         }
 
         static string PreAdjust(UnanetClient una, int keySheet, out string last) =>
-           una.PostValue(HttpMethod.Get, "people/time/preadjust", null, $"timesheetkey={keySheet}", out last);
+           una.PostValue(HttpMethod.Get, "people/time/preadjust", null, $"timesheetkey={keySheet}", out last, useSafeRead: true);
 
-        public static TimeSheetModel Get(UnanetClient una, int keySheet, out string last, bool preAdjust = false)
+        public static TimeSheetModel Get(UnanetClient una, int keySheet, out string last, bool preAdjust = false, bool useView = false)
         {
-            var d0 = una.PostValue(HttpMethod.Get, "people/time/edit", null, $"timesheetkey={keySheet}", out last);
+            var d0 = una.PostValue(HttpMethod.Get, useView ? "people/time/view" : "people/time/edit", null, $"timesheetkey={keySheet}", out last, useSafeRead: true);
             var time = Parse(d0, keySheet);
             if (preAdjust && (time.Status != SheetStatus.Inuse || time.Status != SheetStatus.InuseAdjustment))
             {
@@ -220,7 +225,13 @@ namespace Automa.IO.Unanet.Records
             custom?.Invoke(this, keySlip.r, keySlip.s);
         }
 
-        public void MoveEntry(int key, int project_codeKey, int? task_nameKey, int? role_nameKey, out string last, Action<TimeSheetModel, Entry, KeyValuePair<int, Slip>> custom = null)
+        //static Dictionary<string, (int? key, string value)> ProjectTypeByName = new Dictionary<string, (int? key, string value)>
+        //{
+        //    {"BILLABLE", (1, "BILLABLE") },
+        //    {"NONBILL", (1, "NONBILL") }
+        //};
+
+        public void MoveEntry(int key, int project_codeKey, int? task_nameKey, string role_name, string type_name, string paycode_name, out string last, Action<TimeSheetModel, Entry, KeyValuePair<int, Slip>> custom = null)
         {
             last = null;
             // find slip
@@ -239,12 +250,14 @@ namespace Automa.IO.Unanet.Records
                 clone.Task = task;
             }
             // clone : labcat
-            if (role_nameKey != null && project.Labcats.TryGetValue(role_nameKey.Value, out var role))
+            if (role_name != null && project.LabcatsByName.TryGetValue(role_name, out var role))
                 clone.Labcat = role;
             else if (clone.Labcat.key != null && !project.Labcats.ContainsKey(clone.Labcat.key.Value))
                 clone.Labcat = project.Labcats.Values.First(x => x.value == "Other");
             // clone : project-type
-            if (clone.ProjectType.key != project.ProjectType.key)
+            if (!string.IsNullOrEmpty(type_name) && Meta.ProjectTypesByName.TryGetValue(type_name, out var projectType))
+                clone.ProjectType = projectType;
+            else if (clone.ProjectType.key != project.ProjectType.key)
             {
                 clone.ProjectType = project.ProjectType;
                 clone.Paycode = project.Paycode;
@@ -252,6 +265,8 @@ namespace Automa.IO.Unanet.Records
             // clone : paycode
             if (clone.ProjectType.value == "ADMIN")
                 clone.Paycode = project.Paycode;
+            else if (!string.IsNullOrEmpty(paycode_name) && project.PaycodesByName.TryGetValue(paycode_name, out var paycode))
+                clone.Paycode = paycode;
             else if (clone.Paycode.key != null && !project.Paycodes.ContainsKey(clone.Paycode.key.Value))
                 clone.Paycode = project.Paycode;
             // add slip
@@ -301,7 +316,9 @@ namespace Automa.IO.Unanet.Records
                 : statusString.Contains("LOCKED") ? SheetStatus.Locked
                 : SheetStatus.Missing;
             var view = source.Contains("setSubsectionTitle('");
-            return view // status != SheetStatus.Inuse &&| status != SheetStatus.InuseAdjustment
+            //if (view && source.Contains("<td class=\"status\">LOCKED</td>"))
+            //    status = SheetStatus.Locked;
+            return view
                 ? ParseView(source, keySheet, status)
                 : ParseEdit(source, keySheet, status);
         }
@@ -383,6 +400,7 @@ namespace Automa.IO.Unanet.Records
                 Dates = Regex.Matches(source.ExtractSpanInner("var dates = [];", "var titoWindow = null;"), @"Date\(([\d]+),([\d]+),([\d]+)\)", RegexOptions.Multiline).Cast<Match>()
                     .Select(m => new DateTime(int.Parse(m.Groups[1].Value), int.Parse(m.Groups[2].Value) + 1, int.Parse(m.Groups[3].Value))).ToList(),
             };
+            meta.ProjectTypesByName = meta.ProjectTypes.Values.ToDictionary(x => x.value);
             // projects
             int lastIdx = 0;
             var laborCategories = meta.LaborCategories;
@@ -417,9 +435,11 @@ namespace Automa.IO.Unanet.Records
                        Key = int.Parse(m.Groups[1].Value),
                        Name = HttpUtility.UrlDecode(m.Groups[2].Value),
                        Labcats = labcats,
+                       LabcatsByName = labcats.Values.ToDictionary(x => x.Item2),
                        Tasks = tasks,
                        ProjectType = meta.ProjectTypes.Values.ElementAt(int.Parse(m.Groups[3].Value)),
                        Paycodes = paycodes,
+                       PaycodesByName = paycodes.Values.ToDictionary(x => x.Item2),
                        Paycode = meta.Paycodes[int.Parse(m.Groups[4].Value)],
                    };
                }).ToDictionary(x => x.Key);
@@ -471,7 +491,7 @@ namespace Automa.IO.Unanet.Records
                 Status = status,
                 Meta = meta,
                 Rows = rows,
-                Errors = errors.Where(x=>!string.IsNullOrEmpty(x)).ToArray(),
+                Errors = errors.Where(x => !string.IsNullOrEmpty(x)).ToArray(),
             };
         }
     }
