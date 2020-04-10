@@ -37,7 +37,7 @@ namespace Automa.IO.Unanet.Records
         public string post_date { get; set; }
         public string additional_pay_rate { get; set; }
 
-        public static Task<bool> ExportFileAsync(UnanetClient una, string windowEntity, string sourceFolder, int window, string legalEntity = null, Action<HtmlFormPost> func = null)
+        public static Task<bool> ExportFileAsync(UnanetClient una, string windowEntity, string sourceFolder, int window, DateTime? cutoff = null, string legalEntity = null, Action<HtmlFormPost> func = null)
         {
             var filePath = Path.Combine(sourceFolder, una.Settings.time.file);
             if (File.Exists(filePath))
@@ -47,7 +47,7 @@ namespace Automa.IO.Unanet.Records
                 GetWindowDates(windowEntity ?? nameof(TimeModel), window, out var beginDate, out var endDate);
                 f.Checked["suppressOutput"] = true;
                 f.Values["dateType"] = "range";
-                f.Values["beginDate"] = beginDate.FromDateTime("BOT"); f.Values["endDate"] = endDate.FromDateTime("EOT");
+                f.Values["beginDate"] = beginDate.FromDateTime("BOT"); f.Values["endDate"] = cutoff != null ? cutoff.FromDateTime("EOT") : endDate.FromDateTime("EOT");
                 f.FromSelect("legalEntity", legalEntity ?? una.Settings.LegalEntity);
                 f.Checked["exempt"] = true; f.Checked["nonExempt"] = true; f.Checked["nonEmployee"] = true; f.Checked["subcontractor"] = true;
                 f.Checked["INUSE"] = true; f.Checked["SUBMITTED"] = true; f.Checked["APPROVING"] = true;
