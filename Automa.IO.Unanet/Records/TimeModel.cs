@@ -36,6 +36,9 @@ namespace Automa.IO.Unanet.Records
         public string time_period_begin_date { get; set; }
         public string post_date { get; set; }
         public string additional_pay_rate { get; set; }
+        //
+        public string keyInvoice { get; set; }
+        public string invoice_number { get; set; }
 
         public static Task<bool> ExportFileAsync(UnanetClient una, string windowEntity, string sourceFolder, int window, DateTime? cutoff = null, string legalEntity = null, Action<HtmlFormPost> func = null)
         {
@@ -93,15 +96,19 @@ namespace Automa.IO.Unanet.Records
                     time_period_begin_date = x[20],
                     post_date = x[21],
                     additional_pay_rate = x[22],
+                    //
+                    keyInvoice = x[23],
+                    invoice_number = x[24],
                 }, 1).ToList();
         }
 
         public static string GetReadXml(UnanetClient una, string sourceFolder, string syncFileA = null)
         {
-            var xml = new XElement("r", Read(una, sourceFolder).Select(x => new XElement("p", XAttribute("k", x.key), XAttribute("k2", x.keySheet),
+            var xml = new XElement("r", Read(una, sourceFolder).Select(x => new XElement("p", XAttribute("k", x.key), XAttribute("k2", x.keySheet), XAttribute("k3", x.keyInvoice),
                 XAttribute("u", x.username), new XAttribute("wd", x.work_date), XAttribute("poc", x.project_org_code), XAttribute("pc", x.project_code), XAttribute("tn", x.task_name), XAttribute("pt", x.project_type), XAttribute("pc2", x.pay_code),
                 XAttribute("h", x.hours), XAttribute("br", x.bill_rate), XAttribute("cr", x.cost_rate), XAttribute("poo", x.project_org_override), XAttribute("poo2", x.person_org_override), XAttribute("lc", x.labor_category), XAttribute("l", x.location), XAttribute("c", x.comments),
-                XAttribute("cr2", x.change_reason), XAttribute("cs", x.cost_structure), XAttribute("ce", x.cost_element), XAttribute("tpbd", x.time_period_begin_date), XAttribute("pd", x.post_date), XAttribute("apr", x.additional_pay_rate)
+                XAttribute("cr2", x.change_reason), XAttribute("cs", x.cost_structure), XAttribute("ce", x.cost_element), XAttribute("tpbd", x.time_period_begin_date), XAttribute("pd", x.post_date), XAttribute("apr", x.additional_pay_rate),
+                XAttribute("in", x.invoice_number)
             )).ToArray()).ToString();
             if (syncFileA == null)
                 return xml;
