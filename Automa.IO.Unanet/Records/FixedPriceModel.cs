@@ -30,7 +30,7 @@ namespace Automa.IO.Unanet.Records
         public bool locked { get; set; }
         public string project_codeKey { get; set; }
 
-        public static Task<bool> ExportFileAsync(UnanetClient una, string sourceFolder)
+        public static Task<(bool success, bool hasFile)> ExportFileAsync(UnanetClient una, string sourceFolder)
         {
             var filePath = Path.Combine(sourceFolder, una.Settings.fixed_price_item.file);
             var filePath2 = Path.Combine(sourceFolder, una.Settings.fixed_price_item_post.file);
@@ -38,7 +38,7 @@ namespace Automa.IO.Unanet.Records
                 File.Delete(filePath);
             if (File.Exists(filePath2))
                 File.Delete(filePath2);
-            return Task.Run(() =>
+            return Task.Run(() => (
                 una.GetEntitiesByExport(una.Settings.fixed_price_item.key, f =>
                 {
                     f.Checked["suppressOutput"] = true;
@@ -47,7 +47,7 @@ namespace Automa.IO.Unanet.Records
                     f.Values["wbsLevel"] = "both";
                     f.Checked["includePosted"] = true;
                     f.Checked["includeRevSchedules"] = true;
-                }, sourceFolder) &&
+                }, sourceFolder).success &&
                 una.GetEntitiesByExport(una.Settings.fixed_price_item_post.key, f =>
                 {
                     f.Checked["suppressOutput"] = true;
@@ -56,7 +56,7 @@ namespace Automa.IO.Unanet.Records
                     f.Values["wbsLevel"] = "both";
                     f.Checked["includePosted"] = false;
                     f.Checked["includeRevSchedules"] = false;
-                }, sourceFolder));
+                }, sourceFolder).success, true));
         }
 
         public static IEnumerable<FixedPriceModel> Read(UnanetClient una, string sourceFolder)

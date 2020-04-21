@@ -116,7 +116,7 @@ namespace Automa.IO.Unanet.Records
         public string vendor_invoice_person { get; set; }
         public string po_form_title { get; set; }
 
-        public static Task<bool> ExportFileAsync(UnanetClient una, string sourceFolder, string legalEntity = null)
+        public static Task<(bool success, bool hasFile)> ExportFileAsync(UnanetClient una, string sourceFolder, string legalEntity = null)
         {
             var filePath = Path.Combine(sourceFolder, una.Settings.person.file);
             if (File.Exists(filePath))

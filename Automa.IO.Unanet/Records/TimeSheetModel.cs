@@ -216,20 +216,10 @@ namespace Automa.IO.Unanet.Records
             return true;
         }
 
-        public void TouchEntry(int key, out string last, Action<TimeSheetModel, Entry, KeyValuePair<int, Slip>> custom = null)
+        public void KillTitoEntry(int keySheet, out string last)
         {
             last = null;
-            // find slip
-            var keySlip = Rows.SelectMany(x => x.Slips, (r, s) => new { r, s }).FirstOrDefault(x => x.s.Value.Key == key);
-            if (keySlip == null) { last = "unable to find src Slip"; return; }
-            custom?.Invoke(this, keySlip.r, keySlip.s);
         }
-
-        //static Dictionary<string, (int? key, string value)> ProjectTypeByName = new Dictionary<string, (int? key, string value)>
-        //{
-        //    {"BILLABLE", (1, "BILLABLE") },
-        //    {"NONBILL", (1, "NONBILL") }
-        //};
 
         public void MoveEntry(int key, int project_codeKey, int? task_nameKey, string role_name, string type_name, string paycode_name, out string last, Action<TimeSheetModel, Entry, KeyValuePair<int, Slip>> custom = null)
         {
@@ -241,7 +231,7 @@ namespace Automa.IO.Unanet.Records
             // clone row
             var clone = (Entry)keySlip.r.Clone();
             // clone : project
-            if (!Meta.Projects.TryGetValue(project_codeKey, out var project)) { last = "unable to find dst Project"; return; }
+            if (!Meta.Projects.TryGetValue(project_codeKey, out var project)) { last = $"unable to find dst Project"; return; }
             clone.Project = project;
             // clone : task
             if (task_nameKey != null)

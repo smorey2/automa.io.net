@@ -181,7 +181,7 @@ namespace Automa.IO.Unanet
         /// <param name="executeFolder">The execute folder.</param>
         /// <param name="interceptFilename">The intercept filename.</param>
         /// <returns><c>true</c> if XXXX, <c>false</c> otherwise.</returns>
-        public bool GetEntitiesByExport(string exportKey, Action<HtmlFormPost> action, string executeFolder, Func<string, string> interceptFilename = null)
+        public (bool success, bool hasFile) GetEntitiesByExport(string exportKey, Action<HtmlFormPost> action, string executeFolder, Func<string, string> interceptFilename = null)
         {
             string body;
             // parse
@@ -198,10 +198,15 @@ namespace Automa.IO.Unanet
                 var d1 = d0.ExtractSpan("<form name=\"downloadForm\"", "</form>");
                 if (d1 == null)
                 {
-                    var reportInfo = d0.ExtractSpanInner("<p class=\"report-info\">", "</p>")?.Trim();
+                    var reportInfos = new List<string>();
+                    var idx = -1;
+                    while ((idx = d0.IndexOf("<p class=\"report-info\">", idx+1)) != -1)
+                        reportInfos.Add(d0.ExtractSpanInner("<p class=\"report-info\">", "</p>", idx)?.Trim());
+                    if (reportInfos.Any(x => x == "No Data Found."))
+                        return (true, false);
                     var reportError = d0.ExtractSpanInner("<div class=\"report-error\"><p>", "</p>")?.Trim();
                     var exportError = d0.ExtractSpanInner("<pre class=\"export-error\">", "</pre>")?.Trim();
-                    return false;
+                    return (false, false);
                 }
                 var htmlForm = new HtmlFormPost(d1);
                 body = htmlForm.ToString();
@@ -213,7 +218,7 @@ namespace Automa.IO.Unanet
                     {
                         Thread.Sleep(attempt * 1000);
                         this.TryFunc(() => this.DownloadFile(executeFolder, HttpMethod.Get, $"{UnanetUri}/admin/export/downloadFile", body, interceptFilename: interceptFilename));
-                        return true;
+                        return (true, true);
                     }
                     catch (WebException e)
                     {
@@ -221,7 +226,7 @@ namespace Automa.IO.Unanet
                             continue;
                         throw;
                     }
-                return false;
+                return (false, false);
             }
         }
 

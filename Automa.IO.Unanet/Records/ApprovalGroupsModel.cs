@@ -11,7 +11,7 @@ namespace Automa.IO.Unanet.Records
         //
         public string key { get; set; }
 
-        public static Task<bool> ExportFileAsync(UnanetClient una, string sourceFolder) =>
+        public static Task<(bool success, bool hasFile)> ExportFileAsync(UnanetClient una, string sourceFolder) =>
             Task.Run(() => una.GetEntitiesByExport(una.Settings.approval_group.key, f =>
               {
                   f.Checked["suppressOutput"] = true;

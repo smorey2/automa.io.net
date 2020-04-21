@@ -53,7 +53,7 @@ namespace Automa.IO.Unanet.Records
         public string usernameKey { get; set; }
         public string lead_project_codeKey { get; set; }
 
-        public static Task<bool> ExportFileAsync(UnanetClient una, string sourceFolder, string legalEntity = null)
+        public static Task<(bool success, bool hasFile)> ExportFileAsync(UnanetClient una, string sourceFolder, string legalEntity = null)
         {
             var filePath = Path.Combine(sourceFolder, una.Settings.project_invoice_setup.file);
             if (File.Exists(filePath))

@@ -14,7 +14,7 @@ namespace Automa.IO.Unanet.Exports
         public string active { get; set; }
         public string delete { get; set; }
 
-        public static Task<bool> ExportFile(UnanetClient una, string sourceFolder)
+        public static Task<(bool success, bool hasFile)> ExportFile(UnanetClient una, string sourceFolder)
         {
             var filePath = Path.Combine(sourceFolder, una.Settings.location_master.file);
             if (File.Exists(filePath))

@@ -89,7 +89,7 @@ namespace Automa.IO.Unanet.Records
         // custom
         public string project_codeKey { get; set; }
 
-        public static Task<bool> ExportFileAsync(UnanetClient una, string sourceFolder, string legalEntity = null)
+        public static Task<(bool success, bool hasFile)> ExportFileAsync(UnanetClient una, string sourceFolder, string legalEntity = null)
         {
             var filePath = Path.Combine(sourceFolder, una.Settings.task.file);
             if (File.Exists(filePath))

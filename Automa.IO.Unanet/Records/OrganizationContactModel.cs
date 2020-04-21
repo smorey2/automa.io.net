@@ -56,7 +56,7 @@ namespace Automa.IO.Unanet.Records
         public string phones { get; set; }
         public (string, string, string) Key => (organization_code, first_name, last_name);
 
-        public static Task<bool> ExportFileAsync(UnanetClient una, string sourceFolder, string type = "CUSTOMER")
+        public static Task<(bool success, bool hasFile)> ExportFileAsync(UnanetClient una, string sourceFolder, string type = "CUSTOMER")
         {
             AddressModel.ExportFileAsync(una, sourceFolder);
             EmailModel.ExportFileAsync(una, sourceFolder);
@@ -265,9 +265,9 @@ namespace Automa.IO.Unanet.Records
                 XAttribute("ea", email_address)
             );
 
-            public static Task<bool> ExportFileAsync(UnanetClient una, string sourceFolder)
+            public static Task<(bool success, bool hasFile)> ExportFileAsync(UnanetClient una, string sourceFolder)
             {
-                return Task.FromResult(true);
+                return Task.FromResult((true, false));
                 var filePath = Path.Combine(sourceFolder, una.Settings.organization_contact_email.file);
                 if (File.Exists(filePath))
                     File.Delete(filePath);

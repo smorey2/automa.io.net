@@ -19,7 +19,7 @@ namespace Automa.IO.Unanet.Records
         public string usernameKey { get; set; }
         public string alternate_usernameKey { get; set; }
 
-        public static Task<bool> ExportFileAsync(UnanetClient una, string sourceFolder)
+        public static Task<(bool success, bool hasFile)> ExportFileAsync(UnanetClient una, string sourceFolder)
         {
             var filePath = Path.Combine(sourceFolder, una.Settings.alternate.file);
             if (File.Exists(filePath))
