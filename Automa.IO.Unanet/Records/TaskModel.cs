@@ -11,8 +11,6 @@ namespace Automa.IO.Unanet.Records
 {
     public class TaskModel : ModelBase
     {
-        public string key { get; set; }
-        //
         public string project_org_code { get; set; }
         public string project_code { get; set; }
         public string task_name { get; set; }
@@ -87,6 +85,7 @@ namespace Automa.IO.Unanet.Records
         public string user19 { get; set; }
         public string user20 { get; set; }
         // custom
+        public string key { get; set; }
         public string project_codeKey { get; set; }
 
         public static Task<(bool success, bool hasFile)> ExportFileAsync(UnanetClient una, string sourceFolder, string legalEntity = null)
@@ -107,81 +106,81 @@ namespace Automa.IO.Unanet.Records
             using (var sr = File.OpenRead(filePath))
                 return CsvReader.Read(sr, x => new TaskModel
                 {
-                    key = x[0],
+                    project_org_code = x[0],
+                    project_code = x[1],
+                    task_name = x[2].DecodeString(),
+                    active = x[3],
                     //
-                    project_org_code = x[1],
-                    project_code = x[2],
-                    task_name = x[3].DecodeString(),
-                    active = x[4],
+                    original_start_date = x[4].ToDateTime(),
+                    original_end_date = x[5].ToDateTime(),
+                    revised_start_date = x[6].ToDateTime("BOT"),
+                    revised_end_date = x[7].ToDateTime("EOT"),
+                    completed_date = x[8].ToDateTime(),
                     //
-                    original_start_date = x[5].ToDateTime(),
-                    original_end_date = x[6].ToDateTime(),
-                    revised_start_date = x[7].ToDateTime("BOT"),
-                    revised_end_date = x[8].ToDateTime("EOT"),
-                    completed_date = x[9].ToDateTime(),
+                    percent_complete = x[9],
+                    status = x[10],
+                    output = x[11],
+                    external_system_code = x[12],
+                    budget_hours = x[13],
+                    etc_hours = x[14],
+                    est_tot_hours = x[15],
                     //
-                    percent_complete = x[10],
-                    status = x[11],
-                    output = x[12],
-                    external_system_code = x[13],
-                    budget_hours = x[14],
-                    etc_hours = x[15],
-                    est_tot_hours = x[16],
+                    budget_labor_dollars_bill = x[16],
+                    etc_labor_dollars_bill = x[17],
+                    est_tot_labor_dollars_bill = x[18],
+                    budget_expense_dollars_bill = x[19],
+                    etc_expense_dollars_bill = x[20],
+                    est_tot_expense_dollars_bill = x[21],
                     //
-                    budget_labor_dollars_bill = x[17],
-                    etc_labor_dollars_bill = x[18],
-                    est_tot_labor_dollars_bill = x[19],
-                    budget_expense_dollars_bill = x[20],
-                    etc_expense_dollars_bill = x[21],
-                    est_tot_expense_dollars_bill = x[22],
+                    user01 = x[22],
+                    user02 = x[23],
+                    user03 = x[24],
+                    user04 = x[25],
+                    user05 = x[26],
+                    user06 = x[27],
+                    user07 = x[28],
+                    user08 = x[29],
+                    user09 = x[30],
+                    user10 = x[31],
                     //
-                    user01 = x[23],
-                    user02 = x[24],
-                    user03 = x[25],
-                    user04 = x[26],
-                    user05 = x[27],
-                    user06 = x[28],
-                    user07 = x[29],
-                    user08 = x[30],
-                    user09 = x[31],
-                    user10 = x[32],
+                    budget_labor_dollars_cost = x[32],
+                    etc_labor_dollars_cost = x[33],
+                    est_tot_labor_dollars_cost = x[34],
+                    budget_expense_dollars_cost = x[35],
+                    etc_expense_dollars_cost = x[36],
+                    est_tot_expense_dollars_cost = x[37],
                     //
-                    budget_labor_dollars_cost = x[33],
-                    etc_labor_dollars_cost = x[34],
-                    est_tot_labor_dollars_cost = x[35],
-                    budget_expense_dollars_cost = x[36],
-                    etc_expense_dollars_cost = x[37],
-                    est_tot_expense_dollars_cost = x[38],
+                    project_type = x[38],
+                    delete = x[39],
+                    duration = x[40],
+                    enable_alerts = x[41],
+                    billing_type = x[42],
                     //
-                    project_type = x[39],
-                    delete = x[40],
-                    duration = x[41],
-                    enable_alerts = x[42],
-                    billing_type = x[43],
+                    budget_labor_dollars_cost_burdened = x[43],
+                    budget_expense_dollars_cost_burdened = x[44],
+                    funded_value = x[45],
+                    limit_bill_to_funded = x[46],
+                    limit_rev_to_funded = x[47],
+                    owning_organization = x[48],
                     //
-                    budget_labor_dollars_cost_burdened = x[44],
-                    budget_expense_dollars_cost_burdened = x[45],
-                    funded_value = x[46],
-                    limit_bill_to_funded = x[47],
-                    limit_rev_to_funded = x[48],
-                    owning_organization = x[49],
+                    allows_time = x[49],
+                    ts_non_emp_po_required = x[50],
+                    allows_expense = x[51],
+                    exp_non_emp_po_required = x[52],
+                    allows_item = x[53],
                     //
-                    allows_time = x[50],
-                    ts_non_emp_po_required = x[51],
-                    allows_expense = x[52],
-                    exp_non_emp_po_required = x[53],
-                    allows_item = x[54],
+                    user11 = x[54],
+                    user12 = x[55],
+                    user13 = x[56],
+                    user14 = x[57],
+                    user15 = x[58],
+                    user16 = x[59],
+                    user17 = x[60],
+                    user18 = x[61],
+                    user19 = x[62],
+                    user20 = x[63],
                     //
-                    user11 = x[55],
-                    user12 = x[56],
-                    user13 = x[57],
-                    user14 = x[58],
-                    user15 = x[59],
-                    user16 = x[60],
-                    user17 = x[61],
-                    user18 = x[62],
-                    user19 = x[63],
-                    user20 = x[64],
+                    key = x[64],
                 }, 1).ToList();
         }
 

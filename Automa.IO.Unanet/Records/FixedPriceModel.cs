@@ -11,10 +11,6 @@ namespace Automa.IO.Unanet.Records
 {
     public class FixedPriceModel : ModelBase
     {
-        public string key { get; set; }
-        public DateTime? revenue_recognition_date { get; set; }
-        public decimal? revenue_recognition_amount { get; set; }
-        //
         public string project_org_code { get; set; }
         public string project_code { get; set; }
         public string task_name { get; set; }
@@ -29,6 +25,10 @@ namespace Automa.IO.Unanet.Records
         public bool posted { get; set; }
         public bool locked { get; set; }
         public string project_codeKey { get; set; }
+        //
+        public string key { get; set; }
+        public DateTime? revenue_recognition_date { get; set; }
+        public decimal? revenue_recognition_amount { get; set; }
 
         public static Task<(bool success, bool hasFile)> ExportFileAsync(UnanetClient una, string sourceFolder)
         {
@@ -65,31 +65,31 @@ namespace Automa.IO.Unanet.Records
             var filePath2 = Path.Combine(sourceFolder, una.Settings.fixed_price_item_post.file);
             using (var sr2 = File.OpenRead(filePath2))
             {
-                var post = new HashSet<string>(CsvReader.Read(sr2, x => x[0], 1).ToList());
+                var post = new HashSet<string>(CsvReader.Read(sr2, x => x[9], 1).ToList());
                 using (var sr = File.OpenRead(filePath))
                     return CsvReader.Read(sr, x =>
                     {
-                        var d = x[6].ToString();
+                        var d = x[4].ToString();
                         var d0 = d.IndexOf(","); //: d1 = d.IndexOf(":");
                         var external_system_code = d0 != -1 && d.Length - d0 == 3 ? d.Substring(d0 + 1) : null; //: d0 != -1 && d0 < d1 ? d.Substring(0, d0) : null;
                         var description = d0 != -1 && d.Length - d0 == 3 ? d.Substring(0, d0) : d; //: d0 != -1 && d0 < d1 ? d.Substring(d0 + 1) : d;
                         return new FixedPriceModel
                         {
-                            key = x[0],
-                            revenue_recognition_date = x[1].ToDateTime(),
-                            revenue_recognition_amount = x[2].ToDecimal(),
-                            //
-                            project_org_code = x[3],
-                            project_code = x[4],
-                            task_name = x[5].DecodeString(),
+                            project_org_code = x[0],
+                            project_code = x[1],
+                            task_name = x[2].DecodeString(),
                             external_system_code = external_system_code,
                             description = description,
-                            bill_date = x[7].ToDateTime(),
-                            bill_on_completion = x[8],
-                            bill_amount = x[9],
-                            revenue_recognition_method = x[10],
-                            delete = x[11],
-                            posted = !post.Contains(x[0]),
+                            bill_date = x[4].ToDateTime(),
+                            bill_on_completion = x[5],
+                            bill_amount = x[6],
+                            revenue_recognition_method = x[7],
+                            delete = x[8],
+                            posted = !post.Contains(x[9]),
+                            //
+                            key = x[9],
+                            revenue_recognition_date = x[10].ToDateTime(),
+                            revenue_recognition_amount = x[11].ToDecimal(),
                         };
                     }, 1).ToList();
             }

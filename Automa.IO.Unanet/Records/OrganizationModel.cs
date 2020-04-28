@@ -55,6 +55,17 @@ namespace Automa.IO.Unanet.Records
         public string federal_tax_id { get; set; }
         public string start_with_proj_code_number { get; set; }
         //
+        public string user11 { get; set; }
+        public string user12 { get; set; }
+        public string user13 { get; set; }
+        public string user14 { get; set; }
+        public string user15 { get; set; }
+        public string user16 { get; set; }
+        public string user17 { get; set; }
+        public string user18 { get; set; }
+        public string user19 { get; set; }
+        public string user20 { get; set; }
+        //
         public string key { get; set; }
 
         public static Task<(bool success, bool hasFile)> ExportFileAsync(UnanetClient una, string sourceFolder, string type = "CUSTOMER")
@@ -128,6 +139,17 @@ namespace Automa.IO.Unanet.Records
                     federal_tax_id = x[37],
                     start_with_proj_code_number = x[38],
                     //
+                    user11 = x[39],
+                    user12 = x[40],
+                    user13 = x[41],
+                    user14 = x[42],
+                    user15 = x[43],
+                    user16 = x[44],
+                    user17 = x[45],
+                    user18 = x[46],
+                    user19 = x[47],
+                    user20 = x[48],
+                    //
                     key = list.TryGetValue(x[0], out var item) ? item.Item1 : null,
                 }, 1).Where(x => x.org_type == type).ToList();
         }
@@ -147,7 +169,8 @@ namespace Automa.IO.Unanet.Records
                 XAttribute("s", x.size), XAttribute("esc", x.external_system_code), XAttribute("sc", x.sic_code), XAttribute("c", x.classification), XAttribute("i", x.industry), XAttribute("s2", x.sector), XAttribute("ss", x.stock_symbol), XAttribute("u", x.url),
                 XAttribute("u1", x.user01), XAttribute("u2", x.user02), XAttribute("u3", x.user03), XAttribute("u4", x.user04), XAttribute("u5", x.user05), XAttribute("u6", x.user06), XAttribute("u7", x.user07), XAttribute("u8", x.user08), XAttribute("u9", x.user09), XAttribute("u10", x.user10),
                 XAttribute("fo", x.financial_org), XAttribute("le", x.legal_entity), XAttribute("lec", x.legal_entity_code), XAttribute("dgpo", x.default_gl_post_org), XAttribute("ea", x.entry_allowed), XAttribute("ebd", x.entry_begin_date), XAttribute("eed", x.entry_end_date), XAttribute("fp", x.financial_parent), XAttribute("cpp", x.cost_pool_parent),
-                XAttribute("a", x.active), XAttribute("v_1", x.vendor_1099), XAttribute("rn_1", x.recipient_name_1099), XAttribute("e_1", x.email_1099), XAttribute("ftit", x.federal_tax_id_type), XAttribute("fti", x.federal_tax_id), XAttribute("swpcn", x.start_with_proj_code_number)
+                XAttribute("a", x.active), XAttribute("v_1", x.vendor_1099), XAttribute("rn_1", x.recipient_name_1099), XAttribute("e_1", x.email_1099), XAttribute("ftit", x.federal_tax_id_type), XAttribute("fti", x.federal_tax_id), XAttribute("swpcn", x.start_with_proj_code_number),
+                XAttribute("u11", x.user11), XAttribute("u12", x.user12), XAttribute("u13", x.user13), XAttribute("u14", x.user14), XAttribute("u15", x.user15), XAttribute("u16", x.user16), XAttribute("u17", x.user17), XAttribute("u18", x.user18), XAttribute("u19", x.user19), XAttribute("u20", x.user20)
             )).ToArray()).ToString();
             if (syncFileA == null)
                 return xml;
@@ -235,6 +258,17 @@ namespace Automa.IO.Unanet.Records
                 if (add || cf.Contains("ftit")) f.FromSelectByKey("fedTaxIdType", _t(s.federal_tax_id_type, nameof(s.federal_tax_id_type)));
                 if (add || cf.Contains("fti")) f.Values["fedTaxId"] = _t(s.federal_tax_id, nameof(s.federal_tax_id));
                 //if (add || cf.Contains("swpcn")) f.Values["xxxx"] = _t(s.start_with_proj_code_number, nameof(s.start_with_proj_code_number));
+                //
+                //if (add || cf.Contains("u11")) f.Values["udf_10"] = _t(s.user11, nameof(s.user11));
+                //if (add || cf.Contains("u12")) f.Values["udf_11"] = _t(s.user12, nameof(s.user12));
+                //if (add || cf.Contains("u13")) f.Values["udf_12"] = _t(s.user13, nameof(s.user13));
+                //if (add || cf.Contains("u14")) f.Values["udf_13"] = _t(s.user14, nameof(s.user14));
+                //if (add || cf.Contains("u15")) f.Values["udf_14"] = _t(s.user15, nameof(s.user15));
+                //if (add || cf.Contains("u16")) f.Values["udf_15"] = _t(s.user16, nameof(s.user16));
+                //if (add || cf.Contains("u17")) f.Values["udf_16"] = _t(s.user17, nameof(s.user17));
+                //if (add || cf.Contains("u18")) f.Values["udf_17"] = _t(s.user18, nameof(s.user18));
+                //if (add || cf.Contains("u19")) f.Values["udf_18"] = _t(s.user19, nameof(s.user19));
+                //if (add || cf.Contains("u20")) f.Values["udf_19"] = _t(s.user20, nameof(s.user20));
                 //
                 if (add) f.FromSelect("orgType", "CUSTOMER");
                 f.Add("button_save", "action", null);

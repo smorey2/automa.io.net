@@ -11,9 +11,6 @@ namespace Automa.IO.Unanet.Records
 {
     public class AssignmentModel : ModelBase
     {
-        public string assignment_type { get; set; }
-        public string assign_code { get; set; }
-        //
         public string project_org_code { get; set; }
         public string project_code { get; set; }
         public string task_name { get; set; }
@@ -37,6 +34,8 @@ namespace Automa.IO.Unanet.Records
         public string cost_element { get; set; }
         public string edc { get; set; }
         // custom
+        public string assignment_type { get; set; }
+        public string assign_code { get; set; }
         public string assign { get; set; }
         public string project_codeKey { get; set; }
         public string usernameKey { get; set; }
@@ -64,41 +63,41 @@ namespace Automa.IO.Unanet.Records
             using (var sr = File.OpenRead(filePath))
                 return CsvReader.Read(sr, x => new AssignmentModel
                 {
-                    assignment_type = x[0],
-                    assign_code = x[1],
+                    project_org_code = x[0],
+                    project_code = x[1],
+                    task_name = x[2].DecodeString(),
+                    username = x[3],
+                    begin_date = x[4],
+                    end_date = x[5],
+                    delete = x[6],
                     //
-                    project_org_code = x[2],
-                    project_code = x[3],
-                    task_name = x[4].DecodeString(),
-                    username = x[5],
-                    begin_date = x[6],
-                    end_date = x[7],
-                    delete = x[8],
+                    budget_hours = x[7],
+                    exceed_budget = x[8],
+                    bill_rate = x[9],
+                    cost_rate = x[10],
+                    project_org_override = x[11],
+                    person_org_override = x[12],
                     //
-                    budget_hours = x[9],
-                    exceed_budget = x[10],
-                    bill_rate = x[11],
-                    cost_rate = x[12],
-                    project_org_override = x[13],
-                    person_org_override = x[14],
+                    labor_category = x[13],
+                    location = x[14],
+                    etc_hours = x[15],
+                    use_wbs_dates = x[16],
+                    cost_structure = x[17],
+                    cost_element = x[18],
+                    edc = x[19],
                     //
-                    labor_category = x[15],
-                    location = x[16],
-                    etc_hours = x[17],
-                    use_wbs_dates = x[18],
-                    cost_structure = x[19],
-                    cost_element = x[20],
-                    edc = x[21],
+                    assignment_type = x[20],
+                    assign_code = x[21],
                 }, 1).ToList();
         }
 
         public static string GetReadXml(UnanetClient una, string sourceFolder, string syncFileA = null)
         {
             var xml = new XElement("r", Read(una, sourceFolder).Select(x => new XElement("p",
-                XAttribute("at", x.assignment_type), XAttribute("ac", x.assign_code),
                 XAttribute("poc", x.project_org_code), XAttribute("pc", x.project_code), XAttribute("tn", x.task_name), XAttribute("u", x.username), XAttribute("bd", x.begin_date), XAttribute("ed", x.end_date),
                 XAttribute("bh", x.budget_hours), XAttribute("eb", x.exceed_budget), XAttribute("br", x.bill_rate), XAttribute("cr", x.cost_rate), XAttribute("joo", x.project_org_override), XAttribute("poo", x.person_org_override),
-                XAttribute("lc", x.labor_category), XAttribute("l", x.location), XAttribute("eh", x.etc_hours), XAttribute("uwd", x.use_wbs_dates), XAttribute("cs", x.cost_structure), XAttribute("ce", x.cost_element), XAttribute("e", x.edc)
+                XAttribute("lc", x.labor_category), XAttribute("l", x.location), XAttribute("eh", x.etc_hours), XAttribute("uwd", x.use_wbs_dates), XAttribute("cs", x.cost_structure), XAttribute("ce", x.cost_element), XAttribute("e", x.edc),
+                XAttribute("at", x.assignment_type), XAttribute("ac", x.assign_code)
             )).ToArray()).ToString();
             if (syncFileA == null)
                 return xml;
