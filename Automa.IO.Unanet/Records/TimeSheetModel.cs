@@ -22,6 +22,11 @@ namespace Automa.IO.Unanet.Records
         public List<Entry> Rows { get; set; }
         public string[] Errors { get; set; }
 
+        const string Error_srcSlip = "Timesheet cannot be resubmitted by this process. Please ask timesheet owner to review and manually resubmit. (error code: srcSlip)";
+        const string Error_dstProject = "This time cannot be moved to the requested project. Please be sure the person is assigned to the project and the project allows time entry. (error code: dstProject)";
+        const string Error_dstTask = "This task is not open for time entry. Please request an adjustment from Finance and try again. (error code: dstTask)";
+        const string Error_tito = "Timesheet Owner used the time In/Time Out function and the time cannot be updated with this process. Please ask timesheet owner to correct their timesheet manually. (errorcode: tito)";
+
         #region Classes
 
         public class p_TimeSheet1 : TimeSheetModel
@@ -226,17 +231,17 @@ namespace Automa.IO.Unanet.Records
             last = null;
             // find slip
             var keySlip = Rows.SelectMany(x => x.Slips, (r, s) => new { r, s }).FirstOrDefault(x => x.s.Value.Key == key);
-            if (keySlip == null) { last = "unable to find src Slip"; return; }
+            if (keySlip == null) { last = Error_srcSlip; return; }
             if (!keySlip.r.Slips.Remove(keySlip.s.Key)) throw new InvalidOperationException();
             // clone row
             var clone = (Entry)keySlip.r.Clone();
             // clone : project
-            if (!Meta.Projects.TryGetValue(project_codeKey, out var project)) { last = $"unable to find dst Project"; return; }
+            if (!Meta.Projects.TryGetValue(project_codeKey, out var project)) { last = Error_dstProject; return; }
             clone.Project = project;
             // clone : task
             if (task_nameKey != null)
             {
-                if (!project.Tasks.TryGetValue(task_nameKey.Value, out var task)) { last = "unable to find dst Task"; return; }
+                if (!project.Tasks.TryGetValue(task_nameKey.Value, out var task)) { last = Error_dstTask; return; }
                 clone.Task = task;
             }
             // clone : labcat
@@ -273,7 +278,7 @@ namespace Automa.IO.Unanet.Records
             var firstSlips = match2.First().Slips;
             if (!firstSlips.TryGetValue(slip.Key, out var existingSlip)) { firstSlips.Add(slip.Key, slip.Value); return; }
             // merge slip in, error if tito
-            if (existingSlip.Titos.Length != 0 || slip.Value.Titos.Length != 0) { last = "move requires merge, but tito exists"; return; }
+            if (existingSlip.Titos.Length != 0 || slip.Value.Titos.Length != 0) { last = Error_tito; return; }
             // merge slip in
             existingSlip.Hours += slip.Value.Hours;
             existingSlip.Comments += "\n" + slip.Value.Comments;
