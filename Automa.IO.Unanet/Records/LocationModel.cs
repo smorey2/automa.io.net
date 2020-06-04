@@ -3,9 +3,11 @@ using System.Collections.Generic;
 using System.IO;
 using System.Linq;
 using System.Threading.Tasks;
+using System.Xml.Linq;
 
-namespace Automa.IO.Unanet.Exports
+namespace Automa.IO.Unanet.Records
 {
+    // MASTER
     public class LocationModel : ModelBase
     {
         public string key { get; set; }
@@ -14,7 +16,7 @@ namespace Automa.IO.Unanet.Exports
         public string active { get; set; }
         public string delete { get; set; }
 
-        public static Task<(bool success, bool hasFile)> ExportFile(UnanetClient una, string sourceFolder)
+        public static Task<(bool success, bool hasFile)> ExportFileAsync(UnanetClient una, string sourceFolder)
         {
             var filePath = Path.Combine(sourceFolder, una.Settings.location_master.file);
             if (File.Exists(filePath))
@@ -43,8 +45,22 @@ namespace Automa.IO.Unanet.Exports
         {
             var filePath = Path.Combine(sourceFolder, una.Settings.location_master.file);
             if (!File.Exists(filePath))
-                ExportFile(una, sourceFolder).Wait();
+                ExportFileAsync(una, sourceFolder).Wait();
             return Read(una, sourceFolder);
+        }
+
+        public static string GetReadXml(UnanetClient una, string sourceFolder, string syncFileA = null)
+        {
+            var xml = new XElement("r", Read(una, sourceFolder).Select(x => new XElement("p", XAttribute("k", x.key),
+                XAttribute("l", x.location), XAttribute("a", x.active)
+            )).ToArray()).ToString();
+            if (syncFileA == null)
+                return xml;
+            var syncFile = string.Format(syncFileA, ".l.xml");
+            if (!Directory.Exists(Path.GetDirectoryName(syncFile)))
+                Directory.CreateDirectory(Path.GetDirectoryName(syncFile));
+            File.WriteAllText(syncFile, xml);
+            return xml;
         }
     }
 }

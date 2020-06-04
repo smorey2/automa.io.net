@@ -325,7 +325,7 @@ namespace Automa.IO.Unanet.Records
                 //if (add || cf.Contains("p")) f.Values["password1"] = _t(s.password, nameof(s.password));
                 //if (add || cf.Contains("ip")) f.Values["password2"] = _t(s.ivr_password, nameof(s.xxivr_passwordxx));
                 if (add || cf.Contains("e")) f.Values["email"] = _t(s.email, nameof(s.email));
-                if (add || cf.Contains("poc")) f.Values["personOrg"] = GetLookupValue(organizations, _t(s.person_org_code, nameof(s.person_org_code)));
+                if (add || cf.Contains("poc")) f.Values["personOrg"] = GetLookupValue(organizations, _t(s.person_org_code, nameof(s.person_org_code)), true);
                 if (add || cf.Contains("br")) f.Values["bill_rate"] = _t(s.bill_rate, nameof(s.bill_rate))?.ToString();
                 if (add || cf.Contains("cr")) f.Values["cost_rate"] = _t(s.cost_rate, nameof(s.cost_rate))?.ToString();
                 //if (add || cf.Contains("tag")) f.Values["leave_request"] = GetLookupValue(approvalGroups, _t(s.time_approval_group, nameof(s.time_approval_group)));
@@ -343,7 +343,7 @@ namespace Automa.IO.Unanet.Records
                 //if (add || cf.Contains("dp2")) f.Values["xxxx"] = _t(s.default_project, nameof(s.default_project));
                 //if (add || cf.Contains("dt")) f.Values["xxxx"] = _t(s.default_task, nameof(s.default_task));
                 //
-                if (add || cf.Contains("dlc")) f.Values["labor_category"] = GetLookupValue(laborCategories, _t(s.default_labor_category, nameof(s.default_labor_category)));
+                if (add || cf.Contains("dlc")) f.Values["labor_category"] = GetLookupValue(laborCategories, _t(s.default_labor_category, nameof(s.default_labor_category)), true);
                 if (add || cf.Contains("dpm")) f.FromSelect("payment_method_key", _t(s.default_payment_method, nameof(s.default_payment_method)));
                 if (add || cf.Contains("tr")) f.FromSelectByKey("titoRequired", _t(s.tito_required, nameof(s.tito_required)));
                 if (add || cf.Contains("bw")) f.FromSelect("businessWeek", _t(s.business_week, nameof(s.business_week)));
@@ -365,7 +365,7 @@ namespace Automa.IO.Unanet.Records
                 if (add || cf.Contains("cs")) f.FromSelectByPredicate("costStructLabor", _t(s.cost_structure, nameof(s.cost_structure)), x => x.Value.StartsWith(s.cost_structure));
                 //if (add || cf.Contains("ce")) f.Values["xxxx"] = _t(s.cost_element, nameof(s.cost_element));
                 //if (add || cf.Contains("ul")) f.Values["xxxx"] = _t(s.unlock, nameof(s.unlock));
-                if (add || cf.Contains("l")) f.Values["location"] = GetLookupValue(locations, _t(s.location, nameof(s.location)));
+                if (add || cf.Contains("l")) f.Values["location"] = GetLookupValue(locations, _t(s.location, nameof(s.location)), true);
                 //
                 if (add || cf.Contains("et")) f.FromSelect("employeeType", _t(s.employee_type, nameof(s.employee_type)));
                 //if (add || cf.Contains("hv")) f.Values["hide_vat"] = _t(s.hide_vat, nameof(s.hide_vat));
