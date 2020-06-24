@@ -1,4 +1,5 @@
 ﻿using ExcelTrans.Services;
+using NPOI.OpenXmlFormats.Dml;
 using System;
 using System.Collections.Generic;
 using System.IO;
@@ -40,12 +41,12 @@ namespace Automa.IO.Unanet.Records
         public string project_codeKey { get; set; }
         public string usernameKey { get; set; }
 
-        public static Task<(bool success, bool hasFile)> ExportFileAsync(UnanetClient una, string sourceFolder)
+        public static Task<(bool success, bool hasFile, object tag)> ExportFileAsync(UnanetClient una, string sourceFolder)
         {
             var filePath = Path.Combine(sourceFolder, una.Settings.assignment.file);
             if (File.Exists(filePath))
                 File.Delete(filePath);
-            return Task.Run(() => una.GetEntitiesByExport(una.Settings.assignment.key, f =>
+            return Task.Run(() => una.GetEntitiesByExport(una.Settings.assignment.key, (z, f) =>
             {
                 f.Checked["suppressOutput"] = true;
                 f.Checked["person_outputActive"] = true; f.Checked["person_outputInactive"] = true;
@@ -54,6 +55,7 @@ namespace Automa.IO.Unanet.Records
                 f.Checked["organizationAssignment"] = true;
                 f.Checked["projectAssignment"] = true;
                 f.Checked["taskAssignment"] = false;
+                return null;
             }, sourceFolder));
         }
 
@@ -139,7 +141,7 @@ namespace Automa.IO.Unanet.Records
                                     f.Add("button_save", "action", null);
                                 }
                                 return f.ToString();
-                            }, formSettings: new HtmlFormSettings { ParseOptions = false });
+                            }, formOptions: new HtmlFormOptions { ParseOptions = false });
                         return r != null ?
                         ManageFlags.AssignmentChanged :
                         ManageFlags.None;

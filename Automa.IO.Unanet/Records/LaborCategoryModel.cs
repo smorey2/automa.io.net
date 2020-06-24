@@ -22,15 +22,16 @@ namespace Automa.IO.Unanet.Records
         public string active { get; set; }
         public DateTime effective_date { get; set; }
 
-        public static Task<(bool success, bool hasFile)> ExportFileAsync(UnanetClient una, string sourceFolder)
+        public static Task<(bool success, bool hasFile, object tag)> ExportFileAsync(UnanetClient una, string sourceFolder)
         {
             var filePath = Path.Combine(sourceFolder, una.Settings.labor_category_master.file);
             if (File.Exists(filePath))
                 File.Delete(filePath);
-            return Task.Run(() => una.GetEntitiesByExport(una.Settings.labor_category_master.key, f =>
+            return Task.Run(() => una.GetEntitiesByExport(una.Settings.labor_category_master.key, (z, f) =>
             {
                 f.Checked["suppressOutput"] = true;
                 f.FromSelect("dateRange", "Today");
+                return null;
             }, sourceFolder));
         }
 

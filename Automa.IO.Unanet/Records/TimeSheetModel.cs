@@ -14,6 +14,7 @@ namespace Automa.IO.Unanet.Records
 {
     public class TimeSheetModel : ModelBase
     {
+        public bool IsEdit { get; set; }
         public int KeySheet { get; set; }
         public (int? key, string name) Person { get; set; }
         public DateTime Week { get; set; }
@@ -359,6 +360,7 @@ namespace Automa.IO.Unanet.Records
             }
             return new TimeSheetModel
             {
+                IsEdit = false,
                 KeySheet = keySheet,
                 Person = person,
                 Week = week,
@@ -480,6 +482,7 @@ namespace Automa.IO.Unanet.Records
                 }).ToList();
             return new TimeSheetModel
             {
+                IsEdit = true,
                 KeySheet = keySheet,
                 Person = person,
                 Week = week,

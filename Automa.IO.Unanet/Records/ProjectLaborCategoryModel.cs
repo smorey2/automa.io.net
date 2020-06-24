@@ -25,16 +25,17 @@ namespace Automa.IO.Unanet.Records
         // custom
         public string project_codeKey { get; set; }
 
-        public static Task<(bool success, bool hasFile)> ExportFileAsync(UnanetClient una, string sourceFolder, string legalEntity = null)
+        public static Task<(bool success, bool hasFile, object tag)> ExportFileAsync(UnanetClient una, string sourceFolder, string legalEntity = null)
         {
             var filePath = Path.Combine(sourceFolder, una.Settings.labor_category_project.file);
             if (File.Exists(filePath))
                 File.Delete(filePath);
-            return Task.Run(() => una.GetEntitiesByExport(una.Settings.labor_category_project.key, f =>
+            return Task.Run(() => una.GetEntitiesByExport(una.Settings.labor_category_project.key, (z, f) =>
             {
                 f.Checked["suppressOutput"] = true;
                 f.FromSelect("legalEntity", legalEntity ?? una.Settings.LegalEntity);
                 f.FromSelect("dateRange", "BOT to EOT");
+                return null;
             }, sourceFolder));
         }
 
@@ -115,7 +116,7 @@ namespace Automa.IO.Unanet.Records
                     if (add) f.Add("button_save", "action", null);
                     else f.Action = f.Action.Replace("/list", "/save");
                     return f.ToString();
-                }, formSettings: new HtmlFormSettings { Marker = add ? null : "<form name=\"simpleList\"" });
+                }, formOptions: new HtmlFormOptions { Marker = add ? null : "<form name=\"simpleList\"" });
             return r != null ?
                 ManageFlags.ProjectLaborCategoryChanged :
                 ManageFlags.None;

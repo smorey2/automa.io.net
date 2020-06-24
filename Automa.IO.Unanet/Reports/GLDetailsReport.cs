@@ -54,7 +54,7 @@ namespace Automa.IO.Unanet.Reports
             var filePath = Path.Combine(sourceFolder, "report.csv");
             if (File.Exists(filePath))
                 File.Delete(filePath);
-            return Task.Run(() => una.RunReport("financials/detail/general_ledger", f =>
+            return Task.Run(() => una.RunReport("financials/detail/general_ledger", (z, f) =>
             {
                 f.FromSelect("legalEntity", legalEntity ?? una.Settings.LegalEntity);
                 if (accountType == "Wip") f.Values["account"] = account;

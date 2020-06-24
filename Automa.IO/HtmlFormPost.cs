@@ -41,12 +41,24 @@ namespace Automa.IO
         /// <param name="formOptions">The options.</param>
         /// <exception cref="System.InvalidOperationException">unable to find marker</exception>
         /// <exception cref="InvalidOperationException">unable to find marker</exception>
-        public HtmlFormPost(string s = null, HtmlFormSettings formOptions = null)
+        public HtmlFormPost(string s = null, HtmlFormOptions formOptions = null)
         {
+            if (formOptions != null && formOptions.FormTemplate != null)
+            {
+                var template = formOptions.FormTemplate;
+                Action = template.Action;
+                Values = template.Values.ToDictionary(x => x.Key, x => x.Value);
+                Types = template.Types.ToDictionary(x => x.Key, x => x.Value);
+                Checked = template.Checked.ToDictionary(x => x.Key, x => x.Value);
+                Selects = template.Selects.ToDictionary(x => x.Key, x => x.Value);
+                Buttons = template.Buttons.ToDictionary(x => x.Key, x => x.Value);
+                Files = template.Files.ToDictionary(x => x.Key, x => x.Value);
+                return;
+            }
             if (s == null)
                 return;
             if (formOptions == null)
-                formOptions = HtmlFormSettings.Default;
+                formOptions = HtmlFormOptions.Default;
 
             // marker
             var markerIdx = 0;
@@ -155,6 +167,23 @@ namespace Automa.IO
                 }
             }
             return;
+        }
+        /// <summary>
+        /// Initializes a new instance of the <see cref="HtmlFormPost"/> class.
+        /// </summary>
+        /// <param name="template">The template.</param>
+        public HtmlFormPost(HtmlFormTemplate template)
+        {
+            if (template == null)
+                throw new ArgumentNullException(nameof(template));
+
+            Action = template.Action;
+            Values = template.Values.ToDictionary(x => x.Key, x => x.Value);
+            Types = template.Types.ToDictionary(x => x.Key, x => x.Value);
+            Checked = template.Checked.ToDictionary(x => x.Key, x => x.Value);
+            Selects = template.Selects.ToDictionary(x => x.Key, x => x.Value);
+            Buttons = template.Buttons.ToDictionary(x => x.Key, x => x.Value);
+            Files = template.Files.ToDictionary(x => x.Key, x => x.Value);
         }
 
         /// <summary>

@@ -11,10 +11,11 @@ namespace Automa.IO.Unanet.Records
         //
         public string key { get; set; }
 
-        public static Task<(bool success, bool hasFile)> ExportFileAsync(UnanetClient una, string sourceFolder) =>
-            Task.Run(() => una.GetEntitiesByExport(una.Settings.approval_group.key, f =>
+        public static Task<(bool success, bool hasFile, object tag)> ExportFileAsync(UnanetClient una, string sourceFolder) =>
+            Task.Run(() => una.GetEntitiesByExport(una.Settings.approval_group.key, (z, f) =>
               {
                   f.Checked["suppressOutput"] = true;
+                  return null;
               }, sourceFolder));
 
         //public static Dictionary<string, Tuple<string, string>> GetList(UnanetClient una) =>

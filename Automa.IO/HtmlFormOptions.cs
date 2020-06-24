@@ -3,15 +3,23 @@ namespace Automa.IO
     /// <summary>
     /// HtmlFormSettings
     /// </summary>
-    public class HtmlFormSettings
+    public class HtmlFormOptions
     {
-        public readonly static HtmlFormSettings Default = new HtmlFormSettings();
+        public readonly static HtmlFormOptions Default = new HtmlFormOptions();
 
         /// <summary>
         /// Gets or sets the marker.
         /// </summary>
         /// <value>The marker.</value>
         public string Marker { get; set; }
+
+        /// <summary>
+        /// Gets or sets the form template.
+        /// </summary>
+        /// <value>
+        /// The form template.
+        /// </value>
+        public HtmlFormTemplate FormTemplate { get; set; }
 
         /// <summary>
         /// Gets or sets a value indicating whether [parse buttons].

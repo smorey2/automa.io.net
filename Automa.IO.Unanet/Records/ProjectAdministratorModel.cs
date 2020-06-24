@@ -28,15 +28,16 @@ namespace Automa.IO.Unanet.Records
         public string project_codeKey { get; set; }
         public string usernameKey { get; set; }
 
-        public static Task<(bool success, bool hasFile)> ExportFileAsync(UnanetClient una, string sourceFolder, string legalEntity = null)
+        public static Task<(bool success, bool hasFile, object tag)> ExportFileAsync(UnanetClient una, string sourceFolder, string legalEntity = null)
         {
             var filePath = Path.Combine(sourceFolder, una.Settings.project_administrator.file);
             if (File.Exists(filePath))
                 File.Delete(filePath);
-            return Task.Run(() => una.GetEntitiesByExport(una.Settings.project_administrator.key, f =>
+            return Task.Run(() => una.GetEntitiesByExport(una.Settings.project_administrator.key, (z, f) =>
             {
                 f.Checked["suppressOutput"] = true;
                 f.FromSelect("legalEntity", legalEntity ?? una.Settings.LegalEntity);
+                return null;
             }, sourceFolder));
         }
 

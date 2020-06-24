@@ -19,12 +19,12 @@ namespace Automa.IO.Unanet.Records
         public string memo { get; set; }
         public decimal? quantity { get; set; }
 
-        public static Task<(bool success, bool hasFile)> ExportFileAsync(UnanetClient una, string sourceFolder, int window, string legalEntity = null)
+        public static Task<(bool success, bool hasFile, object tag)> ExportFileAsync(UnanetClient una, string sourceFolder, int window, string legalEntity = null)
         {
             var filePath = Path.Combine(sourceFolder, una.Settings.invoice.file);
             if (File.Exists(filePath))
                 File.Delete(filePath);
-            return Task.Run(() => una.GetEntitiesByExport(una.Settings.invoice.key, f =>
+            return Task.Run(() => una.GetEntitiesByExport(una.Settings.invoice.key, (z, f) =>
             {
                 GetWindowDates(nameof(InvoiceModel), window, out var beginDate, out var endDate);
                 f.Values["filename"] = una.Settings.invoice.file;
@@ -34,6 +34,7 @@ namespace Automa.IO.Unanet.Records
                 f.FromSelectByKey("invoiceDate", "custom");
                 f.Values["prange_bDate"] = "BOT"; f.Values["prange_eDate"] = "EOT";
                 f.FromSelectByKey("prange", "bot_eot");
+                return null;
             }, sourceFolder));
         }
 

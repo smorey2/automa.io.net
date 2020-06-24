@@ -41,22 +41,23 @@ namespace Automa.IO.Unanet.Records
         // custom
         public string organization_codeKey { get; set; }
 
-        public static Task<(bool success, bool hasFile)> ExportFileAsync(UnanetClient una, string sourceFolder)
+        public static Task<(bool success, bool hasFile, object tag)> ExportFileAsync(UnanetClient una, string sourceFolder)
         {
             var filePath = Path.Combine(sourceFolder, una.Settings.customer_profile.file);
             if (File.Exists(filePath))
                 File.Delete(filePath);
-            return Task.Run(() => una.GetEntitiesByExport(una.Settings.customer_profile.key, f =>
+            return Task.Run(() => una.GetEntitiesByExport(una.Settings.customer_profile.key, (z, f) =>
             {
                 f.Checked["suppressOutput"] = true;
                 f.Checked["includeALL"] = true;
                 f.Checked["includeSELECTED"] = false;
                 f.Checked["suppress"] = false;
                 //f.Values["legalEntities"] = legalEntityKey ?? una.Settings.DefaultOrg.key;
+                return null;
             }, sourceFolder));
         }
 
-        public static Dictionary<string, Tuple<string, string>[]> GetList(UnanetClient ctx, string orgKey) =>
+        public static Dictionary<string, (string, string)[]> GetList(UnanetClient ctx, string orgKey) =>
             ctx.GetEntitiesBySubList("organizations/customer_org", $"orgKey={orgKey}").Single();
 
         public static IEnumerable<CustomerProfileModel> Read(UnanetClient una, string sourceFolder)

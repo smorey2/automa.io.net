@@ -93,22 +93,24 @@ namespace Automa.IO.Unanet.Records
             }
         }
 
-        public static void ApproveSheet(UnanetClient una, (string key, string keyType) key, string comments, string[] projApprs, string[] managers, string[] customers, out string last)
+        public static bool ApproveSheet(UnanetClient una, (string key, string keyType) key, string comments, string[] projApprs, string[] managers, string[] customers, out string last)
         {
             last = null;
+            var changed = false;
             if (projApprs != null)
                 foreach (var personName in projApprs)
-                    ProjectApprovalByKeyMatch(una, key, comments, personName, out last);
+                    changed |= ProjectApprovalByKeyMatch(una, key, comments, personName, out last);
             if (managers != null)
                 foreach (var personName in managers)
                 {
                     // delay to propagate
                     Thread.Sleep(100);
-                    ManagerApprovalByKeyMatch(una, key, comments, personName, out last);
+                    changed |= ManagerApprovalByKeyMatch(una, key, comments, personName, out last);
                 }
             if (customers != null)
                 foreach (var personName in customers)
-                    CustomerApprovalByKeyMatch(una, key, comments, personName, out last);
+                    changed |= CustomerApprovalByKeyMatch(una, key, comments, personName, out last);
+            return changed;
         }
 
         public static (Grid grid, HtmlFormPost form) FindApproval(UnanetClient una, string type, string personName, out string last)

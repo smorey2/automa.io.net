@@ -68,20 +68,21 @@ namespace Automa.IO.Unanet.Records
         //
         public string key { get; set; }
 
-        public static Task<(bool success, bool hasFile)> ExportFileAsync(UnanetClient una, string sourceFolder, string type = "CUSTOMER")
+        public static Task<(bool success, bool hasFile, object tag)> ExportFileAsync(UnanetClient una, string sourceFolder, string type = "CUSTOMER")
         {
             var filePath = Path.Combine(sourceFolder, una.Settings.organization.file);
             if (File.Exists(filePath))
                 File.Delete(filePath);
-            return Task.Run(() => una.GetEntitiesByExport(una.Settings.organization.key, f =>
+            return Task.Run(() => una.GetEntitiesByExport(una.Settings.organization.key, (z, f) =>
             {
                 f.Checked["suppressOutput"] = true;
                 f.FromSelect("organizationtype", type);
+                return null;
             }, sourceFolder));
         }
 
         public static Dictionary<string, Tuple<string, string>> GetList(UnanetClient una, string type) =>
-            una.GetEntitiesByList("organizations", null, f =>
+            una.GetEntitiesByList("organizations", null, (z, f) =>
             {
                 f.FromSelect("organizationtype", type);
                 f.Values["list"] = "true";

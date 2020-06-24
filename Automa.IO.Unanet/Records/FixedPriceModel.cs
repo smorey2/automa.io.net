@@ -30,7 +30,7 @@ namespace Automa.IO.Unanet.Records
         public DateTime? revenue_recognition_date { get; set; }
         public decimal? revenue_recognition_amount { get; set; }
 
-        public static Task<(bool success, bool hasFile)> ExportFileAsync(UnanetClient una, string sourceFolder)
+        public static Task<(bool success, bool hasFile, object tag)> ExportFileAsync(UnanetClient una, string sourceFolder)
         {
             var filePath = Path.Combine(sourceFolder, una.Settings.fixed_price_item.file);
             var filePath2 = Path.Combine(sourceFolder, una.Settings.fixed_price_item_post.file);
@@ -39,7 +39,7 @@ namespace Automa.IO.Unanet.Records
             if (File.Exists(filePath2))
                 File.Delete(filePath2);
             return Task.Run(() => (
-                una.GetEntitiesByExport(una.Settings.fixed_price_item.key, f =>
+                una.GetEntitiesByExport(una.Settings.fixed_price_item.key, (z, f) =>
                 {
                     f.Checked["suppressOutput"] = true;
                     f.Values["dateRange_bDate"] = "BOT"; f.Values["dateRange_eDate"] = "EOT";
@@ -47,8 +47,9 @@ namespace Automa.IO.Unanet.Records
                     f.Values["wbsLevel"] = "both";
                     f.Checked["includePosted"] = true;
                     f.Checked["includeRevSchedules"] = true;
+                    return null;
                 }, sourceFolder).success &&
-                una.GetEntitiesByExport(una.Settings.fixed_price_item_post.key, f =>
+                una.GetEntitiesByExport(una.Settings.fixed_price_item_post.key, (z, f) =>
                 {
                     f.Checked["suppressOutput"] = true;
                     f.Values["dateRange_bDate"] = "BOT"; f.Values["dateRange_eDate"] = "EOT";
@@ -56,7 +57,8 @@ namespace Automa.IO.Unanet.Records
                     f.Values["wbsLevel"] = "both";
                     f.Checked["includePosted"] = false;
                     f.Checked["includeRevSchedules"] = false;
-                }, sourceFolder).success, true));
+                    return null;
+                }, sourceFolder).success, true, (object)null));
         }
 
         public static IEnumerable<FixedPriceModel> Read(UnanetClient una, string sourceFolder)

@@ -8,8 +8,8 @@ namespace Automa.IO.Unanet
     public class ModelBase
     {
         protected readonly static DateTime BeginDate = new DateTime(2019, 01, 01);
-        protected readonly static DateTime BeginTimeWindowDate = new DateTime(2019, 09, 30);
-        protected readonly static DateTime BeginInvoiceWindowDate = new DateTime(2019, 01, 01);
+        protected readonly static DateTime BeginTimeWindowDate = new DateTime(2020, 01, 01); // new DateTime(2019, 09, 30);
+        protected readonly static DateTime BeginInvoiceWindowDate = new DateTime(2020, 01, 01); // new DateTime(2019, 01, 01);
 
         //protected static string XEscape(string value)
         //{
@@ -43,7 +43,7 @@ namespace Automa.IO.Unanet
             {
                 case "Begin": beginWindowDate = BeginDate; break;
                 case nameof(TimeModel): beginWindowDate = BeginTimeWindowDate; break;
-                case "Assist": beginWindowDate = new DateTime(2020, 01, 01); break; //2019/11/1
+                case "Assist": beginWindowDate = new DateTime(2020, 01, 01); break;
                 case nameof(InvoiceModel): beginWindowDate = BeginInvoiceWindowDate; break;
                 default: beginWindowDate = BeginDate; break;
             }

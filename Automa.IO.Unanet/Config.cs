@@ -18,6 +18,7 @@
         // Organization
         (string key, string file) organization { get; }
         (string key, string file) customer_profile { get; }
+        (string key, string file) organization_access { get; }
         (string key, string file) organization_address { get; }
         (string key, string file) organization_contact { get; }
         (string key, string file) organization_contact_address { get; }
@@ -66,6 +67,7 @@
         // Organization
         public (string, string) organization => ("979", "Organization.csv"); //: new
         public (string, string) customer_profile => ("962", "Customer Profile.csv"); //: new
+        public (string, string) organization_access => ("1015", "DEG_ Organization Access.csv"); //: new
         public (string, string) organization_address => ("981", "Organization Address.csv"); //: new
         public (string, string) organization_contact => ("982", "Organization Contact.csv"); //: new
         public (string, string) organization_contact_address => ("983", "Organization Contact Address.csv"); //: new
@@ -114,6 +116,7 @@
         // Organization
         public (string, string) organization => ("0", "DEG_ Organization.csv");
         public (string, string) customer_profile => ("0", "Customer Profile.csv");
+        public (string, string) organization_access => ("0", "DEG_ Organization Access.csv");
         public (string, string) organization_address => ("0", "Organization Address.csv");
         public (string, string) organization_contact => ("0", "Organization Contact.csv");
         public (string, string) organization_contact_address => ("0", "Organization Contact Address.csv");

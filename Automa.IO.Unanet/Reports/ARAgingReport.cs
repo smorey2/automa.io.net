@@ -35,7 +35,7 @@ namespace Automa.IO.Unanet.Reports
             var filePath = Path.Combine(sourceFolder, "report.csv");
             if (File.Exists(filePath))
                 File.Delete(filePath);
-            return Task.Run(() => una.RunReport("financials/detail/accounts_receivable", f =>
+            return Task.Run(() => una.RunReport("financials/detail/accounts_receivable", (z, f) =>
             {
                 f.FromSelect("legalEntity", legalEntity ?? una.Settings.LegalEntity);
                 f.FromSelect("arrangeBy", "Customer");

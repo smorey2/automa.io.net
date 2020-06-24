@@ -734,7 +734,7 @@ namespace Automa.IO
             rq.AllowAutoRedirect = true;
             rq.ContentType = contentType ?? "application/x-www-form-urlencoded; charset=UTF-8";
             if (timeoutInSeconds >= 0)
-                rq.Timeout = (int)(timeoutInSeconds * 1000);
+                rq.ReadWriteTimeout = rq.Timeout = (int)(timeoutInSeconds * 1000);
             interceptRequest?.Invoke(rq);
             if (method != HttpMethod.Get && body != null)
             {
@@ -913,7 +913,7 @@ namespace Automa.IO
                 fileName = PathifyFileName(fileName);
                 if (interceptFilename != null)
                     fileName = interceptFilename(fileName);
-                fileName = Path.Combine(filePath, fileName);
+                fileName = !Path.IsPathRooted(fileName) ? Path.Combine(filePath, fileName) : fileName;
                 stream = new FileStream(fileName, FileMode.Create, FileAccess.Write);
             }
             // download file

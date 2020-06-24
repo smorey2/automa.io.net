@@ -47,7 +47,7 @@ namespace Automa.IO.Unanet
         /// <param name="interceptFilename">The intercept filename.</param>
         /// <returns><c>true</c> if XXXX, <c>false</c> otherwise.</returns>
         /// <exception cref="InvalidOperationException">unexpected form action returned from unanet</exception>
-        public string RunReport(string report, Func<HtmlFormPost, string> action, string executeFolder = null, Func<string, string> interceptFilename = null)
+        public string RunReport(string report, Func<string, HtmlFormPost, string> action, string executeFolder = null, Func<string, string> interceptFilename = null)
         {
             string body, url;
             // parse
@@ -55,7 +55,7 @@ namespace Automa.IO.Unanet
                 var d0 = this.TryFunc(() => this.DownloadData(HttpMethod.Get, $"{UnanetUri}/reports/{report}/search"));
                 var d1 = d0.ExtractSpan("<form method=\"post\" name=\"search\"", "</form>");
                 var htmlForm = new HtmlFormPost(d1);
-                body = action(htmlForm);
+                body = action(d1, htmlForm);
                 if (body == null)
                     return null;
                 url = UnanetUri + GetPostUrl(htmlForm.Action);
@@ -86,7 +86,7 @@ namespace Automa.IO.Unanet
         /// <param name="source">The source.</param>
         /// <param name="entityPrefix">The entity prefix.</param>
         /// <returns>Dictionary&lt;System.String, Tuple&lt;System.String, System.String&gt;[]&gt;.</returns>
-        public Dictionary<string, Tuple<string, string>[]> ParseList(string source, string entityPrefix)
+        public Dictionary<string, (string, string)[]> ParseList(string source, string entityPrefix)
         {
             var htmlList = source.ToHtmlDocument();
             var rows = htmlList.DocumentNode.Descendants("tr")
@@ -98,7 +98,7 @@ namespace Automa.IO.Unanet
                         klass = y.Attributes["class"]?.Value,
                         value = WebUtility.HtmlDecode(WebUtility.HtmlDecode(y.InnerText?.Trim())).Trim(),
                     })
-                    .Select(y => new Tuple<string, string>(y.value, y.klass))
+                    .Select(y => (y.value, y.klass))
                     .ToArray()
                 );
             return rows;
@@ -181,32 +181,33 @@ namespace Automa.IO.Unanet
         /// <param name="executeFolder">The execute folder.</param>
         /// <param name="interceptFilename">The intercept filename.</param>
         /// <returns><c>true</c> if XXXX, <c>false</c> otherwise.</returns>
-        public (bool success, bool hasFile) GetEntitiesByExport(string exportKey, Action<HtmlFormPost> action, string executeFolder, Func<string, string> interceptFilename = null)
+        public (bool success, bool hasFile, object tag) GetEntitiesByExport(string exportKey, Func<string, HtmlFormPost, object> action, string executeFolder, Func<string, string> interceptFilename = null, int? timeoutInSeconds = null)
         {
             string body;
+            object tag;
             // parse
             {
                 var d0 = this.TryFunc(() => this.DownloadData(HttpMethod.Get, $"{UnanetUri}/admin/export/template/criteria?xtKey={exportKey}"));
                 var d1 = d0.ExtractSpan("<form method=\"post\" name=\"search\"", "</form>");
                 var htmlForm = new HtmlFormPost(d1);
-                action(htmlForm);
+                tag = action(d1, htmlForm);
                 body = htmlForm.ToString();
             }
             // submit
             {
-                var d0 = this.TryFunc(() => this.DownloadData(HttpMethod.Post, $"{UnanetUri}/admin/export/template/run", body, timeoutInSeconds: DownloadTimeoutInSeconds));
+                var d0 = this.TryFunc(() => this.DownloadData(HttpMethod.Post, $"{UnanetUri}/admin/export/template/run", body, timeoutInSeconds: timeoutInSeconds ?? DownloadTimeoutInSeconds));
                 var d1 = d0.ExtractSpan("<form name=\"downloadForm\"", "</form>");
                 if (d1 == null)
                 {
                     var reportInfos = new List<string>();
                     var idx = -1;
-                    while ((idx = d0.IndexOf("<p class=\"report-info\">", idx+1)) != -1)
+                    while ((idx = d0.IndexOf("<p class=\"report-info\">", idx + 1)) != -1)
                         reportInfos.Add(d0.ExtractSpanInner("<p class=\"report-info\">", "</p>", idx)?.Trim());
                     if (reportInfos.Any(x => x == "No Data Found."))
-                        return (true, false);
+                        return (true, false, tag);
                     var reportError = d0.ExtractSpanInner("<div class=\"report-error\"><p>", "</p>")?.Trim();
                     var exportError = d0.ExtractSpanInner("<pre class=\"export-error\">", "</pre>")?.Trim();
-                    return (false, false);
+                    return (false, false, tag);
                 }
                 var htmlForm = new HtmlFormPost(d1);
                 body = htmlForm.ToString();
@@ -218,7 +219,7 @@ namespace Automa.IO.Unanet
                     {
                         Thread.Sleep(attempt * 1000);
                         this.TryFunc(() => this.DownloadFile(executeFolder, HttpMethod.Get, $"{UnanetUri}/admin/export/downloadFile", body, interceptFilename: interceptFilename));
-                        return (true, true);
+                        return (true, true, tag);
                     }
                     catch (WebException e)
                     {
@@ -226,7 +227,7 @@ namespace Automa.IO.Unanet
                             continue;
                         throw;
                     }
-                return (false, false);
+                return (false, false, tag);
             }
         }
 
@@ -238,7 +239,7 @@ namespace Automa.IO.Unanet
         /// <param name="action">The action.</param>
         /// <param name="entityPrefix">The entity prefix.</param>
         /// <returns>IEnumerable&lt;Dictionary&lt;System.String, Tuple&lt;System.String, System.String&gt;[]&gt;&gt;.</returns>
-        public IEnumerable<Dictionary<string, Tuple<string, string>[]>> GetEntitiesByList(string entity, string entitySelect, Action<HtmlFormPost> action = null, string entityPrefix = "r")
+        public IEnumerable<Dictionary<string, (string, string)[]>> GetEntitiesByList(string entity, string entitySelect, Action<string, HtmlFormPost> action = null, string entityPrefix = "r")
         {
             string body = null;
             // parse
@@ -247,7 +248,7 @@ namespace Automa.IO.Unanet
                 var d0 = this.TryFunc(() => this.DownloadData(HttpMethod.Get, $"{UnanetUri}/{entity}/list"));
                 var d1 = d0.ExtractSpan("<form name=\"search\" method=\"post\"", "</form>");
                 var htmlForm = new HtmlFormPost(d1);
-                action(htmlForm);
+                action(d1, htmlForm);
                 body = htmlForm.ToString();
             }
             // submit
@@ -274,7 +275,7 @@ namespace Automa.IO.Unanet
         /// <param name="entitySelect">The entity select.</param>
         /// <param name="entityPrefix">The entity prefix.</param>
         /// <returns>IEnumerable&lt;Dictionary&lt;System.String, Tuple&lt;System.String, System.String&gt;[]&gt;&gt;.</returns>
-        public IEnumerable<Dictionary<string, Tuple<string, string>[]>> GetEntitiesBySubList(string entity, string entitySelect, string entityPrefix = "k_")
+        public IEnumerable<Dictionary<string, (string, string)[]>> GetEntitiesBySubList(string entity, string entitySelect, string entityPrefix = "k_")
         {
             // submit
             {
@@ -359,7 +360,7 @@ namespace Automa.IO.Unanet
             }
         }
 
-        public object SubmitSubManage(string type, HttpMethod method, string entity, string entitySelect, string parentSelect, string defaults, out string last, Func<string, HtmlFormPost, string> func = null, Func<string, object> valueFunc = null, HtmlFormSettings formSettings = null)
+        public object SubmitSubManage(string type, HttpMethod method, string entity, string entitySelect, string parentSelect, string defaults, out string last, Func<string, HtmlFormPost, string> func = null, Func<string, object> valueFunc = null, HtmlFormOptions formOptions = null)
         {
             string body, url = null, d0 = null;
             // parse
@@ -393,7 +394,7 @@ namespace Automa.IO.Unanet
                     case "F": d0 = this.TryFunc(() => this.DownloadData(HttpMethod.Post, $"{UnanetUri}/{entity}", $"{parentSelect}&{defaults}")); break;
                     default: throw new ArgumentOutOfRangeException(nameof(type), type);
                 }
-                var htmlForm = new HtmlFormPost(d0, formOptions: formSettings);
+                var htmlForm = new HtmlFormPost(d0, formOptions: formOptions);
                 try { body = func(d0, htmlForm); }
                 catch (Exception e) { last = e.Message; throw; }
                 if (body == null)

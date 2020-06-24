@@ -40,17 +40,17 @@ namespace Automa.IO.Unanet.Records
         public string keyInvoice { get; set; }
         public string invoice_number { get; set; }
 
-        public static Task<(bool success, bool hasFile)> ExportFileAsync(UnanetClient una, string windowEntity, string sourceFolder, int window, DateTime? cutoff = null, string legalEntity = null, Action<HtmlFormPost> func = null)
+        public static Task<(bool success, bool hasFile, object tag)> ExportFileAsync(UnanetClient una, string windowEntity, string sourceFolder, int window, DateTime? begin = null, DateTime? cutoff = null, string legalEntity = null, Action<HtmlFormPost> func = null, string tempPath = null)
         {
-            var filePath = Path.Combine(sourceFolder, una.Settings.time.file);
+            var filePath = tempPath ?? Path.Combine(sourceFolder, una.Settings.time.file);
             if (File.Exists(filePath))
                 File.Delete(filePath);
-            return Task.Run(() => una.GetEntitiesByExport(una.Settings.time.key, f =>
+            return Task.Run(() => una.GetEntitiesByExport(una.Settings.time.key, (z, f) =>
             {
                 GetWindowDates(windowEntity ?? nameof(TimeModel), window, out var beginDate, out var endDate);
                 f.Checked["suppressOutput"] = true;
                 f.Values["dateType"] = "range";
-                f.Values["beginDate"] = beginDate.FromDateTime("BOT"); f.Values["endDate"] = cutoff != null ? cutoff.FromDateTime("EOT") : endDate.FromDateTime("EOT");
+                f.Values["beginDate"] = begin != null ? begin.FromDateTime("BOT") : beginDate.FromDateTime("BOT"); f.Values["endDate"] = cutoff != null ? cutoff.FromDateTime("EOT") : endDate.FromDateTime("EOT");
                 f.FromSelect("legalEntity", legalEntity ?? una.Settings.LegalEntity);
                 f.Checked["exempt"] = true; f.Checked["nonExempt"] = true; f.Checked["nonEmployee"] = true; f.Checked["subcontractor"] = true;
                 f.Checked["INUSE"] = true; f.Checked["SUBMITTED"] = true; f.Checked["APPROVING"] = true;
@@ -61,12 +61,13 @@ namespace Automa.IO.Unanet.Records
                 f.Checked["incPrevExt"] = true;
                 f.Checked["suppIntAdj"] = true;
                 func?.Invoke(f);
-            }, sourceFolder));
+                return (begin ?? beginDate, cutoff ?? endDate);
+            }, sourceFolder, interceptFilename: x => filePath));
         }
 
-        public static IEnumerable<TimeModel> Read(UnanetClient una, string sourceFolder)
+        public static IEnumerable<TimeModel> Read(UnanetClient una, string sourceFolder, string tempPath = null)
         {
-            var filePath = Path.Combine(sourceFolder, una.Settings.time.file);
+            var filePath = tempPath ?? Path.Combine(sourceFolder, una.Settings.time.file);
             using (var sr = File.OpenRead(filePath))
                 return CsvReader.Read(sr, x => new TimeModel
                 {
@@ -102,9 +103,9 @@ namespace Automa.IO.Unanet.Records
                 }, 1).ToList();
         }
 
-        public static string GetReadXml(UnanetClient una, string sourceFolder, string syncFileA = null)
+        public static string GetReadXml(UnanetClient una, string sourceFolder, string syncFileA = null, string tempPath = null)
         {
-            var xml = new XElement("r", Read(una, sourceFolder).Select(x => new XElement("p", XAttribute("k", x.key), XAttribute("k2", x.keySheet), XAttribute("k3", x.keyInvoice),
+            var xml = new XElement("r", Read(una, sourceFolder, tempPath).Select(x => new XElement("p", XAttribute("k", x.key), XAttribute("k2", x.keySheet), XAttribute("k3", x.keyInvoice),
                 XAttribute("u", x.username), new XAttribute("wd", x.work_date), XAttribute("poc", x.project_org_code), XAttribute("pc", x.project_code), XAttribute("tn", x.task_name), XAttribute("pt", x.project_type), XAttribute("pc2", x.pay_code),
                 XAttribute("h", x.hours), XAttribute("br", x.bill_rate), XAttribute("cr", x.cost_rate), XAttribute("poo", x.project_org_override), XAttribute("poo2", x.person_org_override), XAttribute("lc", x.labor_category), XAttribute("l", x.location), XAttribute("c", x.comments),
                 XAttribute("cr2", x.change_reason), XAttribute("cs", x.cost_structure), XAttribute("ce", x.cost_element), XAttribute("tpbd", x.time_period_begin_date), XAttribute("pd", x.post_date), XAttribute("apr", x.additional_pay_rate),

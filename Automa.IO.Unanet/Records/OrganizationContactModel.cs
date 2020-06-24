@@ -56,7 +56,7 @@ namespace Automa.IO.Unanet.Records
         public string phones { get; set; }
         public (string, string, string) Key => (organization_code, first_name, last_name);
 
-        public static Task<(bool success, bool hasFile)> ExportFileAsync(UnanetClient una, string sourceFolder, string type = "CUSTOMER")
+        public static Task<(bool success, bool hasFile, object tag)> ExportFileAsync(UnanetClient una, string sourceFolder, string type = "CUSTOMER")
         {
             AddressModel.ExportFileAsync(una, sourceFolder);
             EmailModel.ExportFileAsync(una, sourceFolder);
@@ -64,14 +64,15 @@ namespace Automa.IO.Unanet.Records
             var filePath = Path.Combine(sourceFolder, una.Settings.organization_contact.file);
             if (File.Exists(filePath))
                 File.Delete(filePath);
-            return Task.Run(() => una.GetEntitiesByExport(una.Settings.organization_contact.key, f =>
+            return Task.Run(() => una.GetEntitiesByExport(una.Settings.organization_contact.key, (z, f) =>
             {
                 f.Checked["suppressOutput"] = true;
                 f.FromSelect("organizationtype", type);
+                return null;
             }, sourceFolder));
         }
 
-        public static Dictionary<string, Tuple<string, string>[]> GetList(UnanetClient ctx, string orgKey) =>
+        public static Dictionary<string, (string, string)[]> GetList(UnanetClient ctx, string orgKey) =>
             ctx.GetEntitiesBySubList("organizations/contacts", $"orgKey={orgKey}").Single();
 
         public static IEnumerable<OrganizationContactModel> Read(UnanetClient una, string sourceFolder)
@@ -265,15 +266,16 @@ namespace Automa.IO.Unanet.Records
                 XAttribute("ea", email_address)
             );
 
-            public static Task<(bool success, bool hasFile)> ExportFileAsync(UnanetClient una, string sourceFolder)
+            public static Task<(bool success, bool hasFile, object tag)> ExportFileAsync(UnanetClient una, string sourceFolder)
             {
-                return Task.FromResult((true, false));
+                return Task.FromResult((true, false, (object)null));
                 var filePath = Path.Combine(sourceFolder, una.Settings.organization_contact_email.file);
                 if (File.Exists(filePath))
                     File.Delete(filePath);
-                return Task.Run(() => una.GetEntitiesByExport(una.Settings.organization_contact_email.key, f =>
+                return Task.Run(() => una.GetEntitiesByExport(una.Settings.organization_contact_email.key, (z, f) =>
                 {
                     f.Checked["suppressOutput"] = true;
+                    return null;
                 }, sourceFolder));
             }
 

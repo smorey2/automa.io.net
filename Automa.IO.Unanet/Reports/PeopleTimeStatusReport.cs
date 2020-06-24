@@ -21,7 +21,7 @@ namespace Automa.IO.Unanet.Reports
         public static ILookup<string, PeopleTimeStatusReport> Get(UnanetClient una, DateTime weekDate)
         {
             weekDate = EnsureBeginOfWeek(weekDate);
-            var source = una.RunReport("/people/status/time", f =>
+            var source = una.RunReport("/people/status/time", (z, f) =>
             {
                 var contains = $"Weekly ({weekDate:M/d/yyyy}";
                 foreach (var x in f.Checked.Keys.ToArray())
