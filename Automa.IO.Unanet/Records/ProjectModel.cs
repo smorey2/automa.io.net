@@ -34,11 +34,11 @@ namespace Automa.IO.Unanet.Records
         public DateTime? revised_end_date { get; set; }
         public DateTime? completed_date { get; set; }
         //
-        public string budget_hours { get; set; }
+        public decimal? budget_hours { get; set; }
         public string budget_labor_dollars_bill { get; set; }
         public string budget_expense_dollars_bill { get; set; }
         //
-        public string etc_hours { get; set; }
+        public decimal? etc_hours { get; set; }
         public string etc_labor_dollars_bill { get; set; }
         public string etc_expense_dollars_bill { get; set; }
         public string est_tot_hours { get; set; }
@@ -177,11 +177,11 @@ namespace Automa.IO.Unanet.Records
                     revised_end_date = x[18].ToDateTime("EOT"),
                     completed_date = x[19].ToDateTime(),
                     //
-                    budget_hours = x[20],
+                    budget_hours = x[20].ToDecimal(),
                     budget_labor_dollars_bill = x[21],
                     budget_expense_dollars_bill = x[22],
                     //
-                    etc_hours = x[23],
+                    etc_hours = x[23].ToDecimal(),
                     etc_labor_dollars_bill = x[24],
                     etc_expense_dollars_bill = x[25],
                     est_tot_hours = x[26],
@@ -351,11 +351,11 @@ namespace Automa.IO.Unanet.Records
                 if (add || cf.Contains("red")) f.Values["revEndDate"] = _t(s.revised_end_date, nameof(s.revised_end_date)).FromDateTime("EOT");
                 if (add || cf.Contains("cd")) f.Values["completedDate"] = _t(s.completed_date, nameof(s.completed_date)).FromDateTime();
                 //
-                if (add || cf.Contains("bh")) f.Values["bgtHrs"] = _t(s.budget_hours, nameof(s.budget_hours));
+                if (add || cf.Contains("bh")) f.Values["bgtHrs"] = _t(s.budget_hours, nameof(s.budget_hours)).ToString();
                 if (add || cf.Contains("bldb")) f.Values["bgtLaborAmtBill"] = _t(s.budget_labor_dollars_bill, nameof(s.budget_labor_dollars_bill));
                 if (add || cf.Contains("bedb")) f.Values["bgtExpenseAmtBill"] = _t(s.budget_expense_dollars_bill, nameof(s.budget_expense_dollars_bill));
                 //
-                if (add || cf.Contains("eh")) f.Values["etcHrs"] = _t(s.etc_hours, nameof(s.etc_hours));
+                if (add || cf.Contains("eh")) f.Values["etcHrs"] = _t(s.etc_hours, nameof(s.etc_hours)).ToString();
                 if (add || cf.Contains("eldb")) f.Values["etcLaborAmtBill"] = _t(s.etc_labor_dollars_bill, nameof(s.etc_labor_dollars_bill));
                 if (add || cf.Contains("eedb")) f.Values["etcExpenseAmtBill"] = _t(s.etc_expense_dollars_bill, nameof(s.etc_expense_dollars_bill));
                 if (add || cf.Contains("eth")) f.Values["estTotalHrs"] = _t(s.est_tot_hours, nameof(s.est_tot_hours));

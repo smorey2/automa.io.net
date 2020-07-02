@@ -36,11 +36,12 @@ namespace Automa.IO.Unanet.Records
         //
         public string key { get; set; }
         public string keySheet { get; set; }
+        public string enumSheet { get; set; }
         public decimal? labor_category_bill_rate { get; set; }
         public string keyInvoice { get; set; }
         public string invoice_number { get; set; }
 
-        public static Task<(bool success, bool hasFile, object tag)> ExportFileAsync(UnanetClient una, string windowEntity, string sourceFolder, int window, DateTime? begin = null, DateTime? cutoff = null, string legalEntity = null, Action<HtmlFormPost> func = null, string tempPath = null)
+        public static Task<(bool success, bool hasFile, object tag)> ExportFileAsync(UnanetClient una, string windowEntity, string sourceFolder, int window, DateTime? begin = null, DateTime? end = null, string legalEntity = null, Action<HtmlFormPost> func = null, string tempPath = null)
         {
             var filePath = tempPath ?? Path.Combine(sourceFolder, una.Settings.time.file);
             if (File.Exists(filePath))
@@ -50,7 +51,7 @@ namespace Automa.IO.Unanet.Records
                 GetWindowDates(windowEntity ?? nameof(TimeModel), window, out var beginDate, out var endDate);
                 f.Checked["suppressOutput"] = true;
                 f.Values["dateType"] = "range";
-                f.Values["beginDate"] = begin != null ? begin.FromDateTime("BOT") : beginDate.FromDateTime("BOT"); f.Values["endDate"] = cutoff != null ? cutoff.FromDateTime("EOT") : endDate.FromDateTime("EOT");
+                f.Values["beginDate"] = begin != null ? begin.FromDateTime("BOT") : beginDate.FromDateTime("BOT"); f.Values["endDate"] = end != null ? end.FromDateTime("EOT") : endDate.FromDateTime("EOT");
                 f.FromSelect("legalEntity", legalEntity ?? una.Settings.LegalEntity);
                 f.Checked["exempt"] = true; f.Checked["nonExempt"] = true; f.Checked["nonEmployee"] = true; f.Checked["subcontractor"] = true;
                 f.Checked["INUSE"] = true; f.Checked["SUBMITTED"] = true; f.Checked["APPROVING"] = true;
@@ -61,7 +62,7 @@ namespace Automa.IO.Unanet.Records
                 f.Checked["incPrevExt"] = true;
                 f.Checked["suppIntAdj"] = true;
                 func?.Invoke(f);
-                return (begin ?? beginDate, cutoff ?? endDate);
+                return (begin ?? beginDate, end ?? endDate);
             }, sourceFolder, interceptFilename: x => filePath));
         }
 
@@ -97,9 +98,10 @@ namespace Automa.IO.Unanet.Records
                     //
                     key = x[21],
                     keySheet = x[22],
-                    keyInvoice = x[23],
-                    labor_category_bill_rate = x[24].ToDecimal(),
-                    invoice_number = x[25],
+                    enumSheet = x[23],
+                    keyInvoice = x[24],
+                    labor_category_bill_rate = x[25].ToDecimal(),
+                    invoice_number = x[26],
                 }, 1).ToList();
         }
 
@@ -109,7 +111,7 @@ namespace Automa.IO.Unanet.Records
                 XAttribute("u", x.username), new XAttribute("wd", x.work_date), XAttribute("poc", x.project_org_code), XAttribute("pc", x.project_code), XAttribute("tn", x.task_name), XAttribute("pt", x.project_type), XAttribute("pc2", x.pay_code),
                 XAttribute("h", x.hours), XAttribute("br", x.bill_rate), XAttribute("cr", x.cost_rate), XAttribute("poo", x.project_org_override), XAttribute("poo2", x.person_org_override), XAttribute("lc", x.labor_category), XAttribute("l", x.location), XAttribute("c", x.comments),
                 XAttribute("cr2", x.change_reason), XAttribute("cs", x.cost_structure), XAttribute("ce", x.cost_element), XAttribute("tpbd", x.time_period_begin_date), XAttribute("pd", x.post_date), XAttribute("apr", x.additional_pay_rate),
-                XAttribute("lcbr", x.labor_category_bill_rate), XAttribute("in", x.invoice_number)
+                XAttribute("es", x.enumSheet), XAttribute("lcbr", x.labor_category_bill_rate), XAttribute("in", x.invoice_number)
             )).ToArray()).ToString();
             if (syncFileA == null)
                 return xml;

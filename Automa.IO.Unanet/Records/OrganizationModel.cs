@@ -201,19 +201,19 @@ namespace Automa.IO.Unanet.Records
             {
                 if (add || cf.Contains("oc")) f.Values["orgCode"] = _t(s.organization_code, nameof(s.organization_code));
                 if (add || cf.Contains("on")) f.Values["orgName"] = _t(s.organization_name, nameof(s.organization_name));
-                if (add || cf.Contains("poc"))
+                if (add) // || cf.Contains("poc"))
                     if (_t(s.parent_org_code, nameof(s.parent_org_code)) == "CLIENT_TRADE")
                     {
                         //f.Values["poupdate"] = "Y";
                         f.Values["porg"] = "CLIENT_TRADE - Client, Trade";
                         f.Values["parentOrg"] = "480";
                     }
-                    else if (s.parent_org_code == "CLIENT_TRADE")
-                    {
-                        //f.Values["poupdate"] = "Y";
-                        f.Values["porg"] = "CLIENT_Z_ARCHIVES - Client, Archives";
-                        f.Values["parentOrg"] = "507";
-                    }
+                    //else if (s.parent_org_code == "CLIENT_TRADE")
+                    //{
+                    //    //f.Values["poupdate"] = "Y";
+                    //    f.Values["porg"] = "CLIENT_Z_ARCHIVES - Client, Archives";
+                    //    f.Values["parentOrg"] = "507";
+                    //}
                 //
                 //if (add || cf.Contains("ot")) f.Values["xxx"] = _t(s.org_type, nameof(s.org_type));
                 if (add || cf.Contains("s")) f.Values["orgSize"] = _t(s.size, nameof(s.size));

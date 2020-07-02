@@ -1,4 +1,5 @@
 ﻿using Automa.IO.Unanet.Records;
+using OfficeOpenXml.FormulaParsing.Excel.Functions.DateTime;
 using System;
 using System.Collections.Generic;
 using System.Xml.Linq;
@@ -55,6 +56,11 @@ namespace Automa.IO.Unanet
                     return;
                 case 0:
                     beginDate = new DateTime(Math.Max(DateTime.Today.Ticks, beginWindowDate.Ticks));
+                    endDate = DateTime.Today;
+                    return;
+                case 3: // 3 full months (3 months + this month)
+                    var startDate = new DateTime(DateTime.Today.Year, DateTime.Today.Month, 1).AddMonths(-3);
+                    beginDate = new DateTime(Math.Max(startDate.Ticks, beginWindowDate.Ticks));
                     endDate = DateTime.Today;
                     return;
                 default: throw new ArgumentOutOfRangeException(nameof(window), window.ToString());
