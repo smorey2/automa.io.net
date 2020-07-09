@@ -180,8 +180,11 @@ namespace Automa.IO.Unanet
         /// <param name="action">The action.</param>
         /// <param name="executeFolder">The execute folder.</param>
         /// <param name="interceptFilename">The intercept filename.</param>
-        /// <returns><c>true</c> if XXXX, <c>false</c> otherwise.</returns>
-        public (bool success, bool hasFile, object tag) GetEntitiesByExport(string exportKey, Func<string, HtmlFormPost, object> action, string executeFolder, Func<string, string> interceptFilename = null, int? timeoutInSeconds = null)
+        /// <param name="timeoutInSeconds">The timeout in seconds.</param>
+        /// <returns>
+        ///   <c>true</c> if XXXX, <c>false</c> otherwise.
+        /// </returns>
+        public (bool success, string message, bool hasFile, object tag) GetEntitiesByExport(string exportKey, Func<string, HtmlFormPost, object> action, string executeFolder, Func<string, string> interceptFilename = null, int? timeoutInSeconds = null)
         {
             string body;
             object tag;
@@ -204,10 +207,10 @@ namespace Automa.IO.Unanet
                     while ((idx = d0.IndexOf("<p class=\"report-info\">", idx + 1)) != -1)
                         reportInfos.Add(d0.ExtractSpanInner("<p class=\"report-info\">", "</p>", idx)?.Trim());
                     if (reportInfos.Any(x => x == "No Data Found."))
-                        return (true, false, tag);
+                        return (true, null, false, tag);
                     var reportError = d0.ExtractSpanInner("<div class=\"report-error\"><p>", "</p>")?.Trim();
                     var exportError = d0.ExtractSpanInner("<pre class=\"export-error\">", "</pre>")?.Trim();
-                    return (false, false, tag);
+                    return (false, $"no-form: {reportError}{exportError}", false, tag);
                 }
                 var htmlForm = new HtmlFormPost(d1);
                 body = htmlForm.ToString();
@@ -219,7 +222,7 @@ namespace Automa.IO.Unanet
                     {
                         Thread.Sleep(attempt * 1000);
                         this.TryFunc(() => this.DownloadFile(executeFolder, HttpMethod.Get, $"{UnanetUri}/admin/export/downloadFile", body, interceptFilename: interceptFilename));
-                        return (true, true, tag);
+                        return (true, null, true, tag);
                     }
                     catch (WebException e)
                     {
@@ -227,7 +230,7 @@ namespace Automa.IO.Unanet
                             continue;
                         throw;
                     }
-                return (false, false, tag);
+                return (false, $"An error has occurred while attemping downloading file {5} times.", false, tag);
             }
         }
 

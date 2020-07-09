@@ -208,15 +208,13 @@ namespace Automa.IO
         /// </summary>
         /// <param name="source">The source.</param>
         /// <param name="millisecondsTimeout">The timeout milliseconds.</param>
-        /// <exception cref="System.TimeoutException"></exception>
-        /// <exception cref="TimeoutException"></exception>
         public static void TimeoutInvoke(this Action source, int millisecondsTimeout)
         {
             if (millisecondsTimeout == 0)
                 source();
             var task = Task.Run(source);
-            if (Task.WhenAny(task, Task.Delay(millisecondsTimeout)).Result != task)
-                throw new TimeoutException();
+            if (Task.WhenAny(task, Task.Delay(millisecondsTimeout)).GetAwaiter().GetResult() != task) throw new TimeoutException();
+            else task.Wait();
         }
 
         /// <summary>
@@ -226,15 +224,13 @@ namespace Automa.IO
         /// <param name="source">The source.</param>
         /// <param name="millisecondsTimeout">The timeout milliseconds.</param>
         /// <returns>TResult.</returns>
-        /// <exception cref="System.TimeoutException"></exception>
-        /// <exception cref="TimeoutException"></exception>
         public static TResult TimeoutInvoke<TResult>(this Func<TResult> source, int millisecondsTimeout)
         {
             if (millisecondsTimeout == 0)
                 return source();
             var task = Task.Run(source);
-            if (Task.WhenAny(task, Task.Delay(millisecondsTimeout)).Result == task) return task.Result;
-            else throw new TimeoutException();
+            if (Task.WhenAny(task, Task.Delay(millisecondsTimeout)).GetAwaiter().GetResult() != task) throw new TimeoutException(); 
+            else return task.Result;
         }
 
         #endregion
@@ -697,6 +693,7 @@ namespace Automa.IO
         /// <param name="method">The method.</param>
         /// <param name="url">The URL.</param>
         /// <param name="body">The post data.</param>
+        /// <param name="correlationId">The correlation identifier.</param>
         /// <param name="contentType">Type of the content.</param>
         /// <param name="interceptRequest">The intercept request.</param>
         /// <param name="updateCookies">if set to <c>true</c> [update cookies].</param>
@@ -705,8 +702,9 @@ namespace Automa.IO
         /// <returns>HttpWebResponse.</returns>
         /// <exception cref="ArgumentOutOfRangeException">method</exception>
         /// <exception cref="System.ArgumentOutOfRangeException">method</exception>
-        public static HttpWebResponse DownloadPreamble(this IHasCookies source, HttpMethod method, string url, object body, string contentType = null, Action<HttpWebRequest> interceptRequest = null, bool updateCookies = false, Action<HttpStatusCode, string> onError = null, decimal timeoutInSeconds = -1M)
+        public static HttpWebResponse DownloadPreamble(this IHasCookies source, HttpMethod method, string url, object body, out long correlationId, string contentType = null, Action<HttpWebRequest> interceptRequest = null, bool updateCookies = false, Action<HttpStatusCode, string> onError = null, decimal timeoutInSeconds = -1M)
         {
+            correlationId = DateTime.Now.Ticks;
             HttpWebRequest rq;
             if (method == HttpMethod.Get && body != null)
             {
@@ -719,9 +717,14 @@ namespace Automa.IO
                     if (headers.ContentType != null && contentType == null) contentType = headers.ContentType.ToString();
                     url += prefix + bodyContent.ReadAsStringAsync().Result;
                 }
-                else
-                    throw new ArgumentOutOfRangeException(nameof(body), body.ToString());
+                else throw new ArgumentOutOfRangeException(nameof(body), body.ToString());
             }
+            if (method == HttpMethod.Get && !string.IsNullOrEmpty(DownloadDebugFilePattern))
+                using (var s = File.OpenWrite(string.Format(DownloadDebugFilePattern, correlationId, method)))
+                {
+                    var bytes = Encoding.UTF8.GetBytes(url);
+                    s.Write(bytes, 0, bytes.Length);
+                }
             // request body
             var cookies = source.Cookies;
             rq = (HttpWebRequest)WebRequest.Create(url);
@@ -743,7 +746,7 @@ namespace Automa.IO
                     var send = Encoding.Default.GetBytes(bodyString);
                     rq.ContentLength = send.Length;
                     if (!string.IsNullOrEmpty(DownloadDebugFilePattern))
-                        using (var s = File.OpenWrite(string.Format(DownloadDebugFilePattern, DateTime.Now.Ticks, method)))
+                        using (var s = File.OpenWrite(string.Format(DownloadDebugFilePattern, correlationId, method)))
                             s.Write(send, 0, send.Length);
                     using (var s = rq.GetRequestStream())
                         s.Write(send, 0, send.Length);
@@ -754,13 +757,12 @@ namespace Automa.IO
                     if (headers.ContentLength != null) rq.ContentLength = headers.ContentLength.Value;
                     if (headers.ContentType != null) rq.ContentType = headers.ContentType.ToString();
                     if (!string.IsNullOrEmpty(DownloadDebugFilePattern))
-                        using (var s = File.OpenWrite(string.Format(DownloadDebugFilePattern, DateTime.Now.Ticks, method)))
+                        using (var s = File.OpenWrite(string.Format(DownloadDebugFilePattern, correlationId, method)))
                             bodyContent.CopyToAsync(s).Wait();
                     using (var s = rq.GetRequestStream())
                         bodyContent.CopyToAsync(s).Wait();
                 }
-                else
-                    throw new ArgumentOutOfRangeException(nameof(body), body.ToString());
+                else throw new ArgumentOutOfRangeException(nameof(body), body.ToString());
             }
 
             // request execute
@@ -782,7 +784,7 @@ namespace Automa.IO
                     {
                         if (!string.IsNullOrEmpty(DownloadDebugFilePattern))
                         {
-                            using (var s = File.OpenWrite(string.Format(DownloadDebugFilePattern, DateTime.Now.Ticks, rs.StatusCode)))
+                            using (var s = File.OpenWrite(string.Format(DownloadDebugFilePattern, correlationId, (int)rs.StatusCode)))
                                 data.CopyTo(s);
                             if (data.CanSeek)
                                 data.Position = 0;
@@ -811,9 +813,9 @@ namespace Automa.IO
         /// <returns>System.String.</returns>
         public static string DownloadData(this IHasCookies source, HttpMethod method, string url, object body = null, string contentType = null, Action<HttpWebRequest> interceptRequest = null, bool updateCookies = true, Action<HttpStatusCode, string> onError = null, decimal timeoutInSeconds = -1M, bool useSafeRead = false)
         {
-            var rs = source.DownloadPreamble(method, url, body, contentType, interceptRequest, updateCookies, onError, timeoutInSeconds);
+            var rs = source.DownloadPreamble(method, url, body, out var correlationId, contentType, interceptRequest, updateCookies, onError, timeoutInSeconds);
             using (var r = new StreamReader(rs.GetResponseStream()))
-                return !useSafeRead ? r.ReadToEnd() : r.SafeReadToEnd();
+                return DownloadCompleted(correlationId, !useSafeRead ? r.ReadToEnd() : r.SafeReadToEnd());
         }
 
         /// <summary>
@@ -852,8 +854,8 @@ namespace Automa.IO
         /// <returns>System.String.</returns>
         public static string DownloadFile(this IHasCookies source, string filePath, HttpMethod method, string url, object body = null, string contentType = null, Action<HttpWebRequest> interceptRequest = null, Action<Stream, Stream> interceptResponse = null, Func<string, string> interceptFilename = null, bool updateCookies = false, Action<HttpStatusCode, string> onError = null, decimal timeoutInSeconds = -1M)
         {
-            var rs = source.DownloadPreamble(method, url, body, contentType, interceptRequest, updateCookies, onError, timeoutInSeconds);
-            return CompleteDownload(rs, filePath, null, interceptResponse, interceptFilename);
+            var rs = source.DownloadPreamble(method, url, body, out var correlationId, contentType, interceptRequest, updateCookies, onError, timeoutInSeconds);
+            return DownloadCompleted(correlationId, CompleteDownload(rs, filePath, null, interceptResponse, interceptFilename));
         }
 
         /// <summary>
@@ -874,8 +876,19 @@ namespace Automa.IO
         /// <returns>System.String.</returns>
         public static string DownloadFile(this IHasCookies source, Stream stream, HttpMethod method, string url, object body = null, string contentType = null, Action<HttpWebRequest> interceptRequest = null, Action<Stream, Stream> interceptResponse = null, Func<string, string> interceptFilename = null, bool updateCookies = false, Action<HttpStatusCode, string> onError = null, decimal timeoutInSeconds = -1M)
         {
-            var rs = source.DownloadPreamble(method, url, body, contentType, interceptRequest, updateCookies, onError, timeoutInSeconds);
-            return CompleteDownload(rs, null, stream, interceptResponse, interceptFilename);
+            var rs = source.DownloadPreamble(method, url, body, out var correlationId, contentType, interceptRequest, updateCookies, onError, timeoutInSeconds);
+            return DownloadCompleted(correlationId, CompleteDownload(rs, null, stream, interceptResponse, interceptFilename));
+        }
+
+        static string DownloadCompleted(long correlationId, string value)
+        {
+            if (!string.IsNullOrEmpty(DownloadDebugFilePattern))
+                using (var s = File.OpenWrite(string.Format(DownloadDebugFilePattern, correlationId, 200)))
+                {
+                    var bytes = Encoding.UTF8.GetBytes(value);
+                    s.Write(bytes, 0, bytes.Length);
+                }
+            return value;
         }
 
         /// <summary>

@@ -94,8 +94,12 @@ namespace Automa.IO
         /// <exception cref="System.InvalidOperationException">ServiceCredential or, ServiceLogin and ServicePassword are required for this operation.</exception>
         protected void EnsureServiceLoginAndPassword()
         {
-            if (string.IsNullOrEmpty(ServiceCredential) && (string.IsNullOrEmpty(ServiceLogin) || string.IsNullOrEmpty(ServicePassword)))
-                throw new InvalidOperationException("ServiceCredential or ServiceLogin and ServicePassword are required for this operation.");
+            if (string.IsNullOrEmpty(ServiceCredential))
+                throw new ArgumentNullException(nameof(ServiceCredential), "Argument required for this operation.");
+            if (string.IsNullOrEmpty(ServiceLogin))
+                throw new ArgumentNullException(nameof(ServiceLogin), "Argument required for this operation.");
+            if (string.IsNullOrEmpty(ServicePassword))
+                throw new ArgumentNullException(nameof(ServicePassword), "Argument required for this operation.");
         }
 
         /// <summary>
@@ -262,6 +266,5 @@ namespace Automa.IO
         }
 
         #endregion
-
     }
 }

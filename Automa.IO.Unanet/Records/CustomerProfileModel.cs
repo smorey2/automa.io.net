@@ -41,7 +41,7 @@ namespace Automa.IO.Unanet.Records
         // custom
         public string organization_codeKey { get; set; }
 
-        public static Task<(bool success, bool hasFile, object tag)> ExportFileAsync(UnanetClient una, string sourceFolder)
+        public static Task<(bool success, string message, bool hasFile, object tag)> ExportFileAsync(UnanetClient una, string sourceFolder)
         {
             var filePath = Path.Combine(sourceFolder, una.Settings.customer_profile.file);
             if (File.Exists(filePath))

@@ -118,7 +118,6 @@ namespace Automa.IO
                 }
                 _disposed = true;
             }
-
         }
 
         static string CookieValueEncode(string value) => value.Replace(",", "%2C");

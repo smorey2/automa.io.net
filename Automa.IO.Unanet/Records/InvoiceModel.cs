@@ -19,7 +19,7 @@ namespace Automa.IO.Unanet.Records
         public string memo { get; set; }
         public decimal? quantity { get; set; }
 
-        public static Task<(bool success, bool hasFile, object tag)> ExportFileAsync(UnanetClient una, string sourceFolder, int window, string legalEntity = null)
+        public static Task<(bool success, string message, bool hasFile, object tag)> ExportFileAsync(UnanetClient una, string sourceFolder, int window, string legalEntity = null)
         {
             var filePath = Path.Combine(sourceFolder, una.Settings.invoice.file);
             if (File.Exists(filePath))

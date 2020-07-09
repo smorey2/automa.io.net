@@ -41,7 +41,7 @@ namespace Automa.IO.Unanet.Records
         public string keyInvoice { get; set; }
         public string invoice_number { get; set; }
 
-        public static Task<(bool success, bool hasFile, object tag)> ExportFileAsync(UnanetClient una, string windowEntity, string sourceFolder, int window, DateTime? begin = null, DateTime? end = null, string legalEntity = null, Action<HtmlFormPost> func = null, string tempPath = null)
+        public static Task<(bool success, string message, bool hasFile, object tag)> ExportFileAsync(UnanetClient una, string windowEntity, string sourceFolder, int window, DateTime? begin = null, DateTime? end = null, string legalEntity = null, Action<HtmlFormPost> func = null, string tempPath = null)
         {
             var filePath = tempPath ?? Path.Combine(sourceFolder, una.Settings.time.file);
             if (File.Exists(filePath))

@@ -37,7 +37,7 @@ namespace Automa.IO.Unanet.Records
 
         const int TimeoutInSeconds = 1200; // 20 minutes
 
-        public static Task<(bool success, bool hasFile, object tag)> ExportFileAsync(UnanetClient una, string sourceFolder, AccessTypes accessTypes = AccessTypes.All, string[] roles = null)
+        public static Task<(bool success, string message, bool hasFile, object tag)> ExportFileAsync(UnanetClient una, string sourceFolder, AccessTypes accessTypes = AccessTypes.All, string[] roles = null)
         {
             var filePath = Path.Combine(sourceFolder, una.Settings.organization_access.file);
             if (File.Exists(filePath))
