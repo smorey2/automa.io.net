@@ -1,5 +1,6 @@
 using OpenQA.Selenium;
 using System;
+using System.Collections.Generic;
 using System.Net;
 using System.Security;
 using System.Security.Cryptography.X509Certificates;
@@ -88,19 +89,35 @@ namespace Automa.IO
         public string ServiceCredential { get; set; }
 
         /// <summary>
+        /// Gets or sets the connection string.
+        /// </summary>
+        /// <value>
+        /// The connection string.
+        /// </value>
+        public string ConnectionString { get; set; }
+
+        /// <summary>
+        /// Gets or sets the connection parameters.
+        /// </summary>
+        /// <value>
+        /// The connection parameters.
+        /// </value>
+        public Dictionary<string, string> ConnectionParams { get; set; }
+
+        /// <summary>
         /// Ensures the service login and password.
         /// </summary>
         /// <exception cref="InvalidOperationException">ServiceCredential or ServiceLogin and ServicePassword are required for this operation.</exception>
         /// <exception cref="System.InvalidOperationException">ServiceCredential or, ServiceLogin and ServicePassword are required for this operation.</exception>
-        protected void EnsureServiceLoginAndPassword()
-        {
-            if (string.IsNullOrEmpty(ServiceCredential))
-                throw new ArgumentNullException(nameof(ServiceCredential), "Argument required for this operation.");
-            if (string.IsNullOrEmpty(ServiceLogin))
-                throw new ArgumentNullException(nameof(ServiceLogin), "Argument required for this operation.");
-            if (string.IsNullOrEmpty(ServicePassword))
-                throw new ArgumentNullException(nameof(ServicePassword), "Argument required for this operation.");
-        }
+        //protected void EnsureServiceLoginAndPassword()
+        //{
+        //    if (string.IsNullOrEmpty(ServiceCredential))
+        //        throw new ArgumentNullException(nameof(ServiceCredential), "Argument required for this operation.");
+        //    if (string.IsNullOrEmpty(ServiceLogin))
+        //        throw new ArgumentNullException(nameof(ServiceLogin), "Argument required for this operation.");
+        //    if (string.IsNullOrEmpty(ServicePassword))
+        //        throw new ArgumentNullException(nameof(ServicePassword), "Argument required for this operation.");
+        //}
 
         /// <summary>
         /// Gets the network credential.
@@ -111,9 +128,28 @@ namespace Automa.IO
         {
             if (string.IsNullOrEmpty(ServiceCredential))
                 return new NetworkCredential { UserName = ServiceLogin, Password = ServicePassword };
-            if (CredentialManagerEx.Read(ServiceCredential, CredentialManagerEx.CredentialType.GENERIC, out var credential) != 0)
+            if (CredentialManager.TryRead(ServiceCredential, CredentialManager.CredentialType.GENERIC, out var credential) != 0)
                 throw new InvalidOperationException("Unable to read credential store");
             return new NetworkCredential { UserName = credential.UserName, Password = credential.CredentialBlob };
+        }
+
+        /// <summary>
+        /// Parses the connection string.
+        /// </summary>
+        public virtual void ParseConnectionString()
+        {
+            if (string.IsNullOrEmpty(ConnectionString))
+                return;
+            foreach (var param in ConnectionString.Split(';'))
+            {
+                if (string.IsNullOrEmpty(param)) continue;
+                var kv = param.Split(new[] { '=' }, 2);
+                if (kv.Length > 1 && string.Equals(kv[0], "Credential", StringComparison.OrdinalIgnoreCase)) ServiceCredential = kv[1];
+                else if (kv.Length > 1 && string.Equals(kv[0], "User Id", StringComparison.OrdinalIgnoreCase)) ServiceLogin = kv[1];
+                else if (kv.Length > 1 && string.Equals(kv[0], "Password", StringComparison.OrdinalIgnoreCase)) ServicePassword = kv[1];
+                else (ConnectionParams = ConnectionParams ?? new Dictionary<string, string>()).Add(kv[0].ToLowerInvariant(), kv.Length > 1 ? kv[1] : null);
+            }
+            ConnectionString = null;
         }
 
         /// <summary>

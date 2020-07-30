@@ -1,8 +1,8 @@
 ﻿
 Microsoft Visual Studio Solution File, Format Version 12.00
-# Visual Studio 15
-VisualStudioVersion = 15.0.26124.0
-MinimumVisualStudioVersion = 15.0.26124.0
+# Visual Studio 16
+VisualStudioVersion = 16.0.30011.22
+MinimumVisualStudioVersion = 16.0.30011.22
 Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "Automa.IO", "Automa.IO\Automa.IO.csproj", "{4C96D64F-B5C5-4E61-8CDB-ADC445E9A6D8}"
 EndProject
 Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "Automa.IO.Facebook", "Automa.IO.Facebook\Automa.IO.Facebook.csproj", "{26F44E10-60A4-431B-9D7A-3B7D42637488}"

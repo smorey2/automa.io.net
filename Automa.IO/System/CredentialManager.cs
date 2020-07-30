@@ -1,12 +1,13 @@
 ﻿using Microsoft.Win32.SafeHandles;
+using System.Net;
 using System.Runtime.InteropServices;
 
 namespace System.Security
 {
     /// <summary>
-    /// CredentialManagerEx
+    /// CredentialManager
     /// </summary>
-    internal static class CredentialManagerEx
+    internal static class CredentialManager
     {
         #region Preamble
 
@@ -305,7 +306,7 @@ namespace System.Security
         /// <param name="type">The type.</param>
         /// <param name="credential">The credential.</param>
         /// <returns></returns>
-        public static int Read(string target, CredentialType type, out Credential credential)
+        public static int TryRead(string target, CredentialType type, out Credential credential)
         {
             if (!CredReadW(target, type, 0, out var credentialPtr))
             {
@@ -324,25 +325,17 @@ namespace System.Security
         /// <returns></returns>
         public static int Write(Credential credential) => !CredWriteW(ref credential, 0) ? Marshal.GetHRForLastWin32Error() : 0;
 
-        //static bool CheckError(string testName, CRED_ERRORS rtn)
-        //{
-        //    switch (rtn)
-        //    {
-        //        case CRED_ERRORS.ERROR_SUCCESS:
-        //            //Logger.WriteLine(string.Format("'{0}' worked", testName));
-        //            return true;
-        //        case CRED_ERRORS.ERROR_INVALID_FLAGS:
-        //        case CRED_ERRORS.ERROR_INVALID_PARAMETER:
-        //        case CRED_ERRORS.ERROR_NO_SUCH_LOGON_SESSION:
-        //        case CRED_ERRORS.ERROR_NOT_FOUND:
-        //        case CRED_ERRORS.ERROR_BAD_USERNAME:
-        //            //Logger.WriteLine(string.Format("'{0}' failed; {1}.", testName, rtn));
-        //            break;
-        //        default:
-        //            //Logger.WriteLine(string.Format("'{0}' failed; 0x{1}.", testName, rtn.ToString("X")));
-        //            break;
-        //    }
-        //    return false;
-        //}
+        /// <summary>
+        /// Reads the generic.
+        /// </summary>
+        /// <param name="target">The target.</param>
+        /// <returns>Credential.</returns>
+        /// <exception cref="System.InvalidOperationException">Unable to read credential store</exception>
+        public static NetworkCredential ReadGeneric(string target)
+        {
+            if (TryRead(target, CredentialType.GENERIC, out var credential) != 0)
+                throw new InvalidOperationException("Unable to read credential store");
+            return new NetworkCredential(credential.UserName, credential.CredentialBlob);
+        }
     }
 }

@@ -119,7 +119,7 @@ namespace Automa.IO.Unanet.Records
         public static ManageFlags ManageRecord(UnanetClient una, p_Assignment1 s, out Dictionary<string, (Type, object)> fields, out string last, Action<p_Assignment1> bespoke = null)
         {
             var _f = fields = new Dictionary<string, (Type, object)>();
-            T _t<T>(T value, string name) { _f[name] = (typeof(T), value); return value; }
+            //T _t<T>(T value, string name) { _f[name] = (typeof(T), value); return value; }
             //
             bespoke?.Invoke(s);
             if (ManageRecordBase(null, s.XCF, 1, out var cf, out var add, out last, canDelete: true))

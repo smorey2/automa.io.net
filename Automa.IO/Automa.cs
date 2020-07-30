@@ -168,6 +168,7 @@ namespace Automa.IO
         /// <param name="timeoutInSeconds">The timeout in seconds.</param>
         public void Login(object tag = null, decimal timeoutInSeconds = -1M)
         {
+            _client.ParseConnectionString();
             if (timeoutInSeconds == -1M) timeoutInSeconds = DefaultTimeoutIsSeconds;
             Action action = () => _automation.Login(_client.CookieGetSet, _client.GetNetworkCredential(), tag);
             try

@@ -22,7 +22,7 @@ namespace Automa.IO.Unanet.Records
         public static ManageFlags ManageRecord(UnanetClient una, p_CustomerPayment s, out Dictionary<string, (Type, object)> fields, out string last, Action<string, string> setInfo, string legalEntityKey = null, string legalEntity = null, string bankAcct = "1003 - Capital City_A_CHK", Action<p_CustomerPayment> bespoke = null)
         {
             var _f = fields = new Dictionary<string, (Type, object)>();
-            T _t<T>(T value, string name) { _f[name] = (typeof(T), value); return value; }
+            //T _t<T>(T value, string name) { _f[name] = (typeof(T), value); return value; }
             //
             if (!Unanet.Lookups.BankAccount.Value.TryGetValue(bankAcct, out var bankAcctKey))
                 throw new InvalidOperationException($"Can not find: {bankAcct}");

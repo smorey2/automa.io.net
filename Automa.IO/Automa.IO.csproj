@@ -5,12 +5,9 @@
   </PropertyGroup>
 
   <ItemGroup>
+    <PackageReference Include="ExcelTrans" Version="1.0.2" />
     <PackageReference Include="HtmlAgilityPack" Version="1.11.24" />
     <PackageReference Include="Selenium.WebDriver" Version="3.141.0" />
-  </ItemGroup>
-
-  <ItemGroup>
-    <ProjectReference Include="..\..\..\..\..\_GITHUB\bclnet\ExcelTrans\ExcelTrans\ExcelTrans.csproj" />
   </ItemGroup>
 
 </Project>

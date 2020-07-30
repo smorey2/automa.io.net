@@ -1,22 +1,24 @@
-﻿using Automa.IO.GoogleAdwords;
-using NUnit.Framework;
+﻿using NUnit.Framework;
 using System;
 using System.IO;
 
-namespace Automa.IO
+namespace Automa.IO.GoogleAdwords
 {
     public class GoogleAdwordsClientTest
     {
+        const string SourcePath = "secret";
         GoogleAdwordsClient _client;
 
         [SetUp] public void Configure() => _client = GetGoogleAdwordsClient();
         [TearDown] public void TearDown() { _client?.Dispose(); _client = null; }
 
-        GoogleAdwordsClient GetGoogleAdwordsClient()
+        GoogleAdwordsClient GetGoogleAdwordsClient(bool deleteFile = false)
         {
-            if (!Directory.Exists("secret"))
-                Directory.CreateDirectory("secret");
-            var cookieFile = Path.Combine("secret", "googleAdwords.cookies.json");
+            if (!Directory.Exists(SourcePath))
+                Directory.CreateDirectory(SourcePath);
+            var cookieFile = Path.Combine(SourcePath, "googleAdwords.cookies.json");
+            if (deleteFile && File.Exists(cookieFile))
+                File.Delete(cookieFile);
             return new GoogleAdwordsClient
             {
                 Logger = Console.WriteLine,

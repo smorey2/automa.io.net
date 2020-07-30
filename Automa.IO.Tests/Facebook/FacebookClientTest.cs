@@ -8,17 +8,22 @@ namespace Automa.IO
 {
     public class FacebookClientTest
     {
+        const string SourcePath = "secret";
         FacebookClient _client;
 
         [SetUp] public void Configure() => _client = GetFacebookClient();
         [TearDown] public void TearDown() { _client?.Dispose(); _client = null; }
 
-        FacebookClient GetFacebookClient()
+        FacebookClient GetFacebookClient(bool deleteFile = false)
         {
-            if (!Directory.Exists("secret"))
-                Directory.CreateDirectory("secret");
-            var accessTokenFile = Path.Combine("secret", "facebook.token.json");
-            var cookieFile = Path.Combine("secret", "facebook.cookies.json");
+            if (!Directory.Exists(SourcePath))
+                Directory.CreateDirectory(SourcePath);
+            var accessTokenFile = Path.Combine(SourcePath, "facebook.token.json");
+            var cookieFile = Path.Combine(SourcePath, "facebook.cookies.json");
+            if (deleteFile && File.Exists(accessTokenFile))
+                File.Delete(accessTokenFile);
+            if (deleteFile && File.Exists(cookieFile))
+                File.Delete(cookieFile);
             return new FacebookClient
             {
                 Logger = Console.WriteLine,

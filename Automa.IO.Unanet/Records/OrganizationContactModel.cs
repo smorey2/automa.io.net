@@ -269,34 +269,34 @@ namespace Automa.IO.Unanet.Records
             public static Task<(bool success, string message, bool hasFile, object tag)> ExportFileAsync(UnanetClient una, string sourceFolder)
             {
                 return Task.FromResult((true, (string)null, false, (object)null));
-                var filePath = Path.Combine(sourceFolder, una.Settings.organization_contact_email.file);
-                if (File.Exists(filePath))
-                    File.Delete(filePath);
-                return Task.Run(() => una.GetEntitiesByExport(una.Settings.organization_contact_email.key, (z, f) =>
-                {
-                    f.Checked["suppressOutput"] = true;
-                    return null;
-                }, sourceFolder));
+                //var filePath = Path.Combine(sourceFolder, una.Settings.organization_contact_email.file);
+                //if (File.Exists(filePath))
+                //    File.Delete(filePath);
+                //return Task.Run(() => una.GetEntitiesByExport(una.Settings.organization_contact_email.key, (z, f) =>
+                //{
+                //    f.Checked["suppressOutput"] = true;
+                //    return null;
+                //}, sourceFolder));
             }
 
             public static IEnumerable<EmailModel> Read(UnanetClient una, string sourceFolder)
             {
                 return Enumerable.Empty<EmailModel>();
-                var filePath = Path.Combine(sourceFolder, una.Settings.organization_contact_email.file);
-                using (var sr = File.OpenRead(filePath))
-                    return CsvReader.Read(sr, x => new EmailModel
-                    {
-                        organization_code = x[0],
-                        first_name = x[1],
-                        middle_initial = x[2],
-                        last_name = x[3],
-                        suffix = x[4],
-                        email_type = x[5],
-                        primary_ind = x[6],
-                        //
-                        email_address = x[7],
-                        delete = x[8],
-                    }, 1).ToList();
+                //var filePath = Path.Combine(sourceFolder, una.Settings.organization_contact_email.file);
+                //using (var sr = File.OpenRead(filePath))
+                //    return CsvReader.Read(sr, x => new EmailModel
+                //    {
+                //        organization_code = x[0],
+                //        first_name = x[1],
+                //        middle_initial = x[2],
+                //        last_name = x[3],
+                //        suffix = x[4],
+                //        email_type = x[5],
+                //        primary_ind = x[6],
+                //        //
+                //        email_address = x[7],
+                //        delete = x[8],
+                //    }, 1).ToList();
             }
 
             public static void ManageRecord(HtmlFormPost f, string xml)

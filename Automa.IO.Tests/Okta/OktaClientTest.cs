@@ -1,23 +1,27 @@
-﻿using Automa.IO.Okta;
-using NUnit.Framework;
+﻿using NUnit.Framework;
 using System;
 using System.IO;
 
-namespace Automa.IO
+namespace Automa.IO.Okta
 {
     public class OktaClientTest
     {
+        const string SourcePath = "secret";
         OktaClient _client;
 
         [SetUp] public void Configure() => _client = GetOktaClient();
         [TearDown] public void TearDown() { _client?.Dispose(); _client = null; }
 
-        OktaClient GetOktaClient()
+        OktaClient GetOktaClient(bool deleteFile = false)
         {
-            if (!Directory.Exists("secret"))
-                Directory.CreateDirectory("secret");
-            var accessTokenFile = Path.Combine("secret", "okta.token.json");
-            var cookieFile = Path.Combine("secret", "okta.cookies.json");
+            if (!Directory.Exists(SourcePath))
+                Directory.CreateDirectory(SourcePath);
+            var accessTokenFile = Path.Combine(SourcePath, "okta.token.json");
+            var cookieFile = Path.Combine(SourcePath, "okta.cookies.json");
+            if (deleteFile && File.Exists(accessTokenFile))
+                File.Delete(accessTokenFile);
+            if (deleteFile && File.Exists(cookieFile))
+                File.Delete(cookieFile);
             return new OktaClient(new Uri("https://isobar.okta.com"), "dentsuaegis")
             {
                 Logger = Console.WriteLine,
