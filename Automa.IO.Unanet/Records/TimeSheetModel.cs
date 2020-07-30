@@ -204,7 +204,7 @@ namespace Automa.IO.Unanet.Records
             var d0 = una.PostValue(HttpMethod.Post, f.Action.Substring(18), f.ToString(), null, out last);
             var d1 = d0.ExtractSpanInner("<div class=\"error\">", "</div>");
             if (d1 != null)
-                last = d1.ExtractSpanInner("<br><br>", "<br></p>");
+                last = d1.Replace("<BR>", null).Replace("<br>", null).Trim();
             if (last != null || !d0.Contains("Adjustments - Enter a change reason for all modified entries"))
                 return false;
 
@@ -218,7 +218,7 @@ namespace Automa.IO.Unanet.Records
             d0 = una.PostValue(HttpMethod.Post, f.Action.Substring(18), f.ToString(), null, out last);
             d1 = d0.ExtractSpanInner("<div class=\"error\">", "</div>");
             if (d1 != null)
-                last = d1.ExtractSpanInner("<br><br>", "<br></p>");
+                last = d1.Replace("<BR>", null).Replace("<br>", null).Trim();
             return true;
         }
 

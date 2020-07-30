@@ -56,7 +56,7 @@ namespace Automa.IO.Unanet.Records
                     f.Values["dateRange"] = "bot_eot";
                     f.Values["wbsLevel"] = "both";
                     f.Checked["includePosted"] = false;
-                    f.Checked["includeRevSchedules"] = false;
+                    f.Checked["includeRevSchedules"] = true;
                     return null;
                 }, sourceFolder).success, true, (object)null));
         }
@@ -71,10 +71,12 @@ namespace Automa.IO.Unanet.Records
                 using (var sr = File.OpenRead(filePath))
                     return CsvReader.Read(sr, x =>
                     {
-                        var d = x[4].ToString();
-                        var d0 = d.IndexOf(","); //: d1 = d.IndexOf(":");
-                        var external_system_code = d0 != -1 && d.Length - d0 == 3 ? d.Substring(d0 + 1) : null; //: d0 != -1 && d0 < d1 ? d.Substring(0, d0) : null;
-                        var description = d0 != -1 && d.Length - d0 == 3 ? d.Substring(0, d0) : d; //: d0 != -1 && d0 < d1 ? d.Substring(d0 + 1) : d;
+                        var d = x[3].ToString();
+                        //var d0 = d.IndexOf(","); //: d1 = d.IndexOf(":");
+                        //var external_system_code = d0 != -1 && d.Length - d0 == 3 ? d.Substring(d0 + 1) : null; //: d0 != -1 && d0 < d1 ? d.Substring(0, d0) : null;
+                        //var description = d0 != -1 && d.Length - d0 == 3 ? d.Substring(0, d0) : d; //: d0 != -1 && d0 < d1 ? d.Substring(d0 + 1) : d;
+                        var external_system_code = (string)null;
+                        var description = d;
                         return new FixedPriceModel
                         {
                             project_org_code = x[0],
@@ -121,6 +123,7 @@ namespace Automa.IO.Unanet.Records
 
         public static ManageFlags ManageRecord(UnanetClient una, p_FixedPrice1 s, out Dictionary<string, (Type, object)> fields, out string last, Action<string> lockFunc, Action<p_FixedPrice1> bespoke = null)
         {
+            throw new NotSupportedException("FixedPrice Not Supported");
             var _f = fields = new Dictionary<string, (Type, object)>();
             T _t<T>(T value, string name) { _f[name] = (typeof(T), value); return value; }
             //
