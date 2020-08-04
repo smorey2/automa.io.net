@@ -147,7 +147,7 @@ namespace Automa.IO
                 if (kv.Length > 1 && string.Equals(kv[0], "Credential", StringComparison.OrdinalIgnoreCase)) ServiceCredential = kv[1];
                 else if (kv.Length > 1 && string.Equals(kv[0], "User Id", StringComparison.OrdinalIgnoreCase)) ServiceLogin = kv[1];
                 else if (kv.Length > 1 && string.Equals(kv[0], "Password", StringComparison.OrdinalIgnoreCase)) ServicePassword = kv[1];
-                else (ConnectionParams = ConnectionParams ?? new Dictionary<string, string>()).Add(kv[0].ToLowerInvariant(), kv.Length > 1 ? kv[1] : null);
+                else (ConnectionParams = ConnectionParams ?? new Dictionary<string, string>(StringComparer.OrdinalIgnoreCase)).Add(kv[0].ToLowerInvariant(), kv.Length > 1 ? kv[1] : null);
             }
             ConnectionString = null;
         }
