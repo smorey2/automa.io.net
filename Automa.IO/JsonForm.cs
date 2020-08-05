@@ -24,7 +24,7 @@ namespace Automa.IO
             }
             // parse
             var endIdx = s.IndexOfSkip("}", markerIdx);
-            s = s[markerIdx..endIdx];
+            s = s.Substring(markerIdx, endIdx - markerIdx);
             var r = JObject.Parse(s);
             foreach (var v in r)
                 Values.Add(v.Key, (string)v.Value);

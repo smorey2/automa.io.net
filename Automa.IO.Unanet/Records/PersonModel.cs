@@ -132,7 +132,7 @@ namespace Automa.IO.Unanet.Records
 
         public static IEnumerable<PersonModel> Read(UnanetClient una, string sourceFolder)
         {
-            static string CleanRoles(string roles) => ("," + roles)
+            string CleanRoles(string roles) => $",{roles}"
                 .Replace(",projectApprover", string.Empty)
                 .Replace(",projectLead", string.Empty)
                 .Replace(",poOwner", string.Empty)

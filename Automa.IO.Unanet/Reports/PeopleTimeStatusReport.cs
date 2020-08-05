@@ -49,7 +49,7 @@ namespace Automa.IO.Unanet.Reports
                 if (tr["person"] == null)
                     continue;
 
-                static string[] AppToMulti(string x) => !x.StartsWith("<span class=\"multi-line-span\">") ? new[] { x } : x.Substring(30, x.Length - 30 - 7).Split(new[] { "</span><span class=\"multi-line-span\">" }, StringSplitOptions.RemoveEmptyEntries);
+                string[] AppToMulti(string x) => !x.StartsWith("<span class=\"multi-line-span\">") ? new[] { x } : x.Substring(30, x.Length - 30 - 7).Split(new[] { "</span><span class=\"multi-line-span\">" }, StringSplitOptions.RemoveEmptyEntries);
                 rows.Add(new PeopleTimeStatusReport
                 {
                     PersonName = tr["person"].Value<string>().Remove(tr["person"].Value<string>().IndexOf("(")).Trim(),

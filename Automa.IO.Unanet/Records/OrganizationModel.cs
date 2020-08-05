@@ -82,11 +82,11 @@ namespace Automa.IO.Unanet.Records
         }
 
         public static async Task<Dictionary<string, Tuple<string, string>>> GetListAsync(UnanetClient una, string type) =>
-            (await Single(una.GetEntitiesByListAsync("organizations", null, (z, f) =>
+            (await una.GetEntitiesByListAsync("organizations", null, (z, f) =>
             {
                 f.FromSelect("organizationtype", type);
                 f.Values["list"] = "true";
-            })))
+            })).Single()
             .ToDictionary(x => x.Value[4].Item1, x => new Tuple<string, string>(x.Key, x.Value[5].Item1));
 
         public static IEnumerable<OrganizationModel> Read(UnanetClient una, string sourceFolder, string type = "CUSTOMER")

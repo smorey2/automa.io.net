@@ -65,7 +65,7 @@ namespace Automa.IO
         /// <value>The automa.</value>
         public IAutoma Automa
         {
-            get => _automa ??= _automaFactory?.Invoke(this) ?? EmptyAutoma;
+            get => _automa ?? (_automa = _automaFactory?.Invoke(this) ?? EmptyAutoma);
             set
             {
                 if (_automa != value)

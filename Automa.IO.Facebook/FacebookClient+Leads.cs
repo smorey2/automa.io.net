@@ -22,13 +22,14 @@ namespace Automa.IO.Facebook
         /// <param name="toDate">To date.</param>
         /// <param name="skipEmptyFile">The skip empty file.</param>
         /// <returns>IEnumerable&lt;System.String&gt;.</returns>
-        public async IAsyncEnumerable<string> DownloadLeadFormCsvByPageAsync(string path, long pageId, DateTime? fromDate, DateTime? toDate, FacebookSkipEmptyFile skipEmptyFile = FacebookSkipEmptyFile.None)
+        public async Task<IEnumerable<string>> DownloadLeadFormCsvByPageAsync(string path, long pageId, DateTime? fromDate, DateTime? toDate, FacebookSkipEmptyFile skipEmptyFile = FacebookSkipEmptyFile.None)
         {
             _logger($"DownloadLeadFormCsvByPage: {pageId}");
             EnsureAppIdAndSecret();
             EnsureRequestedScope();
             var maps = LoadCsvPageMaps(path, pageId);
-            await foreach (var x in GetLeadFormsByPageAsync(pageId))
+            var list = new List<string>();
+            foreach (var x in await GetLeadFormsByPageAsync(pageId))
             {
                 var id = x["id"].ToString();
                 var name = (string)x["name"];
@@ -40,8 +41,9 @@ namespace Automa.IO.Facebook
                     to_date = (toDate != null ? (int?)ToTimestamp(toDate.Value) : null),
                 }, null, skipEmptyFile, maps.TryGetValue(id, out var map) ? (Action<Stream, Stream>)((a, b) => CsvPageIntercept(id, map, a, b)) : null);
                 if (file != null)
-                    yield return file;
+                    list.Add(file);
             }
+            return list;
         }
 
         static string ToBusinessUrl(string url) => url?.Replace("www.facebook.com", "business.facebook.com");
@@ -93,18 +95,20 @@ namespace Automa.IO.Facebook
             fileStream.Write(line, 0, line.Length);
         }
 
-        async IAsyncEnumerable<JToken> GetLeadFormsByPageAsync(long pageId)
+        async Task<IEnumerable<JToken>> GetLeadFormsByPageAsync(long pageId)
         {
             await LoadMeAccountsAsync();
             var cursor = (Func<Task<JToken>>)(() => this.DownloadJsonAsync(HttpMethod.Get, $"{BASEv}/{pageId}/leadgen_forms", interceptRequest: r => InterceptRequestForAccount(r, pageId)));
+            var list = new List<JToken>();
             while (cursor != null)
             {
                 var r = await this.TryFunc(typeof(WebException), cursor);
                 var paging = (IDictionary<string, JToken>)r["paging"];
                 cursor = paging.ContainsKey("next") ? (Func<Task<JToken>>)(() => this.DownloadJsonAsync(HttpMethod.Get, (string)paging["next"], interceptRequest: r2 => InterceptRequestForAccount(r2, pageId))) : null;
                 foreach (var i in (JArray)r["data"])
-                    yield return i;
+                    list.Add(i);
             }
+            return list;
         }
     }
 }

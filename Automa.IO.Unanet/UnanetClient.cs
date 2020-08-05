@@ -279,7 +279,7 @@ namespace Automa.IO.Unanet
         /// <param name="action">The action.</param>
         /// <param name="entityPrefix">The entity prefix.</param>
         /// <returns>IEnumerable&lt;Dictionary&lt;System.String, Tuple&lt;System.String, System.String&gt;[]&gt;&gt;.</returns>
-        public async IAsyncEnumerable<Dictionary<string, (string, string)[]>> GetEntitiesByListAsync(string entity, string entitySelect, Action<string, HtmlFormPost> action = null, string entityPrefix = "r")
+        public async Task<IEnumerable<Dictionary<string, (string, string)[]>>> GetEntitiesByListAsync(string entity, string entitySelect, Action<string, HtmlFormPost> action = null, string entityPrefix = "r")
         {
             string body = null;
             // parse
@@ -297,14 +297,16 @@ namespace Automa.IO.Unanet
                     this.DownloadDataAsync(HttpMethod.Post, $"{UnanetUri}/{entity}/list", body) :
                     this.DownloadDataAsync(HttpMethod.Post, $"{UnanetUri}/{entity}/list?{entitySelect}"));
                 var startIdx = 0;
+                var list = new List<Dictionary<string, (string, string)[]>>();
                 while (true)
                 {
                     startIdx = d0.IndexOf("<table class=\"list\"", startIdx);
                     if (startIdx == -1)
-                        yield break;
+                        break;
                     var d1 = d0.ExtractSpan("<table class=\"list\"", "</table>", startIdx++);
-                    yield return ParseList(d1, entityPrefix);
+                    list.Add(ParseList(d1, entityPrefix));
                 }
+                return list;
             }
         }
 
@@ -315,20 +317,22 @@ namespace Automa.IO.Unanet
         /// <param name="entitySelect">The entity select.</param>
         /// <param name="entityPrefix">The entity prefix.</param>
         /// <returns>IEnumerable&lt;Dictionary&lt;System.String, Tuple&lt;System.String, System.String&gt;[]&gt;&gt;.</returns>
-        public async IAsyncEnumerable<Dictionary<string, (string, string)[]>> GetEntitiesBySubListAsync(string entity, string entitySelect, string entityPrefix = "k_")
+        public async Task<IEnumerable<Dictionary<string, (string, string)[]>>> GetEntitiesBySubListAsync(string entity, string entitySelect, string entityPrefix = "k_")
         {
             // submit
             {
                 var d0 = await this.TryFunc(() => this.DownloadDataAsync(HttpMethod.Get, $"{UnanetUri}/{entity}/list?{entitySelect}"));
                 var startIdx = 0;
+                var list = new List<Dictionary<string, (string, string)[]>>();
                 while (true)
                 {
                     startIdx = d0.IndexOf("<table class=\"list\"", startIdx);
                     if (startIdx == -1)
-                        yield break;
+                        break;
                     var d1 = d0.ExtractSpan("<table class=\"list\"", "</table>", startIdx++);
-                    yield return ParseList(d1, entityPrefix);
+                    list.Add(ParseList(d1, entityPrefix));
                 }
+                return list;
             }
         }
 
@@ -438,25 +442,32 @@ namespace Automa.IO.Unanet
             // parse
             if (method != HttpMethod.Delete)
             {
-                d0 = type switch
+                switch (type)
                 {
-                    "0" => await this.TryFunc(() => method == HttpMethod.Get ?
-                        this.DownloadDataAsync(HttpMethod.Get, $"{UnanetUri}/{entity}?{parentSelect}") :
-                        this.DownloadDataAsync(HttpMethod.Post, $"{UnanetUri}/{entity}?{parentSelect}", entitySelect)),
-                    "A" => await this.TryFunc(() => method == HttpMethod.Post ?
-                        this.DownloadDataAsync(HttpMethod.Get, $"{UnanetUri}/{entity}/add?{parentSelect}") :
-                        this.DownloadDataAsync(HttpMethod.Post, $"{UnanetUri}/{entity}/edit?{parentSelect}", entitySelect)),
-                    "B" => await this.TryFunc(() => this.DownloadDataAsync(HttpMethod.Post, $"{UnanetUri}/{entity}/edit", $"{entitySelect}&restore=true&isCopy=false&editAll=false&{parentSelect}")),
-                    "C" => await this.TryFunc(() => method == HttpMethod.Post ?
-                        this.DownloadDataAsync(HttpMethod.Get, $"{UnanetUri}/{entity}/list?{parentSelect}") :
-                        this.DownloadDataAsync(HttpMethod.Post, $"{UnanetUri}/{entity}/list", $"{entitySelect}&addNext=false&edit=true&copy=false&nextKey=&{parentSelect}&{defaults}")),
-                    "D" => await this.TryFunc(() => this.DownloadDataAsync(method, $"{UnanetUri}/{entity}?{parentSelect}")),
-                    "E" => await this.TryFunc(() => method == HttpMethod.Put ?
-                        this.DownloadDataAsync(HttpMethod.Get, $"{UnanetUri}/{entity}/add?{parentSelect}") :
-                        this.DownloadDataAsync(HttpMethod.Post, $"{UnanetUri}/{entity}/add", parentSelect)),
-                    "F" => await this.TryFunc(() => this.DownloadDataAsync(HttpMethod.Post, $"{UnanetUri}/{entity}", $"{parentSelect}&{defaults}")),
-                    _ => throw new ArgumentOutOfRangeException(nameof(type), type),
-                };
+                    case "0":
+                        d0 = await this.TryFunc(() => method == HttpMethod.Get ?
+                          this.DownloadDataAsync(HttpMethod.Get, $"{UnanetUri}/{entity}?{parentSelect}") :
+                          this.DownloadDataAsync(HttpMethod.Post, $"{UnanetUri}/{entity}?{parentSelect}", entitySelect)); break;
+                    case "A":
+                        d0 = await this.TryFunc(() => method == HttpMethod.Post ?
+                          this.DownloadDataAsync(HttpMethod.Get, $"{UnanetUri}/{entity}/add?{parentSelect}") :
+                          this.DownloadDataAsync(HttpMethod.Post, $"{UnanetUri}/{entity}/edit?{parentSelect}", entitySelect)); break;
+                    case "B":
+                        d0 = await this.TryFunc(() => this.DownloadDataAsync(HttpMethod.Post, $"{UnanetUri}/{entity}/edit", $"{entitySelect}&restore=true&isCopy=false&editAll=false&{parentSelect}")); break;
+                    case "C":
+                        d0 = await this.TryFunc(() => method == HttpMethod.Post ?
+                          this.DownloadDataAsync(HttpMethod.Get, $"{UnanetUri}/{entity}/list?{parentSelect}") :
+                          this.DownloadDataAsync(HttpMethod.Post, $"{UnanetUri}/{entity}/list", $"{entitySelect}&addNext=false&edit=true&copy=false&nextKey=&{parentSelect}&{defaults}")); break;
+                    case "D":
+                        d0 = await this.TryFunc(() => this.DownloadDataAsync(method, $"{UnanetUri}/{entity}?{parentSelect}")); break;
+                    case "E":
+                        d0 = await this.TryFunc(() => method == HttpMethod.Put ?
+                          this.DownloadDataAsync(HttpMethod.Get, $"{UnanetUri}/{entity}/add?{parentSelect}") :
+                          this.DownloadDataAsync(HttpMethod.Post, $"{UnanetUri}/{entity}/add", parentSelect)); break;
+                    case "F":
+                        d0 = await this.TryFunc(() => this.DownloadDataAsync(HttpMethod.Post, $"{UnanetUri}/{entity}", $"{parentSelect}&{defaults}")); break;
+                    default: throw new ArgumentOutOfRangeException(nameof(type), type);
+                }
                 var htmlForm = new HtmlFormPost(d0, formOptions: formOptions);
                 try { body = func(d0, htmlForm); }
                 catch (Exception e) { last = e.Message; throw; }

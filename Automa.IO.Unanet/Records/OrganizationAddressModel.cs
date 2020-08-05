@@ -40,8 +40,8 @@ namespace Automa.IO.Unanet.Records
             }, sourceFolder));
         }
 
-        public static Task<Dictionary<string, (string, string)[]>> GetListAsync(UnanetClient ctx, string orgKey) =>
-            Single(ctx.GetEntitiesBySubListAsync("organizations/addresses", $"orgKey={orgKey}"));
+        public static async Task<Dictionary<string, (string, string)[]>> GetListAsync(UnanetClient ctx, string orgKey) =>
+            (await ctx.GetEntitiesBySubListAsync("organizations/addresses", $"orgKey={orgKey}")).Single();
 
         public static IEnumerable<OrganizationAddressModel> Read(UnanetClient una, string sourceFolder)
         {

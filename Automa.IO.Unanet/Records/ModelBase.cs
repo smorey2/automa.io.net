@@ -17,15 +17,15 @@ namespace Automa.IO.Unanet.Records
 
     public class ModelBase
     {
-        public static async Task<T> Single<T>(IAsyncEnumerable<T> source)
-        {
-            var list = new List<T>();
-            await foreach (T item in source)
-                list.Add(item);
-            if (list.Count != 1)
-                throw new InvalidOperationException("Not Single");
-            return list[0];
-        }
+        //public static async Task<T> Single<T>(IEnumerable<T> source)
+        //{
+        //    var list = new List<T>();
+        //    foreach (T item in await source)
+        //        list.Add(item);
+        //    if (list.Count != 1)
+        //        throw new InvalidOperationException("Not Single");
+        //    return list[0];
+        //}
 
         protected readonly static DateTime BeginDate = new DateTime(2019, 01, 01);
         protected readonly static DateTime BeginTimeWindowDate = new DateTime(2020, 01, 01); // new DateTime(2019, 09, 30);
@@ -58,14 +58,15 @@ namespace Automa.IO.Unanet.Records
 
         protected static void GetWindowDates(string entity, int window, out DateTime? beginDate, out DateTime? endDate)
         {
-            var beginWindowDate = entity switch
+            DateTime beginWindowDate;
+            switch (entity)
             {
-                "Begin" => BeginDate,
-                nameof(TimeModel) => BeginTimeWindowDate,
-                "Assist" => new DateTime(2020, 01, 01),
-                nameof(InvoiceModel) => BeginInvoiceWindowDate,
-                _ => BeginDate,
-            };
+                case "Begin": beginWindowDate = BeginDate; break;
+                case nameof(TimeModel): beginWindowDate = BeginTimeWindowDate; break;
+                case "Assist": beginWindowDate = new DateTime(2020, 01, 01); break;
+                case nameof(InvoiceModel): beginWindowDate = BeginInvoiceWindowDate; break;
+                default: beginWindowDate = BeginDate; break;
+            }
             switch (window)
             {
                 case -1:

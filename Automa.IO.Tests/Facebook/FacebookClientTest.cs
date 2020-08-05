@@ -3,6 +3,7 @@ using NUnit.Framework;
 using System;
 using System.Collections.Generic;
 using System.IO;
+using System.Linq;
 using System.Threading.Tasks;
 
 namespace Automa.IO
@@ -58,9 +59,7 @@ namespace Automa.IO
         public async Task Should_pull_csv_from_page()
         {
             var pageId = 573293769395845L;
-            var files = new List<string>();
-            await foreach (var file in _client.DownloadLeadFormCsvByPageAsync("secret", pageId, DateTime.Now.AddDays(-5), null, FacebookSkipEmptyFile.TextHasSecondLine))
-                files.Add(file);
+            var files = (await _client.DownloadLeadFormCsvByPageAsync("secret", pageId, DateTime.Now.AddDays(-5), null, FacebookSkipEmptyFile.TextHasSecondLine)).ToList();
             Console.WriteLine(files.Count);
         }
 

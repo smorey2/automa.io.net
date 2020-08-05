@@ -121,12 +121,13 @@ namespace Automa.IO.Unanet.Records
 
         public static async Task<(Grid grid, HtmlFormPost form, string last)> FindApprovalAsync(UnanetClient una, string type, string personName)
         {
-            var prefix = type switch
+            string prefix;
+            switch (type)
             {
-                "people" => "queueMgrAlt",
-                "projects" => "queuePmAlt",
-                _ => throw new ArgumentOutOfRangeException(nameof(type), type),
-            };
+                case "people": prefix = "queueMgrAlt"; break;
+                case "projects": prefix = "queuePmAlt"; break;
+                default: throw new ArgumentOutOfRangeException(nameof(type), type);
+            }
             try
             {
                 var (d0, last) = await una.PostValueAsync(HttpMethod.Get, $"{type}/approvals/alternate", null, null);
@@ -184,37 +185,39 @@ namespace Automa.IO.Unanet.Records
                     {
                         var ats = y.Attributes["id"].Value.Substring(prefix.Length + 1).Split('_');
                         var tds = y.Descendants("td").ToArray();
-                        return (ats[1]) switch
+                        switch (ats[1])
                         {
-                            "Expense" => (GridRow)new GridExpenseRow
-                            {
-                                Label = y.Attributes["id"].Value,
-                                Key = ats[2],
-                                KeyType = ats[1],
-                                Name = tds[4].InnerText.Remove(tds[4].InnerText.IndexOf("(")).Trim(),
-                                PersonName = tds[4].InnerText.ExtractSpanInner("(", ")").ToUpperInvariant(),
-                                //
-                                SomeId = tds[5].InnerText,
-                                Amount = decimal.Parse(tds[6].InnerText.Replace("$", string.Empty)),
-                                Expense = tds[7].InnerText,
-                                Comments = tds.Length > 8 ? tds[8].InnerText.Replace("&nbsp;", " ").Trim() : string.Empty,
-                            },
-                            "Time" => (GridRow)new GridTimeRow
-                            {
-                                Label = y.Attributes["id"].Value,
-                                Key = ats[2],
-                                KeyType = ats[1],
-                                Name = tds[3].InnerText.Remove(tds[3].InnerText.IndexOf("(")).Trim(),
-                                PersonName = tds[3].InnerText.ExtractSpanInner("(", ")").ToUpperInvariant(),
-                                //
-                                Week = DateTime.Parse(tds[4].InnerText.Remove(tds[4].InnerText.IndexOf("&"))),
-                                Hours = decimal.Parse(tds[5].InnerText),
-                                Status = tds[6].InnerText,
-                                StatusDate = DateTime.Parse(tds[7].InnerText),
-                                Comments = tds.Length > 8 ? tds[8].InnerText.Replace("&nbsp;", " ").Trim() : string.Empty,
-                            },
-                            _ => null,
-                        };
+                            case "Expense":
+                                return (GridRow)new GridExpenseRow
+                                {
+                                    Label = y.Attributes["id"].Value,
+                                    Key = ats[2],
+                                    KeyType = ats[1],
+                                    Name = tds[4].InnerText.Remove(tds[4].InnerText.IndexOf("(")).Trim(),
+                                    PersonName = tds[4].InnerText.ExtractSpanInner("(", ")").ToUpperInvariant(),
+                                    //
+                                    SomeId = tds[5].InnerText,
+                                    Amount = decimal.Parse(tds[6].InnerText.Replace("$", string.Empty)),
+                                    Expense = tds[7].InnerText,
+                                    Comments = tds.Length > 8 ? tds[8].InnerText.Replace("&nbsp;", " ").Trim() : string.Empty,
+                                };
+                            case "Time":
+                                return (GridRow)new GridTimeRow
+                                {
+                                    Label = y.Attributes["id"].Value,
+                                    Key = ats[2],
+                                    KeyType = ats[1],
+                                    Name = tds[3].InnerText.Remove(tds[3].InnerText.IndexOf("(")).Trim(),
+                                    PersonName = tds[3].InnerText.ExtractSpanInner("(", ")").ToUpperInvariant(),
+                                    //
+                                    Week = DateTime.Parse(tds[4].InnerText.Remove(tds[4].InnerText.IndexOf("&"))),
+                                    Hours = decimal.Parse(tds[5].InnerText),
+                                    Status = tds[6].InnerText,
+                                    StatusDate = DateTime.Parse(tds[7].InnerText),
+                                    Comments = tds.Length > 8 ? tds[8].InnerText.Replace("&nbsp;", " ").Trim() : string.Empty,
+                                };
+                            default: return null;
+                        }
                     }).Where(z => z != null).ToDictionary(z => (z.Key, z.KeyType)),
                 }).ToDictionary(x => x.Name);
             return r;
@@ -222,12 +225,13 @@ namespace Automa.IO.Unanet.Records
 
         public static async Task<string> ApproveAsync(UnanetClient una, string type, (Grid grid, HtmlFormPost form) found, GridRow row, string comments)
         {
-            var approvalType = type switch
+            string approvalType;
+            switch (type)
             {
-                "people" => "MANAGER",
-                "projects" => "PROJECT",
-                _ => throw new ArgumentOutOfRangeException(nameof(type), type),
-            };
+                case "people": approvalType = "MANAGER"; break;
+                case "projects": approvalType = "PROJECT"; break;
+                default: throw new ArgumentOutOfRangeException(nameof(type), type);
+            }
             try
             {
                 var f = found.form;
