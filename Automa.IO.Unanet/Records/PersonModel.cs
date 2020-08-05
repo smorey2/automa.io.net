@@ -118,13 +118,13 @@ namespace Automa.IO.Unanet.Records
 
         public static Task<(bool success, string message, bool hasFile, object tag)> ExportFileAsync(UnanetClient una, string sourceFolder, string legalEntity = null)
         {
-            var filePath = Path.Combine(sourceFolder, una.Settings.person.file);
+            var filePath = Path.Combine(sourceFolder, una.Options.person.file);
             if (File.Exists(filePath))
                 File.Delete(filePath);
-            return Task.Run(() => una.GetEntitiesByExport(una.Settings.person.key, (z, f) =>
+            return Task.Run(() => una.GetEntitiesByExportAsync(una.Options.person.key, (z, f) =>
             {
                 f.Checked["suppressOutput"] = true;
-                f.FromSelect("legalEntity", legalEntity ?? una.Settings.LegalEntity);
+                f.FromSelect("legalEntity", legalEntity ?? una.Options.LegalEntity);
                 f.Checked["exempt"] = true; f.Checked["nonExempt"] = true; f.Checked["nonEmployee"] = true;
                 return null;
             }, sourceFolder));
@@ -132,12 +132,12 @@ namespace Automa.IO.Unanet.Records
 
         public static IEnumerable<PersonModel> Read(UnanetClient una, string sourceFolder)
         {
-            string CleanRoles(string roles) => ("," + roles)
+            static string CleanRoles(string roles) => ("," + roles)
                 .Replace(",projectApprover", string.Empty)
                 .Replace(",projectLead", string.Empty)
                 .Replace(",poOwner", string.Empty)
                 .Substring(1);
-            var filePath = Path.Combine(sourceFolder, una.Settings.person.file);
+            var filePath = Path.Combine(sourceFolder, una.Options.person.file);
             using (var sr = File.OpenRead(filePath))
                 return CsvReader.Read(sr, x => new PersonModel
                 {
@@ -288,14 +288,12 @@ namespace Automa.IO.Unanet.Records
             Dictionary<string, string> vendorProfiles,
             Dictionary<string, string> organizations) FormLookups;
 
-        public static ManageFlags ManageRecord(UnanetClient una, p_Person1 s, out Dictionary<string, (Type, object)> fields, out string last, string[] restrictedUsernames, Action<p_Person1> bespoke = null)
+        public static async Task<(ChangedFields changed, string last)> ManageRecordAsync(UnanetClient una, p_Person1 s, string[] restrictedUsernames, Action<p_Person1> bespoke = null)
         {
-            var _f = fields = new Dictionary<string, (Type, object)>();
-            T _t<T>(T value, string name) { _f[name] = (typeof(T), value); return value; }
-            //
+            var _ = new ChangedFields(ManageFlags.PersonChanged);
             bespoke?.Invoke(s);
-            if (ManageRecordBase(s.key, s.XCF, 0, out var cf, out var add, out last))
-                return ManageFlags.PersonChanged;
+            if (ManageRecordBase(s.key, s.XCF, 0, out var cf, out var add, out var last2))
+                return (_.Changed(), last2);
             // cache template
             if (DateTime.Now > FormExpires || FormLookups.locations == null)
             {
@@ -315,117 +313,117 @@ namespace Automa.IO.Unanet.Records
                 throw new ArgumentOutOfRangeException(nameof(s.expense_approval_group), s.expense_approval_group);
             if (restrictedUsernames != null && restrictedUsernames.Contains(s.username))
                 throw new InvalidOperationException($"{s.username} restricted user, please update manually.");
-            var r = una.SubmitManage(add ? HttpMethod.Post : HttpMethod.Put, "people",
+            var (r, last) = await una.SubmitManageAsync(add ? HttpMethod.Post : HttpMethod.Put, "people",
                 $"personkey={s.key}",
-                out last, (z, f) =>
+                (z, f) =>
             {
-                if (add || cf.Contains("u")) f.Values["username"] = _t(s.username, nameof(s.username));
-                if (add || cf.Contains("fn")) f.Values["first_name"] = _t(s.first_name, nameof(s.first_name));
-                if (add || cf.Contains("ln")) f.Values["last_name"] = _t(s.last_name, nameof(s.last_name));
-                if (add || cf.Contains("mi")) f.Values["middleInitial"] = _t(s.middle_initial, nameof(s.middle_initial));
-                if (add || cf.Contains("s")) f.Values["suffix"] = _t(s.suffix, nameof(s.suffix));
-                //if (add || cf.Contains("n")) f.Values["xxxx"] = _t(s.nickname, nameof(s.nickname));
+                if (add || cf.Contains("u")) f.Values["username"] = _._(s.username, nameof(s.username));
+                if (add || cf.Contains("fn")) f.Values["first_name"] = _._(s.first_name, nameof(s.first_name));
+                if (add || cf.Contains("ln")) f.Values["last_name"] = _._(s.last_name, nameof(s.last_name));
+                if (add || cf.Contains("mi")) f.Values["middleInitial"] = _._(s.middle_initial, nameof(s.middle_initial));
+                if (add || cf.Contains("s")) f.Values["suffix"] = _._(s.suffix, nameof(s.suffix));
+                //if (add || cf.Contains("n")) f.Values["xxxx"] = _._(s.nickname, nameof(s.nickname));
                 //
-                if (add || cf.Contains("es")) f.FromSelectByKey("exempt", _t(s.exempt_status, nameof(s.exempt_status)));
-                if (add || cf.Contains("r")) f.FromMultiCheckbox("rolenames", _t(s.roles, nameof(s.roles)));
+                if (add || cf.Contains("es")) f.FromSelectByKey("exempt", _._(s.exempt_status, nameof(s.exempt_status)));
+                if (add || cf.Contains("r")) f.FromMultiCheckbox("rolenames", _._(s.roles, nameof(s.roles)));
 
-                if (add || cf.Contains("tp")) f.FromSelect("timePeriod", _t(s.time_period, nameof(s.time_period)));
-                if (add || cf.Contains("pc")) f.FromSelect("payCode", _t(s.pay_code, nameof(s.pay_code)));
-                if (add || cf.Contains("hi")) f.FromSelectByKey("hour_increment", _t(s.hour_increment, nameof(s.hour_increment))?.ToString());
-                //if (add || cf.Contains("eag")) f.Values["expense_request_chain"] = GetLookupValue(approvalGroups, _t(s.expense_approval_group, nameof(s.expense_approval_group)));
-                //if (add || cf.Contains("eag")) f.Values["expense_report_chain"] = GetLookupValue(approvalGroups, _t(s.expense_approval_group, nameof(s.expense_approval_group)));
+                if (add || cf.Contains("tp")) f.FromSelect("timePeriod", _._(s.time_period, nameof(s.time_period)));
+                if (add || cf.Contains("pc")) f.FromSelect("payCode", _._(s.pay_code, nameof(s.pay_code)));
+                if (add || cf.Contains("hi")) f.FromSelectByKey("hour_increment", _._(s.hour_increment, nameof(s.hour_increment))?.ToString());
+                //if (add || cf.Contains("eag")) f.Values["expense_request_chain"] = GetLookupValue(approvalGroups, _._(s.expense_approval_group, nameof(s.expense_approval_group)));
+                //if (add || cf.Contains("eag")) f.Values["expense_report_chain"] = GetLookupValue(approvalGroups, _._(s.expense_approval_group, nameof(s.expense_approval_group)));
                 //
-                if (add || cf.Contains("pc2")) f.Values["person_code"] = _t(s.person_code, nameof(s.person_code));
-                if (add || cf.Contains("ic1") || cf.Contains("bind")) f.Values["empId"] = _t(s.id_code_1, nameof(s.id_code_1));
-                if (add || cf.Contains("ic2")) f.Values["ssn"] = _t(s.id_code_2, nameof(s.id_code_2));
-                //if (add || cf.Contains("p")) f.Values["password1"] = _t(s.password, nameof(s.password));
-                //if (add || cf.Contains("ip")) f.Values["password2"] = _t(s.ivr_password, nameof(s.xxivr_passwordxx));
-                if (add || cf.Contains("e")) f.Values["email"] = _t(s.email, nameof(s.email));
-                if (add || cf.Contains("poc")) f.Values["personOrg"] = GetLookupValue(FormLookups.organizations, _t(s.person_org_code, nameof(s.person_org_code)), true);
-                if (add || cf.Contains("br")) f.Values["bill_rate"] = _t(s.bill_rate, nameof(s.bill_rate))?.ToString();
-                if (add || cf.Contains("cr")) f.Values["cost_rate"] = _t(s.cost_rate, nameof(s.cost_rate))?.ToString();
-                //if (add || cf.Contains("tag")) f.Values["leave_request"] = GetLookupValue(approvalGroups, _t(s.time_approval_group, nameof(s.time_approval_group)));
-                //if (add || cf.Contains("tag")) f.Values["time_chain"] = GetLookupValue(approvalGroups, _t(s.time_approval_group, nameof(s.time_approval_group)));
+                if (add || cf.Contains("pc2")) f.Values["person_code"] = _._(s.person_code, nameof(s.person_code));
+                if (add || cf.Contains("ic1") || cf.Contains("bind")) f.Values["empId"] = _._(s.id_code_1, nameof(s.id_code_1));
+                if (add || cf.Contains("ic2")) f.Values["ssn"] = _._(s.id_code_2, nameof(s.id_code_2));
+                //if (add || cf.Contains("p")) f.Values["password1"] = _._(s.password, nameof(s.password));
+                //if (add || cf.Contains("ip")) f.Values["password2"] = _._(s.ivr_password, nameof(s.xxivr_passwordxx));
+                if (add || cf.Contains("e")) f.Values["email"] = _._(s.email, nameof(s.email));
+                if (add || cf.Contains("poc")) f.Values["personOrg"] = GetLookupValue(FormLookups.organizations, _._(s.person_org_code, nameof(s.person_org_code)), true);
+                if (add || cf.Contains("br")) f.Values["bill_rate"] = _._(s.bill_rate, nameof(s.bill_rate))?.ToString();
+                if (add || cf.Contains("cr")) f.Values["cost_rate"] = _._(s.cost_rate, nameof(s.cost_rate))?.ToString();
+                //if (add || cf.Contains("tag")) f.Values["leave_request"] = GetLookupValue(approvalGroups, _._(s.time_approval_group, nameof(s.time_approval_group)));
+                //if (add || cf.Contains("tag")) f.Values["time_chain"] = GetLookupValue(approvalGroups, _._(s.time_approval_group, nameof(s.time_approval_group)));
                 //
-                if (add || cf.Contains("a")) f.Checked["active"] = _t(s.active, nameof(s.active)) == "Y";
-                if (add || cf.Contains("te")) f.Checked["timesheet_email"] = _t(s.timesheet_emails, nameof(s.timesheet_emails)) == "Y";
-                if (add || cf.Contains("ee")) f.Checked["expense_email"] = _t(s.expense_emails, nameof(s.expense_emails)) == "Y";
-                if (add || cf.Contains("at")) f.Checked["timesheet_lines"] = _t(s.autofill_timesheet, nameof(s.autofill_timesheet)) == "Y";
-                if (add || cf.Contains("eaa")) f.Values["expense_approval_amount"] = _t(s.expense_approval_amount, nameof(s.expense_approval_amount));
-                if (add || cf.Contains("ed")) f.Values["rate_begin_date"] = _t(s.effective_date, nameof(s.effective_date))?.ToString("M/d/yyyy");
+                if (add || cf.Contains("a")) f.Checked["active"] = _._(s.active, nameof(s.active)) == "Y";
+                if (add || cf.Contains("te")) f.Checked["timesheet_email"] = _._(s.timesheet_emails, nameof(s.timesheet_emails)) == "Y";
+                if (add || cf.Contains("ee")) f.Checked["expense_email"] = _._(s.expense_emails, nameof(s.expense_emails)) == "Y";
+                if (add || cf.Contains("at")) f.Checked["timesheet_lines"] = _._(s.autofill_timesheet, nameof(s.autofill_timesheet)) == "Y";
+                if (add || cf.Contains("eaa")) f.Values["expense_approval_amount"] = _._(s.expense_approval_amount, nameof(s.expense_approval_amount));
+                if (add || cf.Contains("ed")) f.Values["rate_begin_date"] = _._(s.effective_date, nameof(s.effective_date))?.ToString("M/d/yyyy");
                 if (f.Values.ContainsKey("end_date")) f.Values["end_date"] = "0";
-                //if (add || cf.Contains("dp")) f.Values["xxxx"] = _t(s.dilution_period, nameof(s.dilution_period));
-                //if (add || cf.Contains("dpo")) f.Values["xxxx"] = _t(s.default_project_org, nameof(s.default_project_org));
-                //if (add || cf.Contains("dp2")) f.Values["xxxx"] = _t(s.default_project, nameof(s.default_project));
-                //if (add || cf.Contains("dt")) f.Values["xxxx"] = _t(s.default_task, nameof(s.default_task));
+                //if (add || cf.Contains("dp")) f.Values["xxxx"] = _._(s.dilution_period, nameof(s.dilution_period));
+                //if (add || cf.Contains("dpo")) f.Values["xxxx"] = _._(s.default_project_org, nameof(s.default_project_org));
+                //if (add || cf.Contains("dp2")) f.Values["xxxx"] = _._(s.default_project, nameof(s.default_project));
+                //if (add || cf.Contains("dt")) f.Values["xxxx"] = _._(s.default_task, nameof(s.default_task));
                 //
-                if (add || cf.Contains("dlc")) f.Values["labor_category"] = GetLookupValue(FormLookups.laborCategories, _t(s.default_labor_category, nameof(s.default_labor_category)), true);
-                if (add || cf.Contains("dpm")) f.FromSelect("payment_method_key", _t(s.default_payment_method, nameof(s.default_payment_method)));
-                if (add || cf.Contains("tr")) f.FromSelectByKey("titoRequired", _t(s.tito_required, nameof(s.tito_required)));
-                if (add || cf.Contains("bw")) f.FromSelect("businessWeek", _t(s.business_week, nameof(s.business_week)));
-                if (add || cf.Contains("ae")) f.Checked["assignment_email"] = _t(s.assignment_emails, nameof(s.assignment_emails)) == "Y";
+                if (add || cf.Contains("dlc")) f.Values["labor_category"] = GetLookupValue(FormLookups.laborCategories, _._(s.default_labor_category, nameof(s.default_labor_category)), true);
+                if (add || cf.Contains("dpm")) f.FromSelect("payment_method_key", _._(s.default_payment_method, nameof(s.default_payment_method)));
+                if (add || cf.Contains("tr")) f.FromSelectByKey("titoRequired", _._(s.tito_required, nameof(s.tito_required)));
+                if (add || cf.Contains("bw")) f.FromSelect("businessWeek", _._(s.business_week, nameof(s.business_week)));
+                if (add || cf.Contains("ae")) f.Checked["assignment_email"] = _._(s.assignment_emails, nameof(s.assignment_emails)) == "Y";
                 //
-                if (add || cf.Contains("u1")) f.Values["udf_0"] = _t(s.user01, nameof(s.user01));
-                if (add || cf.Contains("u2")) f.Values["udf_1"] = _t(s.user02, nameof(s.user02));
-                //if (add || cf.Contains("u3")) f.Values["udf_2"] = _t(s.user03, nameof(s.user03));
-                if (add || cf.Contains("u4")) f.Values["udf_3"] = _t(s.user04, nameof(s.user04));
-                if (add || cf.Contains("u5")) f.Values["udf_4"] = _t(s.user05, nameof(s.user05));
-                //if (add || cf.Contains("u6")) f.Values["udf_5"] = _t(s.user06, nameof(s.user06));
-                //if (add || cf.Contains("u7")) f.Values["udf_6"] = _t(s.user07, nameof(s.user07));
-                //if (add || cf.Contains("u8")) f.Values["udf_7"] = _t(s.user08, nameof(s.user08));
-                if (add || cf.Contains("u9")) f.Values["udf_8"] = _t(s.user09, nameof(s.user09));
-                if (add || cf.Contains("u10")) f.Values["udf_9"] = _t(s.user10, nameof(s.user10));
+                if (add || cf.Contains("u1")) f.Values["udf_0"] = _._(s.user01, nameof(s.user01));
+                if (add || cf.Contains("u2")) f.Values["udf_1"] = _._(s.user02, nameof(s.user02));
+                //if (add || cf.Contains("u3")) f.Values["udf_2"] = _._(s.user03, nameof(s.user03));
+                if (add || cf.Contains("u4")) f.Values["udf_3"] = _._(s.user04, nameof(s.user04));
+                if (add || cf.Contains("u5")) f.Values["udf_4"] = _._(s.user05, nameof(s.user05));
+                //if (add || cf.Contains("u6")) f.Values["udf_5"] = _._(s.user06, nameof(s.user06));
+                //if (add || cf.Contains("u7")) f.Values["udf_6"] = _._(s.user07, nameof(s.user07));
+                //if (add || cf.Contains("u8")) f.Values["udf_7"] = _._(s.user08, nameof(s.user08));
+                if (add || cf.Contains("u9")) f.Values["udf_8"] = _._(s.user09, nameof(s.user09));
+                if (add || cf.Contains("u10")) f.Values["udf_9"] = _._(s.user10, nameof(s.user10));
                 //
-                if (add || cf.Contains("hd")) f.Values["hire_date"] = _t(s.hire_date, nameof(s.hire_date))?.ToString("M/d/yyyy");
-                if (add || cf.Contains("pc3")) f.FromSelectByPredicate("paymentCurrency", _t(s.payment_currency, nameof(s.payment_currency)), x => x.Value.StartsWith(s.payment_currency));
-                if (add || cf.Contains("cs")) f.FromSelectByPredicate("costStructLabor", _t(s.cost_structure, nameof(s.cost_structure)), x => x.Value.StartsWith(s.cost_structure));
-                //if (add || cf.Contains("ce")) f.Values["xxxx"] = _t(s.cost_element, nameof(s.cost_element));
-                //if (add || cf.Contains("ul")) f.Values["xxxx"] = _t(s.unlock, nameof(s.unlock));
-                if (add || cf.Contains("l")) f.Values["location"] = GetLookupValue(FormLookups.locations, _t(s.location, nameof(s.location)), true);
+                if (add || cf.Contains("hd")) f.Values["hire_date"] = _._(s.hire_date, nameof(s.hire_date))?.ToString("M/d/yyyy");
+                if (add || cf.Contains("pc3")) f.FromSelectByPredicate("paymentCurrency", _._(s.payment_currency, nameof(s.payment_currency)), x => x.Value.StartsWith(s.payment_currency));
+                if (add || cf.Contains("cs")) f.FromSelectByPredicate("costStructLabor", _._(s.cost_structure, nameof(s.cost_structure)), x => x.Value.StartsWith(s.cost_structure));
+                //if (add || cf.Contains("ce")) f.Values["xxxx"] = _._(s.cost_element, nameof(s.cost_element));
+                //if (add || cf.Contains("ul")) f.Values["xxxx"] = _._(s.unlock, nameof(s.unlock));
+                if (add || cf.Contains("l")) f.Values["location"] = GetLookupValue(FormLookups.locations, _._(s.location, nameof(s.location)), true);
                 //
-                if (add || cf.Contains("et")) f.FromSelect("employeeType", _t(s.employee_type, nameof(s.employee_type)));
-                //if (add || cf.Contains("hv")) f.Values["hide_vat"] = _t(s.hide_vat, nameof(s.hide_vat));
-                //if (add || cf.Contains("lre")) f.Values["xxxx"] = _t(s.leave_request_emails, nameof(s.leave_request_emails));
-                //if (add || cf.Contains("tu")) f.Values["xxxx"] = _t(s.tbd_user, nameof(s.tbd_user));
-                if (add || cf.Contains("tv")) f.Values["timeVendor"] = GetLookupValue(FormLookups.vendorProfiles, _t(s.time_vendor, nameof(s.time_vendor)));
-                if (add || cf.Contains("ev")) f.Values["expenseVendor"] = GetLookupValue(FormLookups.vendorProfiles, _t(s.expense_vendor, nameof(s.expense_vendor)));
+                if (add || cf.Contains("et")) f.FromSelect("employeeType", _._(s.employee_type, nameof(s.employee_type)));
+                //if (add || cf.Contains("hv")) f.Values["hide_vat"] = _._(s.hide_vat, nameof(s.hide_vat));
+                //if (add || cf.Contains("lre")) f.Values["xxxx"] = _._(s.leave_request_emails, nameof(s.leave_request_emails));
+                //if (add || cf.Contains("tu")) f.Values["xxxx"] = _._(s.tbd_user, nameof(s.tbd_user));
+                if (add || cf.Contains("tv")) f.Values["timeVendor"] = GetLookupValue(FormLookups.vendorProfiles, _._(s.time_vendor, nameof(s.time_vendor)));
+                if (add || cf.Contains("ev")) f.Values["expenseVendor"] = GetLookupValue(FormLookups.vendorProfiles, _._(s.expense_vendor, nameof(s.expense_vendor)));
 
-                //if (add || cf.Contains("phd")) f.Values["xxxx"] = _t(s.payroll_hire_date, nameof(s.payroll_hire_date))?.ToString("M/d/yyyy");
-                //if (add || cf.Contains("pms")) f.Values["xxxx"] = _t(s.payroll_marital_status, nameof(s.payroll_marital_status));
-                //if (add || cf.Contains("pfe")) f.Values["xxxx"] = _t(s.payroll_federal_exemptions, nameof(s.payroll_federal_exemptions));
-                //if (add || cf.Contains("pstc")) f.Values["xxxx"] = _t(s.payroll_sui_tax_code, nameof(s.payroll_sui_tax_code));
-                //if (add || cf.Contains("pswi")) f.Values["xxxx"] = _t(s.payroll_state_worked_in, nameof(s.payroll_state_worked_in));
-                //if (add || cf.Contains("pis")) f.Values["xxxx"] = _t(s.payroll_immigration_status, nameof(s.payroll_immigration_status));
-                //if (add || cf.Contains("pec")) f.Values["xxxx"] = _t(s.payroll_eeo_code, nameof(s.payroll_eeo_code));
-                //if (add || cf.Contains("pmp")) f.Values["xxxx"] = _t(s.payroll_medical_plan, nameof(s.payroll_medical_plan));
-                //if (add || cf.Contains("plrcd")) f.Values["xxxx"] = _t(s.payroll_last_rate_change_date, nameof(s.payroll_last_rate_change_date));
-                //if (add || cf.Contains("plrc")) f.Values["xxxx"] = _t(s.payroll_last_rate_change, nameof(s.payroll_last_rate_change));
+                //if (add || cf.Contains("phd")) f.Values["xxxx"] = _._(s.payroll_hire_date, nameof(s.payroll_hire_date))?.ToString("M/d/yyyy");
+                //if (add || cf.Contains("pms")) f.Values["xxxx"] = _._(s.payroll_marital_status, nameof(s.payroll_marital_status));
+                //if (add || cf.Contains("pfe")) f.Values["xxxx"] = _._(s.payroll_federal_exemptions, nameof(s.payroll_federal_exemptions));
+                //if (add || cf.Contains("pstc")) f.Values["xxxx"] = _._(s.payroll_sui_tax_code, nameof(s.payroll_sui_tax_code));
+                //if (add || cf.Contains("pswi")) f.Values["xxxx"] = _._(s.payroll_state_worked_in, nameof(s.payroll_state_worked_in));
+                //if (add || cf.Contains("pis")) f.Values["xxxx"] = _._(s.payroll_immigration_status, nameof(s.payroll_immigration_status));
+                //if (add || cf.Contains("pec")) f.Values["xxxx"] = _._(s.payroll_eeo_code, nameof(s.payroll_eeo_code));
+                //if (add || cf.Contains("pmp")) f.Values["xxxx"] = _._(s.payroll_medical_plan, nameof(s.payroll_medical_plan));
+                //if (add || cf.Contains("plrcd")) f.Values["xxxx"] = _._(s.payroll_last_rate_change_date, nameof(s.payroll_last_rate_change_date));
+                //if (add || cf.Contains("plrc")) f.Values["xxxx"] = _._(s.payroll_last_rate_change, nameof(s.payroll_last_rate_change));
 
                 // NEW
-                //if (add || cf.Contains("ppaa")) f.Values["xxxx"] = _t(s.person_purchase_approval_amt, nameof(s.person_purchase_approval_amt));
-                //if (add || cf.Contains("ppe")) f.Checked["xxxx"] = _t(s.person_purchase_email, nameof(s.person_purchase_email)) == "Y";
+                //if (add || cf.Contains("ppaa")) f.Values["xxxx"] = _._(s.person_purchase_approval_amt, nameof(s.person_purchase_approval_amt));
+                //if (add || cf.Contains("ppe")) f.Checked["xxxx"] = _._(s.person_purchase_email, nameof(s.person_purchase_email)) == "Y";
                 //
-                if (add || cf.Contains("pagt")) f.Values["time_chain"] = GetLookupValue(FormLookups.approvalGroups, _t(s.person_approval_grp_timesheet, nameof(s.person_approval_grp_timesheet)), missingThrows: true);
-                if (add || cf.Contains("pagl")) f.Values["leave_request"] = GetLookupValue(FormLookups.approvalGroups, _t(s.person_approval_grp_leave, nameof(s.person_approval_grp_leave)), missingThrows: true);
-                if (add || cf.Contains("pager")) f.Values["expense_report_chain"] = GetLookupValue(FormLookups.approvalGroups, _t(s.person_approval_grp_exp_rep, nameof(s.person_approval_grp_exp_rep)), missingThrows: true);
-                if (add || cf.Contains("pager2")) f.Values["expense_request_chain"] = GetLookupValue(FormLookups.approvalGroups, _t(s.person_approval_grp_exp_req, nameof(s.person_approval_grp_exp_req)), missingThrows: true);
-                //if (add || cf.Contains("pagp")) f.Values["xxxx"] = _t(s.person_approval_grp_po, nameof(s.person_approval_grp_po));
-                //if (add || cf.Contains("pagp2")) f.Values["xxxx"] = _t(s.person_approval_grp_pr, nameof(s.person_approval_grp_pr));
-                //if (add || cf.Contains("pagv")) f.Values["xxxx"] = _t(s.person_approval_grp_vi, nameof(s.person_approval_grp_vi));
+                if (add || cf.Contains("pagt")) f.Values["time_chain"] = GetLookupValue(FormLookups.approvalGroups, _._(s.person_approval_grp_timesheet, nameof(s.person_approval_grp_timesheet)), missingThrows: true);
+                if (add || cf.Contains("pagl")) f.Values["leave_request"] = GetLookupValue(FormLookups.approvalGroups, _._(s.person_approval_grp_leave, nameof(s.person_approval_grp_leave)), missingThrows: true);
+                if (add || cf.Contains("pager")) f.Values["expense_report_chain"] = GetLookupValue(FormLookups.approvalGroups, _._(s.person_approval_grp_exp_rep, nameof(s.person_approval_grp_exp_rep)), missingThrows: true);
+                if (add || cf.Contains("pager2")) f.Values["expense_request_chain"] = GetLookupValue(FormLookups.approvalGroups, _._(s.person_approval_grp_exp_req, nameof(s.person_approval_grp_exp_req)), missingThrows: true);
+                //if (add || cf.Contains("pagp")) f.Values["xxxx"] = _._(s.person_approval_grp_po, nameof(s.person_approval_grp_po));
+                //if (add || cf.Contains("pagp2")) f.Values["xxxx"] = _._(s.person_approval_grp_pr, nameof(s.person_approval_grp_pr));
+                //if (add || cf.Contains("pagv")) f.Values["xxxx"] = _._(s.person_approval_grp_vi, nameof(s.person_approval_grp_vi));
                 //
-                //if (add || cf.Contains("u11")) f.Values["udf_10"] = _t(s.user11, nameof(s.user11));
-                //if (add || cf.Contains("u12")) f.Values["udf_11"] = _t(s.user12, nameof(s.user12));
-                //if (add || cf.Contains("u13")) f.Values["udf_12"] = _t(s.user13, nameof(s.user13));
-                //if (add || cf.Contains("u14")) f.Values["udf_13"] = _t(s.user14, nameof(s.user14));
-                //if (add || cf.Contains("u15")) f.Values["udf_14"] = _t(s.user15, nameof(s.user15));
-                //if (add || cf.Contains("u16")) f.Values["udf_15"] = _t(s.user16, nameof(s.user16));
-                //if (add || cf.Contains("u17")) f.Values["udf_16"] = _t(s.user17, nameof(s.user17));
-                //if (add || cf.Contains("u18")) f.Values["udf_17"] = _t(s.user18, nameof(s.user18));
-                //if (add || cf.Contains("u19")) f.Values["udf_18"] = _t(s.user19, nameof(s.user19));
-                //if (add || cf.Contains("u20")) f.Values["udf_19"] = _t(s.user20, nameof(s.user20));
+                //if (add || cf.Contains("u11")) f.Values["udf_10"] = _._(s.user11, nameof(s.user11));
+                //if (add || cf.Contains("u12")) f.Values["udf_11"] = _._(s.user12, nameof(s.user12));
+                //if (add || cf.Contains("u13")) f.Values["udf_12"] = _._(s.user13, nameof(s.user13));
+                //if (add || cf.Contains("u14")) f.Values["udf_13"] = _._(s.user14, nameof(s.user14));
+                //if (add || cf.Contains("u15")) f.Values["udf_14"] = _._(s.user15, nameof(s.user15));
+                //if (add || cf.Contains("u16")) f.Values["udf_15"] = _._(s.user16, nameof(s.user16));
+                //if (add || cf.Contains("u17")) f.Values["udf_16"] = _._(s.user17, nameof(s.user17));
+                //if (add || cf.Contains("u18")) f.Values["udf_17"] = _._(s.user18, nameof(s.user18));
+                //if (add || cf.Contains("u19")) f.Values["udf_18"] = _._(s.user19, nameof(s.user19));
+                //if (add || cf.Contains("u20")) f.Values["udf_19"] = _._(s.user20, nameof(s.user20));
                 //
-                //if (add || cf.Contains("vip")) f.Checked["xxxx"] = _t(s.vendor_invoice_person, nameof(s.vendor_invoice_person)) == "Y";
-                //if (add || cf.Contains("pft")) f.Values["xxxx"] = _t(s.po_form_title, nameof(s.po_form_title));
+                //if (add || cf.Contains("vip")) f.Checked["xxxx"] = _._(s.vendor_invoice_person, nameof(s.vendor_invoice_person)) == "Y";
+                //if (add || cf.Contains("pft")) f.Values["xxxx"] = _._(s.po_form_title, nameof(s.po_form_title));
 
                 f.Add("button_save", "action", null);
                 // edit rate row for effective_date|exempt_status|costStructLabor|bill_rate|cost_rate
@@ -442,9 +440,7 @@ namespace Automa.IO.Unanet.Records
                     //f.Values["selectedRateKey"] = rateKey;
                 }
             });
-            return r != null ?
-                ManageFlags.PersonChanged :
-                ManageFlags.None;
+            return (_.Changed(r), last);
         }
     }
 }

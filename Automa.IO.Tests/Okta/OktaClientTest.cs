@@ -1,6 +1,7 @@
 ﻿using NUnit.Framework;
 using System;
 using System.IO;
+using System.Threading.Tasks;
 
 namespace Automa.IO.Okta
 {
@@ -12,7 +13,7 @@ namespace Automa.IO.Okta
         [SetUp] public void Configure() => _client = GetOktaClient();
         [TearDown] public void TearDown() { _client?.Dispose(); _client = null; }
 
-        OktaClient GetOktaClient(bool deleteFile = false)
+        OktaClient GetOktaClient(bool deleteFile = false, bool proxy = false)
         {
             if (!Directory.Exists(SourcePath))
                 Directory.CreateDirectory(SourcePath);
@@ -22,7 +23,7 @@ namespace Automa.IO.Okta
                 File.Delete(accessTokenFile);
             if (deleteFile && File.Exists(cookieFile))
                 File.Delete(cookieFile);
-            return new OktaClient(new Uri("https://isobar.okta.com"), "dentsuaegis")
+            return new OktaClient(new Uri("https://isobar.okta.com"), "dentsuaegis", proxy ? new Config() : null)
             {
                 Logger = Console.WriteLine,
                 CookiesBytes = File.Exists(cookieFile) ? File.ReadAllBytes(cookieFile) : null,
@@ -32,17 +33,17 @@ namespace Automa.IO.Okta
         }
 
         [Test]
-        public void Should_read_normally()
+        public async Task Should_read_normally()
         {
-            var app = _client.TrySelectApplication("workday");
+            var app = await _client.AutomaSelectApplicationAsync("workday");
             //var file = _client.GetReport("/d/task/1422$2059.htmld");
             //Console.WriteLine(me);
         }
 
         [Test]
-        public void Should_read_getme_normally()
+        public async Task Should_read_getme_normally()
         {
-            var app = _client.TrySelectApplication("workday");
+            var app = await _client.AutomaSelectApplicationAsync("workday");
             //var file = _client.GetReport("/d/task/1422$2059.htmld");
             //Console.WriteLine(me);
         }

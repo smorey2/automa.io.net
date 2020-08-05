@@ -41,22 +41,22 @@ namespace Automa.IO.Unanet.Reports
         public string AccountTypeOrderBy { get; set; }
         public string ArrangeBy { get; set; }
 
-        public static Task<bool> ExportFileAsync(UnanetClient una, string accountType, string sourceFolder, DateTime? beginDate = null, DateTime? endDate = null, string legalEntity = null, string wipAcct = null)
+        public static async Task<bool> ExportFileAsync(UnanetClient una, string accountType, string sourceFolder, DateTime? beginDate = null, DateTime? endDate = null, string legalEntity = null, string wipAcct = null)
         {
             string account = null;
             if (accountType == "Wip")
             {
-                var options = una.GetOptions("AccountMenu", "account", wipAcct ?? una.Settings.WipAcct);
+                var options = await una.GetOptionsAsync("AccountMenu", "account", wipAcct ?? una.Options.WipAcct);
                 if (options.Count != 1)
-                    throw new InvalidOperationException($"Can not find: {wipAcct ?? una.Settings.WipAcct}");
+                    throw new InvalidOperationException($"Can not find: {wipAcct ?? una.Options.WipAcct}");
                 account = options.First().Key;
             }
             var filePath = Path.Combine(sourceFolder, "report.csv");
             if (File.Exists(filePath))
                 File.Delete(filePath);
-            return Task.Run(() => una.RunReport("financials/detail/general_ledger", (z, f) =>
+            return await Task.Run(() => una.RunReportAsync("financials/detail/general_ledger", (z, f) =>
             {
-                f.FromSelect("legalEntity", legalEntity ?? una.Settings.LegalEntity);
+                f.FromSelect("legalEntity", legalEntity ?? una.Options.LegalEntity);
                 if (accountType == "Wip") f.Values["account"] = account;
                 else f.FromSelect("accountType", accountType); // "Revenue"
                 string fpBegin = (beginDate ?? BeginFinanceDate).ToString("yyyy-MM"), fpEnd = (endDate ?? DateTime.Today).ToString("yyyy-MM");

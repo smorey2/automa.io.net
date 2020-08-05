@@ -21,15 +21,15 @@ namespace Automa.IO.Unanet.Records
 
         public static Task<(bool success, string message, bool hasFile, object tag)> ExportFileAsync(UnanetClient una, string sourceFolder, int window, string legalEntity = null)
         {
-            var filePath = Path.Combine(sourceFolder, una.Settings.invoice.file);
+            var filePath = Path.Combine(sourceFolder, una.Options.invoice.file);
             if (File.Exists(filePath))
                 File.Delete(filePath);
-            return Task.Run(() => una.GetEntitiesByExport(una.Settings.invoice.key, (z, f) =>
+            return Task.Run(() => una.GetEntitiesByExportAsync(una.Options.invoice.key, (z, f) =>
             {
                 GetWindowDates(nameof(InvoiceModel), window, out var beginDate, out var endDate);
-                f.Values["filename"] = una.Settings.invoice.file;
+                f.Values["filename"] = una.Options.invoice.file;
                 f.Checked["suppressOutput"] = true;
-                f.FromSelect("legalEntity", legalEntity ?? una.Settings.LegalEntity);
+                f.FromSelect("legalEntity", legalEntity ?? una.Options.LegalEntity);
                 f.Values["invoiceDate_bDate"] = beginDate.FromDateTime("BOT"); f.Values["invoiceDate_eDate"] = endDate.FromDateTime("EOT");
                 f.FromSelectByKey("invoiceDate", "custom");
                 f.Values["prange_bDate"] = "BOT"; f.Values["prange_eDate"] = "EOT";
@@ -40,7 +40,7 @@ namespace Automa.IO.Unanet.Records
 
         public static IEnumerable<InvoiceModel> Read(UnanetClient una, string sourceFolder)
         {
-            var filePath = Path.Combine(sourceFolder, una.Settings.invoice.file);
+            var filePath = Path.Combine(sourceFolder, una.Options.invoice.file);
             using (var sr = File.OpenRead(filePath))
                 return CsvReader.Read(sr, x => new InvoiceModel
                 {

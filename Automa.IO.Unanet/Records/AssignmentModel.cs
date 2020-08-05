@@ -43,10 +43,10 @@ namespace Automa.IO.Unanet.Records
 
         public static Task<(bool success, string message, bool hasFile, object tag)> ExportFileAsync(UnanetClient una, string sourceFolder)
         {
-            var filePath = Path.Combine(sourceFolder, una.Settings.assignment.file);
+            var filePath = Path.Combine(sourceFolder, una.Options.assignment.file);
             if (File.Exists(filePath))
                 File.Delete(filePath);
-            return Task.Run(() => una.GetEntitiesByExport(una.Settings.assignment.key, (z, f) =>
+            return Task.Run(() => una.GetEntitiesByExportAsync(una.Options.assignment.key, (z, f) =>
             {
                 f.Checked["suppressOutput"] = true;
                 f.Checked["person_outputActive"] = true; f.Checked["person_outputInactive"] = true;
@@ -61,7 +61,7 @@ namespace Automa.IO.Unanet.Records
 
         public static IEnumerable<AssignmentModel> Read(UnanetClient una, string sourceFolder)
         {
-            var filePath = Path.Combine(sourceFolder, una.Settings.assignment.file);
+            var filePath = Path.Combine(sourceFolder, una.Options.assignment.file);
             using (var sr = File.OpenRead(filePath))
                 return CsvReader.Read(sr, x => new AssignmentModel
                 {
@@ -116,14 +116,12 @@ namespace Automa.IO.Unanet.Records
             public string XCF { get; set; }
         }
 
-        public static ManageFlags ManageRecord(UnanetClient una, p_Assignment1 s, out Dictionary<string, (Type, object)> fields, out string last, Action<p_Assignment1> bespoke = null)
+        public static async Task<(ChangedFields changed, string last)> ManageRecordAsync(UnanetClient una, p_Assignment1 s, Action<p_Assignment1> bespoke = null)
         {
-            var _f = fields = new Dictionary<string, (Type, object)>();
-            //T _t<T>(T value, string name) { _f[name] = (typeof(T), value); return value; }
-            //
+            var _ = new ChangedFields(ManageFlags.AssignmentChanged);
             bespoke?.Invoke(s);
-            if (ManageRecordBase(null, s.XCF, 1, out var cf, out var add, out last, canDelete: true))
-                return ManageFlags.AssignmentChanged;
+            if (ManageRecordBase(null, s.XCF, 1, out var cf, out var add, out var last2, canDelete: true))
+                return (_.Changed(), last2);
             var method = !cf.Contains("delete") ? add ? HttpMethod.Post : HttpMethod.Put : HttpMethod.Delete;
             switch (s.assignment_type)
             {
@@ -131,9 +129,9 @@ namespace Automa.IO.Unanet.Records
                     {
                         if (!Unanet.Lookups.TryGetCostCentersAndDefault(s.assign, out var assignKey))
                             throw new InvalidOperationException($"unable to find org {s.assign}");
-                        var r = una.SubmitSubManage("E", method, $"projects/orgs", $"key={assignKey}&nextKey=0",
+                        var (r, last) = await una.SubmitSubManageAsync("E", method, $"projects/orgs", $"key={assignKey}&nextKey=0",
                             $"projectkey={s.project_codeKey}", null,
-                            out last, (z, f) =>
+                            (z, f) =>
                             {
                                 if (add)
                                 {
@@ -142,15 +140,13 @@ namespace Automa.IO.Unanet.Records
                                 }
                                 return f.ToString();
                             }, formOptions: new HtmlFormOptions { ParseOptions = false });
-                        return r != null ?
-                        ManageFlags.AssignmentChanged :
-                        ManageFlags.None;
+                        return (_.Changed(r), last);
                     }
                 case "2":
                     {
-                        var r = una.SubmitSubManage(add ? "E" : "F", method, $"projects/assignment", null,
+                        var (r, last) = await una.SubmitSubManageAsync(add ? "E" : "F", method, $"projects/assignment", null,
                             $"projectkey={s.project_codeKey}", "savedCriteria=&person_mod=false&personClass=com.unanet.page.projects.ScheduledPeopleMenu%24ScheduleListPeopleMenu&person_dbValue=&person_personOrgCode_fltr=&person_lastname_fltr=&person_outputActive=true&location_mod=false&locationClass=com.unanet.page.criteria.FilteredLocationMenu&location_dbValue=&location_location_fltr=&dateRange_bDate=BOT&dateRange_eDate=EOT&dateRange=bot_eot&unit=HOUR&showEstimates=true&savedListName=&criteriaClass=com.unanet.page.projects.AssignmentListCriteria&loadValues=true&restore=false&list=true",
-                            out last, (z, f) =>
+                            (z, f) =>
                             {
                                 if (add)
                                 {
@@ -177,9 +173,7 @@ namespace Automa.IO.Unanet.Records
                                 }
                                 return null;
                             });
-                        return r != null ?
-                        ManageFlags.AssignmentChanged :
-                        ManageFlags.None;
+                        return (_.Changed(r), last);
                     }
                 default: throw new ArgumentOutOfRangeException(nameof(s.assignment_type), s.assignment_type);
             }

@@ -70,10 +70,10 @@ namespace Automa.IO.Unanet.Records
 
         public static Task<(bool success, string message, bool hasFile, object tag)> ExportFileAsync(UnanetClient una, string sourceFolder, string type = "CUSTOMER")
         {
-            var filePath = Path.Combine(sourceFolder, una.Settings.organization.file);
+            var filePath = Path.Combine(sourceFolder, una.Options.organization.file);
             if (File.Exists(filePath))
                 File.Delete(filePath);
-            return Task.Run(() => una.GetEntitiesByExport(una.Settings.organization.key, (z, f) =>
+            return Task.Run(() => una.GetEntitiesByExportAsync(una.Options.organization.key, (z, f) =>
             {
                 f.Checked["suppressOutput"] = true;
                 f.FromSelect("organizationtype", type);
@@ -81,18 +81,18 @@ namespace Automa.IO.Unanet.Records
             }, sourceFolder));
         }
 
-        public static Dictionary<string, Tuple<string, string>> GetList(UnanetClient una, string type) =>
-            una.GetEntitiesByList("organizations", null, (z, f) =>
+        public static async Task<Dictionary<string, Tuple<string, string>>> GetListAsync(UnanetClient una, string type) =>
+            (await Single(una.GetEntitiesByListAsync("organizations", null, (z, f) =>
             {
                 f.FromSelect("organizationtype", type);
                 f.Values["list"] = "true";
-            }).Single()
+            })))
             .ToDictionary(x => x.Value[4].Item1, x => new Tuple<string, string>(x.Key, x.Value[5].Item1));
 
         public static IEnumerable<OrganizationModel> Read(UnanetClient una, string sourceFolder, string type = "CUSTOMER")
         {
-            var list = GetList(una, type);
-            var filePath = Path.Combine(sourceFolder, una.Settings.organization.file);
+            var list = GetListAsync(una, type).GetAwaiter().GetResult();
+            var filePath = Path.Combine(sourceFolder, una.Options.organization.file);
             using (var sr = File.OpenRead(filePath))
                 return CsvReader.Read(sr, x => new OrganizationModel
                 {
@@ -157,7 +157,7 @@ namespace Automa.IO.Unanet.Records
 
         public static IEnumerable<OrganizationModel> EnsureAndRead(UnanetClient una, string sourceFolder, string type)
         {
-            var filePath = Path.Combine(sourceFolder, una.Settings.organization.file);
+            var filePath = Path.Combine(sourceFolder, una.Options.organization.file);
             if (!File.Exists(filePath))
                 ExportFileAsync(una, sourceFolder);
             return Read(una, sourceFolder, type);
@@ -187,98 +187,94 @@ namespace Automa.IO.Unanet.Records
             public string XCF { get; set; }
         }
 
-        public static ManageFlags ManageRecord(UnanetClient una, p_Organization1 s, out Dictionary<string, (Type, object)> fields, out string last, Action<p_Organization1> bespoke = null)
+        public static async Task<(ChangedFields changed, string last)> ManageRecordAsync(UnanetClient una, p_Organization1 s, Action<p_Organization1> bespoke = null)
         {
-            var _f = fields = new Dictionary<string, (Type, object)>();
-            T _t<T>(T value, string name) { _f[name] = (typeof(T), value); return value; }
-            //
+            var _ = new ChangedFields(ManageFlags.OrganizationChanged);
             bespoke?.Invoke(s);
-            if (ManageRecordBase(s.key, s.XCF, 0, out var cf, out var add, out last))
-                return ManageFlags.OrganizationChanged;
-            var r = una.SubmitManage(add ? HttpMethod.Post : HttpMethod.Put, "organizations",
+            if (ManageRecordBase(s.key, s.XCF, 0, out var cf, out var add, out var last2))
+                return (_.Changed(), last2);
+            var (r, last) = await una.SubmitManageAsync(add ? HttpMethod.Post : HttpMethod.Put, "organizations",
                 $"orgKey={s.key}",
-                out last, (z, f) =>
+                (z, f) =>
             {
-                if (add || cf.Contains("oc")) f.Values["orgCode"] = _t(s.organization_code, nameof(s.organization_code));
-                if (add || cf.Contains("on")) f.Values["orgName"] = _t(s.organization_name, nameof(s.organization_name));
+                if (add || cf.Contains("oc")) f.Values["orgCode"] = _._(s.organization_code, nameof(s.organization_code));
+                if (add || cf.Contains("on")) f.Values["orgName"] = _._(s.organization_name, nameof(s.organization_name));
                 if (add) // || cf.Contains("poc"))
-                    if (_t(s.parent_org_code, nameof(s.parent_org_code)) == "CLIENT_TRADE")
+                    if (_._(s.parent_org_code, nameof(s.parent_org_code)) == "CLIENT_TRADE")
                     {
                         //f.Values["poupdate"] = "Y";
                         f.Values["porg"] = "CLIENT_TRADE - Client, Trade";
                         f.Values["parentOrg"] = "480";
                     }
-                    //else if (s.parent_org_code == "CLIENT_TRADE")
-                    //{
-                    //    //f.Values["poupdate"] = "Y";
-                    //    f.Values["porg"] = "CLIENT_Z_ARCHIVES - Client, Archives";
-                    //    f.Values["parentOrg"] = "507";
-                    //}
+                //else if (s.parent_org_code == "CLIENT_TRADE")
+                //{
+                //    //f.Values["poupdate"] = "Y";
+                //    f.Values["porg"] = "CLIENT_Z_ARCHIVES - Client, Archives";
+                //    f.Values["parentOrg"] = "507";
+                //}
                 //
-                //if (add || cf.Contains("ot")) f.Values["xxx"] = _t(s.org_type, nameof(s.org_type));
-                if (add || cf.Contains("s")) f.Values["orgSize"] = _t(s.size, nameof(s.size));
-                if (add || cf.Contains("esc") || cf.Contains("bind")) f.Values["externalSystemCode"] = _t(s.external_system_code, nameof(s.external_system_code));
-                if (add || cf.Contains("sic")) f.Values["sicCode"] = _t(s.sic_code, nameof(s.sic_code));
-                if (add || cf.Contains("c")) f.Values["classification"] = _t(s.classification, nameof(s.classification));
-                if (add || cf.Contains("i")) f.Values["industry"] = _t(s.industry, nameof(s.industry));
-                if (add || cf.Contains("s2")) f.Values["sector"] = _t(s.sector, nameof(s.sector));
-                if (add || cf.Contains("ss")) f.Values["stockSymbol"] = _t(s.stock_symbol, nameof(s.stock_symbol));
-                if (add || cf.Contains("u")) f.Values["homepage"] = _t(s.url, nameof(s.url));
+                //if (add || cf.Contains("ot")) f.Values["xxx"] = _._(s.org_type, nameof(s.org_type));
+                if (add || cf.Contains("s")) f.Values["orgSize"] = _._(s.size, nameof(s.size));
+                if (add || cf.Contains("esc") || cf.Contains("bind")) f.Values["externalSystemCode"] = _._(s.external_system_code, nameof(s.external_system_code));
+                if (add || cf.Contains("sic")) f.Values["sicCode"] = _._(s.sic_code, nameof(s.sic_code));
+                if (add || cf.Contains("c")) f.Values["classification"] = _._(s.classification, nameof(s.classification));
+                if (add || cf.Contains("i")) f.Values["industry"] = _._(s.industry, nameof(s.industry));
+                if (add || cf.Contains("s2")) f.Values["sector"] = _._(s.sector, nameof(s.sector));
+                if (add || cf.Contains("ss")) f.Values["stockSymbol"] = _._(s.stock_symbol, nameof(s.stock_symbol));
+                if (add || cf.Contains("u")) f.Values["homepage"] = _._(s.url, nameof(s.url));
                 //
-                if (add || cf.Contains("u1")) f.Values["udf_0"] = _t(s.user01, nameof(s.user01));
-                if (add || cf.Contains("u2")) f.Values["udf_1"] = _t(s.user02, nameof(s.user02));
-                //if (add || cf.Contains("u3")) f.Values["udf_2"] = _t(s.user03, nameof(s.user03));
-                //if (add || cf.Contains("u4")) f.Values["udf_3"] = _t(s.user04, nameof(s.user04));
-                if (add || cf.Contains("u5")) f.Values["udf_4"] = _t(s.user05, nameof(s.user05));
-                if (add || cf.Contains("u6")) f.Values["udf_5"] = _t(s.user06, nameof(s.user06));
-                //if (add || cf.Contains("u7")) f.Values["udf_6"] = _t(s.user07, nameof(s.user07));
-                if (add || cf.Contains("u8")) f.Values["udf_7"] = _t(s.user08, nameof(s.user08));
-                if (add || cf.Contains("u9")) f.Values["udf_8"] = _t(s.user09, nameof(s.user09));
-                if (add || cf.Contains("u10")) f.Values["udf_9"] = _t(s.user10, nameof(s.user10));
+                if (add || cf.Contains("u1")) f.Values["udf_0"] = _._(s.user01, nameof(s.user01));
+                if (add || cf.Contains("u2")) f.Values["udf_1"] = _._(s.user02, nameof(s.user02));
+                //if (add || cf.Contains("u3")) f.Values["udf_2"] = _._(s.user03, nameof(s.user03));
+                //if (add || cf.Contains("u4")) f.Values["udf_3"] = _._(s.user04, nameof(s.user04));
+                if (add || cf.Contains("u5")) f.Values["udf_4"] = _._(s.user05, nameof(s.user05));
+                if (add || cf.Contains("u6")) f.Values["udf_5"] = _._(s.user06, nameof(s.user06));
+                //if (add || cf.Contains("u7")) f.Values["udf_6"] = _._(s.user07, nameof(s.user07));
+                if (add || cf.Contains("u8")) f.Values["udf_7"] = _._(s.user08, nameof(s.user08));
+                if (add || cf.Contains("u9")) f.Values["udf_8"] = _._(s.user09, nameof(s.user09));
+                if (add || cf.Contains("u10")) f.Values["udf_9"] = _._(s.user10, nameof(s.user10));
                 //
-                if (add || cf.Contains("fo")) f.Checked["financialOrg"] = _t(s.financial_org, nameof(s.financial_org)) == "Y";
+                if (add || cf.Contains("fo")) f.Checked["financialOrg"] = _._(s.financial_org, nameof(s.financial_org)) == "Y";
                 if (s.financial_org == "Y")
                 {
-                    if (add || cf.Contains("le")) f.FromSelectByKey("legalEntity", _t(s.legal_entity, nameof(s.legal_entity)));
-                    //if (add || cf.Contains("lec")) f.Values["xxxx"] = _t(s.legal_entity_code, nameof(s.legal_entity_code));
-                    if (add || cf.Contains("dgpo")) f.FromSelect("defaultGLPostOrg", _t(s.default_gl_post_org, nameof(s.default_gl_post_org)));
-                    if (add || cf.Contains("ea")) f.Checked["entryAllowed"] = _t(s.entry_allowed, nameof(s.entry_allowed)) == "Y";
+                    if (add || cf.Contains("le")) f.FromSelectByKey("legalEntity", _._(s.legal_entity, nameof(s.legal_entity)));
+                    //if (add || cf.Contains("lec")) f.Values["xxxx"] = _._(s.legal_entity_code, nameof(s.legal_entity_code));
+                    if (add || cf.Contains("dgpo")) f.FromSelect("defaultGLPostOrg", _._(s.default_gl_post_org, nameof(s.default_gl_post_org)));
+                    if (add || cf.Contains("ea")) f.Checked["entryAllowed"] = _._(s.entry_allowed, nameof(s.entry_allowed)) == "Y";
                     if (s.entry_allowed == "Y")
                     {
-                        if (add || cf.Contains("ebd")) f.Values["beginDate"] = _t(s.entry_begin_date, nameof(s.entry_begin_date));
-                        if (add || cf.Contains("eed")) f.Values["endDate"] = _t(s.entry_end_date, nameof(s.entry_end_date));
+                        if (add || cf.Contains("ebd")) f.Values["beginDate"] = _._(s.entry_begin_date, nameof(s.entry_begin_date));
+                        if (add || cf.Contains("eed")) f.Values["endDate"] = _._(s.entry_end_date, nameof(s.entry_end_date));
                     }
-                    //if (add || cf.Contains("fp")) f.Values["finParentOrg"] = _t(s.financial_parent, nameof(s.financial_parent));
-                    //if (add || cf.Contains("cpp")) f.Values["costPoolParentOrg"] = _t(s.cost_pool_parent, nameof(s.cost_pool_parent));
+                    //if (add || cf.Contains("fp")) f.Values["finParentOrg"] = _._(s.financial_parent, nameof(s.financial_parent));
+                    //if (add || cf.Contains("cpp")) f.Values["costPoolParentOrg"] = _._(s.cost_pool_parent, nameof(s.cost_pool_parent));
                 }
                 //
-                if (add || cf.Contains("a")) f.Checked["active"] = _t(s.active, nameof(s.active)) == "Y";
-                if (add || cf.Contains("v_1")) f.Checked["vendor1099"] = _t(s.vendor_1099, nameof(s.vendor_1099)) == "Y";
-                if (add || cf.Contains("rn_1")) f.Values["recipientName"] = _t(s.recipient_name_1099, nameof(s.recipient_name_1099));
-                if (add || cf.Contains("e_1")) f.Values["recipientEmail"] = _t(s.email_1099, nameof(s.email_1099));
-                if (add || cf.Contains("ftit")) f.FromSelectByKey("fedTaxIdType", _t(s.federal_tax_id_type, nameof(s.federal_tax_id_type)));
-                if (add || cf.Contains("fti")) f.Values["fedTaxId"] = _t(s.federal_tax_id, nameof(s.federal_tax_id));
-                //if (add || cf.Contains("swpcn")) f.Values["xxxx"] = _t(s.start_with_proj_code_number, nameof(s.start_with_proj_code_number));
+                if (add || cf.Contains("a")) f.Checked["active"] = _._(s.active, nameof(s.active)) == "Y";
+                if (add || cf.Contains("v_1")) f.Checked["vendor1099"] = _._(s.vendor_1099, nameof(s.vendor_1099)) == "Y";
+                if (add || cf.Contains("rn_1")) f.Values["recipientName"] = _._(s.recipient_name_1099, nameof(s.recipient_name_1099));
+                if (add || cf.Contains("e_1")) f.Values["recipientEmail"] = _._(s.email_1099, nameof(s.email_1099));
+                if (add || cf.Contains("ftit")) f.FromSelectByKey("fedTaxIdType", _._(s.federal_tax_id_type, nameof(s.federal_tax_id_type)));
+                if (add || cf.Contains("fti")) f.Values["fedTaxId"] = _._(s.federal_tax_id, nameof(s.federal_tax_id));
+                //if (add || cf.Contains("swpcn")) f.Values["xxxx"] = _._(s.start_with_proj_code_number, nameof(s.start_with_proj_code_number));
                 //
-                //if (add || cf.Contains("u11")) f.Values["udf_10"] = _t(s.user11, nameof(s.user11));
-                //if (add || cf.Contains("u12")) f.Values["udf_11"] = _t(s.user12, nameof(s.user12));
-                //if (add || cf.Contains("u13")) f.Values["udf_12"] = _t(s.user13, nameof(s.user13));
-                //if (add || cf.Contains("u14")) f.Values["udf_13"] = _t(s.user14, nameof(s.user14));
-                //if (add || cf.Contains("u15")) f.Values["udf_14"] = _t(s.user15, nameof(s.user15));
-                //if (add || cf.Contains("u16")) f.Values["udf_15"] = _t(s.user16, nameof(s.user16));
-                //if (add || cf.Contains("u17")) f.Values["udf_16"] = _t(s.user17, nameof(s.user17));
-                //if (add || cf.Contains("u18")) f.Values["udf_17"] = _t(s.user18, nameof(s.user18));
-                //if (add || cf.Contains("u19")) f.Values["udf_18"] = _t(s.user19, nameof(s.user19));
-                //if (add || cf.Contains("u20")) f.Values["udf_19"] = _t(s.user20, nameof(s.user20));
+                //if (add || cf.Contains("u11")) f.Values["udf_10"] = _._(s.user11, nameof(s.user11));
+                //if (add || cf.Contains("u12")) f.Values["udf_11"] = _._(s.user12, nameof(s.user12));
+                //if (add || cf.Contains("u13")) f.Values["udf_12"] = _._(s.user13, nameof(s.user13));
+                //if (add || cf.Contains("u14")) f.Values["udf_13"] = _._(s.user14, nameof(s.user14));
+                //if (add || cf.Contains("u15")) f.Values["udf_14"] = _._(s.user15, nameof(s.user15));
+                //if (add || cf.Contains("u16")) f.Values["udf_15"] = _._(s.user16, nameof(s.user16));
+                //if (add || cf.Contains("u17")) f.Values["udf_16"] = _._(s.user17, nameof(s.user17));
+                //if (add || cf.Contains("u18")) f.Values["udf_17"] = _._(s.user18, nameof(s.user18));
+                //if (add || cf.Contains("u19")) f.Values["udf_18"] = _._(s.user19, nameof(s.user19));
+                //if (add || cf.Contains("u20")) f.Values["udf_19"] = _._(s.user20, nameof(s.user20));
                 //
                 if (add) f.FromSelect("orgType", "CUSTOMER");
                 f.Add("button_save", "action", null);
                 f.Remove("legalEntity", "defaultGLPostOrg", "legalEntityOrg",
                     "beginDate", "endDate", "fporg", "finParentOrg", "cporg", "costPoolParentOrg");
             });
-            return r != null ?
-                ManageFlags.OrganizationChanged :
-                ManageFlags.None;
+            return (_.Changed(r), last);
         }
     }
 }

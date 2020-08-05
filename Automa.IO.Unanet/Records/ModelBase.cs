@@ -1,13 +1,32 @@
-﻿using Automa.IO.Unanet.Records;
-using OfficeOpenXml.FormulaParsing.Excel.Functions.DateTime;
-using System;
+﻿using System;
 using System.Collections.Generic;
+using System.Threading.Tasks;
 using System.Xml.Linq;
 
-namespace Automa.IO.Unanet
+namespace Automa.IO.Unanet.Records
 {
+    public class ChangedFields : Dictionary<string, (Type t, object v)>
+    {
+        readonly ManageFlags _changeFlag;
+        public ChangedFields(ManageFlags changeFlag) => _changeFlag = changeFlag;
+        public ChangedFields Changed() { Flags = _changeFlag; return this; }
+        public ChangedFields Changed(object r) { if (r != null) Flags = _changeFlag; return this; }
+        public ManageFlags Flags { get; set; } = ManageFlags.None;
+        public T _<T>(T value, string name) { this[name] = (typeof(T), value); return value; }
+    }
+
     public class ModelBase
     {
+        public static async Task<T> Single<T>(IAsyncEnumerable<T> source)
+        {
+            var list = new List<T>();
+            await foreach (T item in source)
+                list.Add(item);
+            if (list.Count != 1)
+                throw new InvalidOperationException("Not Single");
+            return list[0];
+        }
+
         protected readonly static DateTime BeginDate = new DateTime(2019, 01, 01);
         protected readonly static DateTime BeginTimeWindowDate = new DateTime(2020, 01, 01); // new DateTime(2019, 09, 30);
         protected readonly static DateTime BeginInvoiceWindowDate = new DateTime(2020, 01, 01); // new DateTime(2019, 01, 01);
@@ -39,15 +58,14 @@ namespace Automa.IO.Unanet
 
         protected static void GetWindowDates(string entity, int window, out DateTime? beginDate, out DateTime? endDate)
         {
-            DateTime beginWindowDate;
-            switch (entity)
+            var beginWindowDate = entity switch
             {
-                case "Begin": beginWindowDate = BeginDate; break;
-                case nameof(TimeModel): beginWindowDate = BeginTimeWindowDate; break;
-                case "Assist": beginWindowDate = new DateTime(2020, 01, 01); break;
-                case nameof(InvoiceModel): beginWindowDate = BeginInvoiceWindowDate; break;
-                default: beginWindowDate = BeginDate; break;
-            }
+                "Begin" => BeginDate,
+                nameof(TimeModel) => BeginTimeWindowDate,
+                "Assist" => new DateTime(2020, 01, 01),
+                nameof(InvoiceModel) => BeginInvoiceWindowDate,
+                _ => BeginDate,
+            };
             switch (window)
             {
                 case -1:

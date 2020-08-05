@@ -1,6 +1,8 @@
-﻿using System;
+﻿using Automa.IO.Proxy;
+using System;
 using System.IO;
 using System.Net.Http;
+using System.Threading.Tasks;
 
 namespace Automa.IO.Umb
 {
@@ -15,8 +17,9 @@ namespace Automa.IO.Umb
         /// <summary>
         /// Initializes a new instance of the <see cref="UmbClient" /> class.
         /// </summary>
-        public UmbClient()
-            : base(x => new Automa(x, (ctx, driver) => new UmbAutomation(x, ctx, driver), 0M)) { }
+        /// <param name="proxyOptions">The proxy options.</param>
+        public UmbClient(IProxyOptions proxyOptions = null)
+            : base(client => new Automa(client, automa => new UmbAutomation(client, automa), 0M), proxyOptions) { }
 
         /// <summary>
         /// Ensures the access.
@@ -46,12 +49,12 @@ namespace Automa.IO.Umb
         /// <param name="interceptFilename">The intercept filename.</param>
         /// <returns><c>true</c> if XXXX, <c>false</c> otherwise.</returns>
         /// <exception cref="InvalidOperationException">unexpected form action returned from unanet</exception>
-        public bool RunReport(string report, Action<HtmlFormPost> action, string executeFolder, Func<string, string> interceptFilename = null)
+        public async Task<bool> RunReportAsync(string report, Action<HtmlFormPost> action, string executeFolder, Func<string, string> interceptFilename = null)
         {
             string body, url;
             // parse
             {
-                var d0 = this.TryFunc(() => this.DownloadData(HttpMethod.Get, $"{UmbUri}/{report}"));
+                var d0 = await this.TryFunc(() => this.DownloadDataAsync(HttpMethod.Get, $"{UmbUri}/{report}"));
                 if (d0.IndexOf("Session Expired") != -1)
                     throw new LoginRequiredException();
                 var d1 = d0.ExtractSpan("<form name=\"parameterForm\"", "</form>");
@@ -64,7 +67,7 @@ namespace Automa.IO.Umb
             }
             // download
             {
-                var d0 = this.TryFunc(() => this.DownloadFile(executeFolder, HttpMethod.Get, url, body, interceptFilename: interceptFilename));
+                var d0 = await this.TryFunc(() => this.DownloadFileAsync(executeFolder, HttpMethod.Get, url, body, interceptFilename: interceptFilename));
                 return !string.IsNullOrEmpty(d0);
             }
         }

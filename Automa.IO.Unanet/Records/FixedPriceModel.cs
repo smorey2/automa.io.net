@@ -32,14 +32,14 @@ namespace Automa.IO.Unanet.Records
 
         public static Task<(bool success, bool hasFile, object tag)> ExportFileAsync(UnanetClient una, string sourceFolder)
         {
-            var filePath = Path.Combine(sourceFolder, una.Settings.fixed_price_item.file);
-            var filePath2 = Path.Combine(sourceFolder, una.Settings.fixed_price_item_post.file);
+            var filePath = Path.Combine(sourceFolder, una.Options.fixed_price_item.file);
+            var filePath2 = Path.Combine(sourceFolder, una.Options.fixed_price_item_post.file);
             if (File.Exists(filePath))
                 File.Delete(filePath);
             if (File.Exists(filePath2))
                 File.Delete(filePath2);
-            return Task.Run(() => (
-                una.GetEntitiesByExport(una.Settings.fixed_price_item.key, (z, f) =>
+            return Task.Run(async () => (
+                (await una.GetEntitiesByExportAsync(una.Options.fixed_price_item.key, (z, f) =>
                 {
                     f.Checked["suppressOutput"] = true;
                     f.Values["dateRange_bDate"] = "BOT"; f.Values["dateRange_eDate"] = "EOT";
@@ -48,8 +48,8 @@ namespace Automa.IO.Unanet.Records
                     f.Checked["includePosted"] = true;
                     f.Checked["includeRevSchedules"] = true;
                     return null;
-                }, sourceFolder).success &&
-                una.GetEntitiesByExport(una.Settings.fixed_price_item_post.key, (z, f) =>
+                }, sourceFolder)).success &&
+                (await una.GetEntitiesByExportAsync(una.Options.fixed_price_item_post.key, (z, f) =>
                 {
                     f.Checked["suppressOutput"] = true;
                     f.Values["dateRange_bDate"] = "BOT"; f.Values["dateRange_eDate"] = "EOT";
@@ -58,13 +58,13 @@ namespace Automa.IO.Unanet.Records
                     f.Checked["includePosted"] = false;
                     f.Checked["includeRevSchedules"] = true;
                     return null;
-                }, sourceFolder).success, true, (object)null));
+                }, sourceFolder)).success, true, (object)null));
         }
 
         public static IEnumerable<FixedPriceModel> Read(UnanetClient una, string sourceFolder)
         {
-            var filePath = Path.Combine(sourceFolder, una.Settings.fixed_price_item.file);
-            var filePath2 = Path.Combine(sourceFolder, una.Settings.fixed_price_item_post.file);
+            var filePath = Path.Combine(sourceFolder, una.Options.fixed_price_item.file);
+            var filePath2 = Path.Combine(sourceFolder, una.Options.fixed_price_item_post.file);
             using (var sr2 = File.OpenRead(filePath2))
             {
                 var post = new HashSet<string>(CsvReader.Read(sr2, x => x[9], 1).ToList());
@@ -121,38 +121,36 @@ namespace Automa.IO.Unanet.Records
             public string XCF { get; set; }
         }
 
-        public static ManageFlags ManageRecord(UnanetClient una, p_FixedPrice1 s, out Dictionary<string, (Type, object)> fields, out string last, Action<string> lockFunc, Action<p_FixedPrice1> bespoke = null)
+        public static async Task<(ChangedFields changed, string last)> ManageRecordAsync(UnanetClient una, p_FixedPrice1 s, Action<string> lockFunc, Action<p_FixedPrice1> bespoke = null)
         {
             throw new NotSupportedException("FixedPrice Not Supported");
-            var _f = fields = new Dictionary<string, (Type, object)>();
-            T _t<T>(T value, string name) { _f[name] = (typeof(T), value); return value; }
-            //
+            var _ = new ChangedFields(ManageFlags.FixedPriceChanged);
             bespoke?.Invoke(s);
             if (s.revenue_recognition_method == null)
                 throw new InvalidOperationException($"{s.project_code} not categorized");
-            if (ManageRecordBase(s.key, s.XCF, 0, out var cf, out var add, out last))
-                return ManageFlags.FixedPriceChanged;
+            if (ManageRecordBase(s.key, s.XCF, 0, out var cf, out var add, out var last2))
+                return (_.Changed(), last2);
             //throw new NotSupportedException();
             var method = add ? HttpMethod.Post : HttpMethod.Put; // !cf.Contains("tainted") ? add ? HttpMethod.Post : HttpMethod.Put : HttpMethod.Delete;
-            var r = una.SubmitSubManage("A", method, "projects/accounting/fixed_price_item", $"key={s.key}",
+            var (r, last) = await una.SubmitSubManageAsync("A", method, "projects/accounting/fixed_price_item", $"key={s.key}",
                 $"projectkey={s.project_codeKey}", null,
-                out last, (z, f) =>
+                (z, f) =>
             {
                 if (f.Types["description"] == "disabled")
                 {
                     lockFunc(s.key);
                     return null;
                 }
-                //if (add || cf.Contains("poc")) f.Values["xxxx"] = _t(s.project_org_code, nameof(s.project_org_code));
-                //if (add || cf.Contains("pc")) f.Values["xxxx"] = _t(s.project_code, nameof(s.project_code));
-                if (add || cf.Contains("tn")) f.FromSelectByPredicate("task", _t(s.task_name, nameof(s.task_name)), x => x.Value.StartsWith(s.task_name));
-                var description = _t(s.description, nameof(s.description));
-                var description2 = !string.IsNullOrEmpty(_t(s.external_system_code, nameof(s.external_system_code))) ? $"{description},{s.external_system_code}" : description;
+                //if (add || cf.Contains("poc")) f.Values["xxxx"] = _._(s.project_org_code, nameof(s.project_org_code));
+                //if (add || cf.Contains("pc")) f.Values["xxxx"] = _._(s.project_code, nameof(s.project_code));
+                if (add || cf.Contains("tn")) f.FromSelectByPredicate("task", _._(s.task_name, nameof(s.task_name)), x => x.Value.StartsWith(s.task_name));
+                var description = _._(s.description, nameof(s.description));
+                var description2 = !string.IsNullOrEmpty(_._(s.external_system_code, nameof(s.external_system_code))) ? $"{description},{s.external_system_code}" : description;
                 if (add || cf.Contains("esc") || cf.Contains("d") || cf.Contains("bind")) f.Values["description"] = description;
                 //
-                if (add || cf.Contains("bd")) f.Values["billDate"] = _t(s.bill_date, nameof(s.bill_date)).FromDateTime();
-                if (add || cf.Contains("boc")) f.Checked["useWbsEndDate"] = _t(s.bill_on_completion, nameof(s.bill_on_completion)) == "Y";
-                if (add || cf.Contains("ba")) f.Values["amount"] = _t(s.bill_amount, nameof(s.bill_amount));
+                if (add || cf.Contains("bd")) f.Values["billDate"] = _._(s.bill_date, nameof(s.bill_date)).FromDateTime();
+                if (add || cf.Contains("boc")) f.Checked["useWbsEndDate"] = _._(s.bill_on_completion, nameof(s.bill_on_completion)) == "Y";
+                if (add || cf.Contains("ba")) f.Values["amount"] = _._(s.bill_amount, nameof(s.bill_amount));
                 var recMethod = s.revenue_recognition_method == "WHEN_BILLED" ? "1"
                     : s.revenue_recognition_method == "PERCENT_COMPLETE" ? "2"
                     : s.revenue_recognition_method == "CUSTOM_SCHEDULE" ? "3"
@@ -161,9 +159,7 @@ namespace Automa.IO.Unanet.Records
                 f.Add("button_save", "action", null);
                 return f.ToString();
             });
-            return r != null ?
-                ManageFlags.FixedPriceChanged :
-                ManageFlags.None;
+            return (_.Changed(r), last);
         }
     }
 }

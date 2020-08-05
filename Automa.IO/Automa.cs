@@ -1,9 +1,8 @@
+using Automa.IO.Drivers;
 using OpenQA.Selenium;
-using OpenQA.Selenium.Chrome;
 using System;
 using System.Net;
-using NetCookie = System.Net.Cookie;
-using SelCookie = OpenQA.Selenium.Cookie;
+using System.Threading.Tasks;
 
 namespace Automa.IO
 {
@@ -22,13 +21,13 @@ namespace Automa.IO
         /// Gets the driver.
         /// </summary>
         /// <value>The driver.</value>
-        IWebDriver Driver { get; }
+        AbstractDriver Driver { get; }
         /// <summary>
         /// Logins this instance.
         /// </summary>
         /// <param name="tag">The tag.</param>
         /// <param name="timeoutInSeconds">The timeout in seconds.</param>
-        void Login(object tag = null, decimal timeoutInSeconds = -1M);
+        Task LoginAsync(object tag = null, decimal timeoutInSeconds = -1M);
         /// <summary>
         /// Sets the device access token.
         /// </summary>
@@ -36,7 +35,7 @@ namespace Automa.IO
         /// <param name="code">The code.</param>
         /// <param name="tag">The tag.</param>
         /// <param name="timeoutInSeconds">The timeout in seconds.</param>
-        void SetDeviceAccessToken(string url, string code, object tag = null, decimal timeoutInSeconds = -1M);
+        Task SetDeviceAccessTokenAsync(string url, string code, object tag = null, decimal timeoutInSeconds = -1M);
         /// <summary>
         /// Selects the application.
         /// </summary>
@@ -44,96 +43,71 @@ namespace Automa.IO
         /// <param name="tag">The tag.</param>
         /// <param name="selectTimeoutInSeconds">The select timeout in seconds.</param>
         /// <returns>System.Object.</returns>
-        object SelectApplication(string application, object tag = null, decimal selectTimeoutInSeconds = -1M);
+        Task<object> SelectApplicationAsync(string application, object tag = null, decimal selectTimeoutInSeconds = -1M);
     }
 
     /// <summary>
     /// EmptyAutoma.
     /// </summary>
     /// <seealso cref="Automa.IO.IAutoma" />
-    internal class EmptyAutoma : IAutoma
+    internal class InternalEmptyAutoma : IAutoma
     {
         public CookieCollection Cookies { get; set; } = new CookieCollection();
-        public IWebDriver Driver => null;
+        public AbstractDriver Driver => null;
         public void Dispose() { }
-        public void Login(object tag = null, decimal timeoutInSeconds = -1) { }
-        public object SelectApplication(string application, object tag = null, decimal selectTimeoutInSeconds = -1) => throw new NotSupportedException();
-        public void SetDeviceAccessToken(string url, string code, object tag = null, decimal timeoutInSeconds = -1) => throw new NotSupportedException();
+        public Task LoginAsync(object tag = null, decimal timeoutInSeconds = -1) => Task.CompletedTask;
+        public Task<object> SelectApplicationAsync(string application, object tag = null, decimal selectTimeoutInSeconds = -1) => throw new NotSupportedException();
+        public Task SetDeviceAccessTokenAsync(string url, string code, object tag = null, decimal timeoutInSeconds = -1) => throw new NotSupportedException();
     }
 
     /// <summary>
     /// Automa
     /// </summary>
-    /// <seealso cref="AutomaEx.IAutoma" />
+    /// <seealso cref="Automa.IO.IAutoma" />
     public class Automa : IAutoma
     {
-        readonly IWebDriver _d;
+        public static string UserAgent = "Mozilla/5.0 (Windows NT 6.1) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/41.0.2228.0 Safari/537.36";
+
         readonly IAutomation _automation;
         readonly AutomaClient _client;
-        bool _disposed;
 
         /// <summary>
         /// Initializes a new instance of the <see cref="Automa" /> class.
         /// </summary>
         /// <param name="client">The client.</param>
         /// <param name="automationFactory">The automation factory.</param>
-        /// <param name="defaultTimeoutIsSeconds">The default timeout is seconds.</param>
+        /// <param name="defaultTimeoutInSeconds">The default timeout in seconds.</param>
         /// <param name="driverOptions">The driver options.</param>
-        public Automa(AutomaClient client, Func<IAutoma, IWebDriver, IAutomation> automationFactory, decimal defaultTimeoutIsSeconds = 60M, Action<DriverOptions> driverOptions = null)
+        public Automa(AutomaClient client, Func<IAutoma, IAutomation> automationFactory, decimal defaultTimeoutInSeconds = 60M, Action<DriverOptions> driverOptions = null)
         {
-            var chromeOptions = new ChromeOptions();
-            chromeOptions.AddUserProfilePreference("profile.managed_default_content_settings.notifications", 1);
-            driverOptions?.Invoke(chromeOptions);
-            _d = new ChromeDriver(AppDomain.CurrentDomain.BaseDirectory, chromeOptions);
-            _d.Manage().Timeouts().ImplicitWait = TimeSpan.FromMinutes(5);
-            _client = client;
-            _automation = automationFactory(this, _d);
-            DefaultTimeoutIsSeconds = defaultTimeoutIsSeconds;
+            _client = client ?? throw new ArgumentNullException(nameof(client));
+            _automation = automationFactory?.Invoke(this) ?? throw new ArgumentNullException(nameof(automationFactory));
+            DefaultTimeoutInSeconds = defaultTimeoutInSeconds;
+            Driver = client.ProxyOptions == null ? (AbstractDriver)Activator.CreateInstance(client.DriverType, driverOptions) : AbstractDriver.EmptyDriver;
         }
-        /// <summary>
-        /// Finalizes an instance of the <see cref="Automa" /> class.
-        /// </summary>
-        ~Automa() { Dispose(false); }
-
-        /// <summary>
-        /// Performs application-defined tasks associated with freeing, releasing, or resetting unmanaged resources.
-        /// </summary>
-        public void Dispose() { Dispose(true); GC.SuppressFinalize(this); }
 
         /// <summary>
         /// Releases unmanaged and - optionally - managed resources.
         /// </summary>
         /// <param name="disposing"><c>true</c> to release both managed and unmanaged resources; <c>false</c> to release only unmanaged resources.</param>
-        protected virtual void Dispose(bool disposing)
+        public void Dispose()
         {
             if (_client != null)
                 _client.Automa = AutomaClient.EmptyAutoma;
-            if (!_disposed)
-            {
-                if (disposing) { }
-                if (_d != null)
-                {
-                    _d.Quit();
-                    _d.Dispose();
-                }
-                _disposed = true;
-            }
+            Driver.Dispose();
         }
-
-        static string CookieValueEncode(string value) => value.Replace(",", "%2C");
-        static string CookieValueDecode(string value) => value.Replace("%2C", ",");
 
         /// <summary>
         /// Gets or sets the default timeout is seconds.
         /// </summary>
         /// <value>The default timeout is seconds.</value>
-        public decimal DefaultTimeoutIsSeconds { get; set; }
+        public decimal DefaultTimeoutInSeconds { get; set; }
 
         /// <summary>
         /// Gets the driver.
         /// </summary>
         /// <value>The driver.</value>
-        public IWebDriver Driver => _d;
+        public AbstractDriver Driver { get; }
 
         /// <summary>
         /// Gets the cookies.
@@ -143,22 +117,8 @@ namespace Automa.IO
         /// <exception cref="System.ArgumentNullException">value</exception>
         public CookieCollection Cookies
         {
-            get
-            {
-                var cookies = new CookieCollection();
-                foreach (var x in _d.Manage().Cookies.AllCookies)
-                    cookies.Add(new NetCookie(x.Name, CookieValueEncode(x.Value), x.Path, x.Domain) { Expires = x.Expiry != null ? x.Expiry.Value : DateTime.MinValue, HttpOnly = x.IsHttpOnly, Secure = x.Secure });
-                return cookies;
-            }
-            set
-            {
-                if (value == null)
-                    throw new ArgumentNullException("value");
-                var cookies = _d.Manage().Cookies;
-                cookies.DeleteAllCookies();
-                foreach (NetCookie x in value)
-                    cookies.AddCookie(new SelCookie(x.Name, CookieValueDecode(x.Value), x.Domain, x.Path, x.Expires != DateTime.MinValue ? (DateTime?)x.Expires : null));
-            }
+            get => Driver.Cookies;
+            set => Driver.Cookies = value;
         }
 
         /// <summary>
@@ -166,15 +126,16 @@ namespace Automa.IO
         /// </summary>
         /// <param name="tag">The tag.</param>
         /// <param name="timeoutInSeconds">The timeout in seconds.</param>
-        public void Login(object tag = null, decimal timeoutInSeconds = -1M)
+        public Task LoginAsync(object tag = null, decimal timeoutInSeconds = -1M)
         {
             _client.ParseConnectionString();
-            if (timeoutInSeconds == -1M) timeoutInSeconds = DefaultTimeoutIsSeconds;
-            Action action = () => _automation.Login(_client.CookieGetSet, _client.GetNetworkCredential(), tag);
+            if (timeoutInSeconds == -1M) timeoutInSeconds = DefaultTimeoutInSeconds;
+            Action action = () => _automation.LoginAsync(_client.CookieGetSetAsync, _client.GetNetworkCredential(), tag).Wait();
             try
             {
                 if (timeoutInSeconds > 0) action.TimeoutInvoke((int)(timeoutInSeconds * 1000M));
                 else action();
+                return Task.CompletedTask;
             }
             catch (Exception e) { Console.WriteLine(e); throw; }
         }
@@ -186,14 +147,15 @@ namespace Automa.IO
         /// <param name="code">The code.</param>
         /// <param name="tag">The tag.</param>
         /// <param name="timeoutInSeconds">The timeout in seconds.</param>
-        public void SetDeviceAccessToken(string url, string code, object tag = null, decimal timeoutInSeconds = -1M)
+        public Task SetDeviceAccessTokenAsync(string url, string code, object tag = null, decimal timeoutInSeconds = -1M)
         {
-            if (timeoutInSeconds == -1M) timeoutInSeconds = DefaultTimeoutIsSeconds;
-            Action action = () => TryAction(x => _automation.SetDeviceAccessToken(url, code), tag, timeoutInSeconds);
+            if (timeoutInSeconds == -1M) timeoutInSeconds = DefaultTimeoutInSeconds;
+            Action action = () => TryAction(x => _automation.SetDeviceAccessTokenAsync(url, code).Wait(), tag, timeoutInSeconds);
             try
             {
                 if (timeoutInSeconds > 0) action.TimeoutInvoke((int)(timeoutInSeconds * 1000M));
                 else action();
+                return Task.CompletedTask;
             }
             catch (Exception e) { Console.WriteLine(e); throw; }
         }
@@ -205,36 +167,36 @@ namespace Automa.IO
         /// <param name="tag">The tag.</param>
         /// <param name="selectTimeoutInSeconds">The select timeout in seconds.</param>
         /// <returns>System.Object.</returns>
-        public object SelectApplication(string application, object tag = null, decimal selectTimeoutInSeconds = -1M)
+        public Task<object> SelectApplicationAsync(string application, object tag = null, decimal selectTimeoutInSeconds = -1M)
         {
-            if (selectTimeoutInSeconds == -1M) selectTimeoutInSeconds = DefaultTimeoutIsSeconds;
-            Func<object> func = () => _automation.SelectApplication(application, tag);
+            if (selectTimeoutInSeconds == -1M) selectTimeoutInSeconds = DefaultTimeoutInSeconds;
+            Func<object> func = () => _automation.SelectApplicationAsync(application, tag).GetAwaiter().GetResult();
             try
             {
-                if (selectTimeoutInSeconds > 0) return func.TimeoutInvoke((int)(selectTimeoutInSeconds * 1000M));
-                else return func();
+                if (selectTimeoutInSeconds > 0) return Task.FromResult(func.TimeoutInvoke((int)(selectTimeoutInSeconds * 1000M)));
+                else return Task.FromResult(func());
             }
             catch (Exception e) { Console.WriteLine(e); throw; }
         }
 
         void TryAction(Action<IAutoma> action, object tag = null, decimal timeoutInSeconds = -1M)
         {
-            if (timeoutInSeconds == -1M) timeoutInSeconds = DefaultTimeoutIsSeconds;
+            if (timeoutInSeconds == -1M) timeoutInSeconds = DefaultTimeoutInSeconds;
             try { action(this); }
             catch (LoginRequiredException)
             {
-                Login(tag, timeoutInSeconds);
+                LoginAsync(tag, timeoutInSeconds).Wait();
                 action(this);
             }
         }
 
         T TryFunc<T>(Func<IAutoma, T> action, object tag = null, decimal timeoutInSeconds = -1M)
         {
-            if (timeoutInSeconds == -1M) timeoutInSeconds = DefaultTimeoutIsSeconds;
+            if (timeoutInSeconds == -1M) timeoutInSeconds = DefaultTimeoutInSeconds;
             try { return action(this); }
             catch (LoginRequiredException)
             {
-                Login(tag, timeoutInSeconds);
+                LoginAsync(tag, timeoutInSeconds).Wait();
                 return action(this);
             }
         }

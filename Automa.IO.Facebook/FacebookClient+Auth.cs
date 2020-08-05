@@ -4,6 +4,7 @@ using System.Collections.Generic;
 using System.Net;
 using System.Net.Http;
 using System.Threading;
+using System.Threading.Tasks;
 
 namespace Automa.IO.Facebook
 {
@@ -60,14 +61,14 @@ namespace Automa.IO.Facebook
         /// <param name="closeAfter">if set to <c>true</c> [close after].</param>
         /// <param name="tag">The tag.</param>
         /// <param name="loginTimeoutInSeconds">The login timeout in seconds.</param>
-        public override void TryLogin(bool closeAfter = true, object tag = null, decimal loginTimeoutInSeconds = 30)
+        public override async Task TryLoginAsync(bool closeAfter = true, object tag = null, decimal loginTimeoutInSeconds = 30)
         {
             using (var automa = Automa)
             {
-                AutomaLogin(false, tag, loginTimeoutInSeconds);
-                SetDeviceAccessToken(RequestedScope, Automa.SetDeviceAccessToken, tag, loginTimeoutInSeconds);
-                SetExtendedAccessToken();
-                AccessTokenFlush();
+                await AutomaLoginAsync(false, tag, loginTimeoutInSeconds);
+                await SetDeviceAccessTokenAsync(RequestedScope, Automa.SetDeviceAccessTokenAsync, tag, loginTimeoutInSeconds);
+                await SetExtendedAccessTokenAsync();
+                await AccessTokenFlushAsync();
             }
         }
 
@@ -75,9 +76,9 @@ namespace Automa.IO.Facebook
         /// Gets me.
         /// </summary>
         /// <returns>dynamic.</returns>
-        public dynamic GetMe()
+        public async Task<dynamic> GetMeAsync()
         {
-            var r = this.TryFunc(typeof(WebException), () => this.DownloadJson(HttpMethod.Get, $"{BASEv}/me?fields=id,name", interceptRequest: InterceptRequest), tag: true);
+            var r = await this.TryFunc(typeof(WebException), () => this.DownloadJsonAsync(HttpMethod.Get, $"{BASEv}/me?fields=id,name", interceptRequest: InterceptRequest), tag: true);
             return new
             {
                 id = (string)r["id"],
@@ -88,9 +89,9 @@ namespace Automa.IO.Facebook
         /// <summary>
         /// Loads me accounts.
         /// </summary>
-        public void LoadMeAccounts()
+        public async Task LoadMeAccountsAsync()
         {
-            var r = this.TryFunc(typeof(WebException), () => this.DownloadJson(HttpMethod.Get, $"{BASEv}/me/accounts?fields=id,name,access_token", interceptRequest: InterceptRequest), tag: true);
+            var r = await this.TryFunc(typeof(WebException), () => this.DownloadJsonAsync(HttpMethod.Get, $"{BASEv}/me/accounts?fields=id,name,access_token", interceptRequest: InterceptRequest), tag: true);
             _accounts = new Dictionary<long, string>();
             foreach (var i in (JArray)r["data"])
                 _accounts.Add(long.Parse((string)i["id"]), (string)i["access_token"]);
@@ -104,16 +105,16 @@ namespace Automa.IO.Facebook
         /// <param name="tag">The tag.</param>
         /// <param name="timeoutInSeconds">The timeout in seconds.</param>
         /// <returns><c>true</c> if XXXX, <c>false</c> otherwise.</returns>
-        public bool SetDeviceAccessToken(string scope, Action<string, string, object, decimal> action, object tag = null, decimal timeoutInSeconds = 30M)
+        public async Task<bool> SetDeviceAccessTokenAsync(string scope, Func<string, string, object, decimal, Task> action, object tag = null, decimal timeoutInSeconds = 30M)
         {
             EnsureAppIdAndToken();
-            var r = this.DownloadJson(HttpMethod.Post, $"{BASEv}/device/login?access_token={AppId}|{ClientToken}&scope={scope}");
+            var r = await this.DownloadJsonAsync(HttpMethod.Post, $"{BASEv}/device/login?access_token={AppId}|{ClientToken}&scope={scope}");
             var code = (string)r["code"];
             var user_code = (string)r["user_code"];
             var verification_uri = (string)r["verification_uri"];
             var expiresInSeconds = (long)r["expires_in"];
             var intervalMilliseconds = (int)(long)r["interval"] * 1000;
-            action(verification_uri, user_code, tag, timeoutInSeconds);
+            await action(verification_uri, user_code, tag, timeoutInSeconds);
 
             var polling = true;
             do
@@ -122,7 +123,7 @@ namespace Automa.IO.Facebook
                 Thread.Sleep(intervalMilliseconds);
                 try
                 {
-                    var r2 = this.DownloadJson(HttpMethod.Post, $"{BASEv}/device/login_status?access_token={AppId}|{ClientToken}&code={code}");
+                    var r2 = await this.DownloadJsonAsync(HttpMethod.Post, $"{BASEv}/device/login_status?access_token={AppId}|{ClientToken}&code={code}");
                     AccessToken = (string)r2["access_token"];
                     return true;
                 }
@@ -146,10 +147,10 @@ namespace Automa.IO.Facebook
         /// <summary>
         /// Sets the extended access token.
         /// </summary>
-        public void SetExtendedAccessToken()
+        public async Task SetExtendedAccessTokenAsync()
         {
             EnsureAppIdAndSecret();
-            var r = this.DownloadJson(HttpMethod.Get, $"{BASE}/oauth/access_token?grant_type=fb_exchange_token&client_id={AppId}&client_secret={AppSecret}&fb_exchange_token={AccessToken}");
+            var r = await this.DownloadJsonAsync(HttpMethod.Get, $"{BASE}/oauth/access_token?grant_type=fb_exchange_token&client_id={AppId}&client_secret={AppSecret}&fb_exchange_token={AccessToken}");
             AccessToken = (string)r["access_token"];
         }
     }

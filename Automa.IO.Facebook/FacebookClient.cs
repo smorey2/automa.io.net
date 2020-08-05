@@ -1,4 +1,5 @@
-﻿using System;
+﻿using Automa.IO.Proxy;
+using System;
 
 namespace Automa.IO.Facebook
 {
@@ -20,9 +21,10 @@ namespace Automa.IO.Facebook
         /// <summary>
         /// Initializes a new instance of the <see cref="FacebookClient" /> class.
         /// </summary>
+        /// <param name="proxyOptions">The proxy options.</param>
         /// <exception cref="System.ArgumentNullException">f</exception>
-        public FacebookClient()
-            : base(x => new Automa(x, (ctx, driver) => new FacebookAutomation(x, ctx, driver)))
+        public FacebookClient(IProxyOptions proxyOptions = null)
+            : base(client => new Automa(client, automa => new FacebookAutomation(client, automa)), proxyOptions)
         {
             RequestedScope = "manage_pages,ads_management"; //read_insights,leads_retrieval
             Logger = Console.WriteLine;

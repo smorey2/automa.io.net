@@ -9,9 +9,7 @@ using System.IO;
 using System.Linq;
 using System.Net;
 using System.Net.Http;
-using System.Reflection;
 using System.Text;
-using System.Text.RegularExpressions;
 using System.Threading;
 using System.Threading.Tasks;
 using NetCookie = System.Net.Cookie;
@@ -229,7 +227,7 @@ namespace Automa.IO
             if (millisecondsTimeout == 0)
                 return source();
             var task = Task.Run(source);
-            if (Task.WhenAny(task, Task.Delay(millisecondsTimeout)).GetAwaiter().GetResult() != task) throw new TimeoutException(); 
+            if (Task.WhenAny(task, Task.Delay(millisecondsTimeout)).GetAwaiter().GetResult() != task) throw new TimeoutException();
             else return task.Result;
         }
 
@@ -256,10 +254,10 @@ namespace Automa.IO
             source.EnsureAccess(AccessMethod.TryFunc, AccessMode.Preamble, ref tag);
             var value = action();
             if (value == null)
-                return default(T);
+                return default;
             if (source.EnsureAccess(AccessMethod.TryFunc, AccessMode.Request, ref tag, value))
             {
-                source.TryLogin(closeAfter, tag, loginTimeoutInSeconds);
+                source.TryLoginAsync(closeAfter, tag, loginTimeoutInSeconds).Wait();
                 return action();
             }
             return value;
@@ -286,10 +284,10 @@ namespace Automa.IO
             source.EnsureAccess(AccessMethod.TryFunc, AccessMode.Preamble, ref tag);
             var value = action(t1);
             if (value == null)
-                return default(T);
+                return default;
             if (source.EnsureAccess(AccessMethod.TryFunc, AccessMode.Request, ref tag, value))
             {
-                source.TryLogin(closeAfter, tag, loginTimeoutInSeconds);
+                source.TryLoginAsync(closeAfter, tag, loginTimeoutInSeconds).Wait();
                 return action(t1);
             }
             return value;
@@ -320,7 +318,7 @@ namespace Automa.IO
             {
                 if (exceptionType.IsAssignableFrom(e.GetType()) && source.EnsureAccess(AccessMethod.TryFunc, AccessMode.Exception, ref tag, e.Message))
                 {
-                    source.TryLogin(closeAfter, tag, loginTimeoutInSeconds);
+                    source.TryLoginAsync(closeAfter, tag, loginTimeoutInSeconds).Wait();
                     return action();
                 }
                 else throw e;
@@ -366,7 +364,7 @@ namespace Automa.IO
             {
                 if (exceptionType.IsAssignableFrom(e.GetType()) && source.EnsureAccess(AccessMethod.TryFunc, AccessMode.Exception, ref tag, e.Message))
                 {
-                    source.TryLogin(closeAfter, tag, loginTimeoutInSeconds);
+                    source.TryLoginAsync(closeAfter, tag, loginTimeoutInSeconds).Wait();
                     return action(t1);
                 }
                 else throw e;
@@ -410,7 +408,7 @@ namespace Automa.IO
             {
                 if (exceptionType.IsAssignableFrom(e.GetType()) && source.EnsureAccess(AccessMethod.TryAction, AccessMode.Exception, ref tag, e.Message))
                 {
-                    source.TryLogin(closeAfter, tag, loginTimeoutInSeconds);
+                    source.TryLoginAsync(closeAfter, tag, loginTimeoutInSeconds).Wait();
                     action();
                 }
                 else throw e;
@@ -452,7 +450,7 @@ namespace Automa.IO
             {
                 if (exceptionType.IsAssignableFrom(e.GetType()) && source.EnsureAccess(AccessMethod.TryAction, AccessMode.Exception, ref tag, e.Message))
                 {
-                    source.TryLogin(closeAfter, tag, loginTimeoutInSeconds);
+                    source.TryLoginAsync(closeAfter, tag, loginTimeoutInSeconds).Wait();
                     action(t1);
                 }
                 else throw e;
@@ -504,7 +502,7 @@ namespace Automa.IO
                     yield break;
                 if (source.EnsureAccess(AccessMethod.TryPager, AccessMode.Request, ref tag, values))
                 {
-                    source.TryLogin(closeAfter, tag, loginTimeoutInSeconds);
+                    source.TryLoginAsync(closeAfter, tag, loginTimeoutInSeconds).Wait();
                     values = action(cursor);
                 }
                 cursor = nextCursor(cursor, values);
@@ -543,13 +541,13 @@ namespace Automa.IO
             source.EnsureAccess(AccessMethod.TryPager, AccessMode.Preamble, ref tag);
             while (cursor != null)
             {
-                var values = default(T);
+                T values;
                 try { values = action(cursor); }
                 catch (Exception e)
                 {
                     if (exceptionType.IsAssignableFrom(e.GetType()) && source.EnsureAccess(AccessMethod.TryPager, AccessMode.Exception, ref tag, e.Message))
                     {
-                        source.TryLogin(closeAfter, tag, loginTimeoutInSeconds);
+                        source.TryLoginAsync(closeAfter, tag, loginTimeoutInSeconds).Wait();
                         values = action(cursor);
                     }
                     else throw e;
@@ -594,16 +592,16 @@ namespace Automa.IO
         /// </summary>
         /// <param name="source">The source.</param>
         /// <returns>System.String.</returns>
-        public static byte[] GetCookies(this IHasCookies source, CookieStorageType storageType = CookieStorageType.Json)
+        public static Task<byte[]> GetCookiesAsync(this IHasCookies source, CookieStorageType storageType = CookieStorageType.Json)
         {
             if (source.Cookies == null || source.Cookies.Count == 0)
-                return new byte[0];
+                return Task.FromResult(new byte[0]);
             switch (storageType)
             {
                 case CookieStorageType.Json:
-                    return Encoding.ASCII.GetBytes(JsonConvert.SerializeObject(source.Cookies.Cast<NetCookie>().Select(x =>
+                    return Task.FromResult(Encoding.ASCII.GetBytes(JsonConvert.SerializeObject(source.Cookies.Cast<NetCookie>().Select(x =>
                         new CookieShim { Name = x.Name, Value = x.Value, Domain = x.Domain, Path = x.Path, Expires = x.Expires })
-                        .ToArray()));
+                        .ToArray())));
                 case CookieStorageType.Binary:
                     using (var s = new MemoryStream())
                     {
@@ -614,7 +612,8 @@ namespace Automa.IO
                             w.Write(x.Name); w.Write(x.Value); w.Write(x.Path); w.Write(x.Domain);
                             w.Write(x.Expires.Ticks);
                         }
-                        s.Position = 0; return s.ToArray();
+                        s.Position = 0;
+                        return Task.FromResult(s.ToArray());
                     }
                 default: throw new ArgumentOutOfRangeException(nameof(storageType), storageType.ToString());
             }
@@ -625,18 +624,18 @@ namespace Automa.IO
         /// </summary>
         /// <param name="source">The source.</param>
         /// <param name="value">The value.</param>
-        public static void SetCookies(this IHasCookies source, byte[] value, CookieStorageType storageType = CookieStorageType.Json)
+        public static Task SetCookiesAsync(this IHasCookies source, byte[] value, CookieStorageType storageType = CookieStorageType.Json)
         {
             source.Cookies = new CookieCollection();
             if (value == null || value.Length == 0)
-                return;
+                return Task.CompletedTask;
             switch (storageType)
             {
                 case CookieStorageType.Json:
                     foreach (var x in JsonConvert.DeserializeObject<CookieShim[]>(Encoding.ASCII.GetString(value)).Select(x =>
                         new NetCookie(x.Name, x.Value, x.Path, x.Domain) { Expires = x.Expires }))
                         source.Cookies.Add(x);
-                    return;
+                    return Task.CompletedTask;
                 case CookieStorageType.Binary:
                     using (var s = new MemoryStream(value))
                     {
@@ -649,7 +648,7 @@ namespace Automa.IO
                                 Expires = new DateTime(r.ReadInt64())
                             });
                         }
-                        return;
+                        return Task.CompletedTask;
                     }
                 default: throw new ArgumentOutOfRangeException(nameof(storageType), storageType.ToString());
             }
@@ -661,12 +660,12 @@ namespace Automa.IO
         /// <param name="source">The source.</param>
         /// <param name="cookies">The cookies.</param>
         /// <returns>CookieCollection.</returns>
-        public static CookieCollection CookieGetSet(this IHasCookies source, CookieCollection cookies)
+        public static async Task<CookieCollection> CookieGetSetAsync(this IHasCookies source, CookieCollection cookies)
         {
             if (cookies != null)
             {
                 source.Cookies = cookies;
-                source.CookiesFlush();
+                await source.CookiesFlushAsync();
             }
             return source.Cookies;
         }
@@ -676,7 +675,7 @@ namespace Automa.IO
         /// </summary>
         /// <param name="source">The source.</param>
         /// <param name="cookies">The cookies.</param>
-        public static void CookieMerge(this IHasCookies source, CookieCollection cookies)
+        public static Task CookieMergeAsyc(this IHasCookies source, CookieCollection cookies)
         {
             var cookiesSet = new HashSet<string>(cookies.Cast<NetCookie>().Select(x => x.Name));
             var newCookies = new CookieCollection { cookies };
@@ -684,6 +683,7 @@ namespace Automa.IO
                 if (!cookiesSet.Contains(cookie.Name))
                     newCookies.Add(cookie);
             source.Cookies = newCookies;
+            return Task.CompletedTask;
         }
 
         /// <summary>
@@ -693,7 +693,6 @@ namespace Automa.IO
         /// <param name="method">The method.</param>
         /// <param name="url">The URL.</param>
         /// <param name="body">The post data.</param>
-        /// <param name="correlationId">The correlation identifier.</param>
         /// <param name="contentType">Type of the content.</param>
         /// <param name="interceptRequest">The intercept request.</param>
         /// <param name="updateCookies">if set to <c>true</c> [update cookies].</param>
@@ -702,10 +701,10 @@ namespace Automa.IO
         /// <returns>HttpWebResponse.</returns>
         /// <exception cref="ArgumentOutOfRangeException">method</exception>
         /// <exception cref="System.ArgumentOutOfRangeException">method</exception>
-        public static HttpWebResponse DownloadPreamble(this IHasCookies source, HttpMethod method, string url, object body, out long correlationId, string contentType = null, Action<HttpWebRequest> interceptRequest = null, bool updateCookies = false, Action<HttpStatusCode, string> onError = null, decimal timeoutInSeconds = -1M)
+        public static async Task<(HttpWebResponse res, long correlation)> DownloadPreambleAsync(this IHasCookies source, HttpMethod method, string url, object body, string contentType = null, Action<HttpWebRequest> interceptRequest = null, bool updateCookies = false, Action<HttpStatusCode, string> onError = null, decimal timeoutInSeconds = -1M)
         {
-            correlationId = DateTime.Now.Ticks;
-            HttpWebRequest rq;
+            var correlation = DateTime.Now.Ticks;
+            HttpWebRequest req;
             if (method == HttpMethod.Get && body != null)
             {
                 var prefix = url.Contains("?") ? "&" : "?";
@@ -720,46 +719,46 @@ namespace Automa.IO
                 else throw new ArgumentOutOfRangeException(nameof(body), body.ToString());
             }
             if (method == HttpMethod.Get && !string.IsNullOrEmpty(DownloadDebugFilePattern))
-                using (var s = File.OpenWrite(string.Format(DownloadDebugFilePattern, correlationId, method)))
+                using (var s = File.OpenWrite(string.Format(DownloadDebugFilePattern, correlation, method)))
                 {
                     var bytes = Encoding.UTF8.GetBytes(url);
                     s.Write(bytes, 0, bytes.Length);
                 }
             // request body
             var cookies = source.Cookies;
-            rq = (HttpWebRequest)WebRequest.Create(url);
-            rq.Method = method.ToString().ToUpperInvariant();
-            rq.CookieContainer = new CookieContainer();
-            rq.CookieContainer.Add(cookies);
-            rq.UserAgent = "Mozilla/5.0 (Windows NT 6.1) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/41.0.2228.0 Safari/537.36";
-            rq.AllowWriteStreamBuffering = true;
-            rq.ProtocolVersion = HttpVersion.Version11;
-            rq.AllowAutoRedirect = true;
-            rq.ContentType = contentType ?? "application/x-www-form-urlencoded; charset=UTF-8";
+            req = (HttpWebRequest)WebRequest.Create(url);
+            req.Method = method.ToString().ToUpperInvariant();
+            req.CookieContainer = new CookieContainer();
+            req.CookieContainer.Add(cookies);
+            req.UserAgent = Automa.UserAgent;
+            req.AllowWriteStreamBuffering = true;
+            req.ProtocolVersion = HttpVersion.Version11;
+            req.AllowAutoRedirect = true;
+            req.ContentType = contentType ?? "application/x-www-form-urlencoded; charset=UTF-8";
             if (timeoutInSeconds >= 0)
-                rq.ReadWriteTimeout = rq.Timeout = (int)(timeoutInSeconds * 1000);
-            interceptRequest?.Invoke(rq);
+                req.ReadWriteTimeout = req.Timeout = (int)(timeoutInSeconds * 1000);
+            interceptRequest?.Invoke(req);
             if (method != HttpMethod.Get && body != null)
             {
                 if (body is string bodyString && !string.IsNullOrEmpty(bodyString))
                 {
                     var send = Encoding.Default.GetBytes(bodyString);
-                    rq.ContentLength = send.Length;
+                    req.ContentLength = send.Length;
                     if (!string.IsNullOrEmpty(DownloadDebugFilePattern))
-                        using (var s = File.OpenWrite(string.Format(DownloadDebugFilePattern, correlationId, method)))
+                        using (var s = File.OpenWrite(string.Format(DownloadDebugFilePattern, correlation, method)))
                             s.Write(send, 0, send.Length);
-                    using (var s = rq.GetRequestStream())
+                    using (var s = req.GetRequestStream())
                         s.Write(send, 0, send.Length);
                 }
                 else if (body is HttpContent bodyContent)
                 {
                     var headers = bodyContent.Headers;
-                    if (headers.ContentLength != null) rq.ContentLength = headers.ContentLength.Value;
-                    if (headers.ContentType != null) rq.ContentType = headers.ContentType.ToString();
+                    if (headers.ContentLength != null) req.ContentLength = headers.ContentLength.Value;
+                    if (headers.ContentType != null) req.ContentType = headers.ContentType.ToString();
                     if (!string.IsNullOrEmpty(DownloadDebugFilePattern))
-                        using (var s = File.OpenWrite(string.Format(DownloadDebugFilePattern, correlationId, method)))
+                        using (var s = File.OpenWrite(string.Format(DownloadDebugFilePattern, correlation, method)))
                             bodyContent.CopyToAsync(s).Wait();
-                    using (var s = rq.GetRequestStream())
+                    using (var s = req.GetRequestStream())
                         bodyContent.CopyToAsync(s).Wait();
                 }
                 else throw new ArgumentOutOfRangeException(nameof(body), body.ToString());
@@ -768,13 +767,13 @@ namespace Automa.IO
             // request execute
             try
             {
-                var rs = (HttpWebResponse)rq.GetResponse();
+                var res = (HttpWebResponse)req.GetResponse();
                 if (updateCookies)
                 {
-                    source.CookieMerge(rs.Cookies);
-                    source.CookiesFlush();
+                    await source.CookieMergeAsyc(res.Cookies);
+                    await source.CookiesFlushAsync();
                 }
-                return rs;
+                return (res, correlation);
             }
             catch (WebException e)
             {
@@ -784,7 +783,7 @@ namespace Automa.IO
                     {
                         if (!string.IsNullOrEmpty(DownloadDebugFilePattern))
                         {
-                            using (var s = File.OpenWrite(string.Format(DownloadDebugFilePattern, correlationId, (int)rs.StatusCode)))
+                            using (var s = File.OpenWrite(string.Format(DownloadDebugFilePattern, correlation, (int)rs.StatusCode)))
                                 data.CopyTo(s);
                             if (data.CanSeek)
                                 data.Position = 0;
@@ -811,11 +810,11 @@ namespace Automa.IO
         /// <param name="timeoutInSeconds">The timeout in seconds.</param>
         /// <param name="useSafeRead">if set to <c>true</c> [use safe read].</param>
         /// <returns>System.String.</returns>
-        public static string DownloadData(this IHasCookies source, HttpMethod method, string url, object body = null, string contentType = null, Action<HttpWebRequest> interceptRequest = null, bool updateCookies = true, Action<HttpStatusCode, string> onError = null, decimal timeoutInSeconds = -1M, bool useSafeRead = false)
+        public static async Task<string> DownloadDataAsync(this IHasCookies source, HttpMethod method, string url, object body = null, string contentType = null, Action<HttpWebRequest> interceptRequest = null, bool updateCookies = true, Action<HttpStatusCode, string> onError = null, decimal timeoutInSeconds = -1M, bool useSafeRead = false)
         {
-            var rs = source.DownloadPreamble(method, url, body, out var correlationId, contentType, interceptRequest, updateCookies, onError, timeoutInSeconds);
-            using (var r = new StreamReader(rs.GetResponseStream()))
-                return DownloadCompleted(correlationId, !useSafeRead ? r.ReadToEnd() : r.SafeReadToEnd());
+            var (res, correlation) = await source.DownloadPreambleAsync(method, url, body, contentType, interceptRequest, updateCookies, onError, timeoutInSeconds);
+            using (var r = new StreamReader(res.GetResponseStream()))
+                return DownloadCompleted(correlation, !useSafeRead ? r.ReadToEnd() : r.SafeReadToEnd());
         }
 
         /// <summary>
@@ -830,9 +829,9 @@ namespace Automa.IO
         /// <param name="updateCookies">if set to <c>true</c> [update cookies].</param>
         /// <param name="onError">The on error.</param>
         /// <returns>JToken.</returns>
-        public static JToken DownloadJson(this IHasCookies source, HttpMethod method, string url, object body = null, string contentType = null, Action<HttpWebRequest> interceptRequest = null, bool updateCookies = true, Action<HttpStatusCode, string> onError = null, decimal timeoutInSeconds = -1M)
+        public static async Task<JToken> DownloadJsonAsync(this IHasCookies source, HttpMethod method, string url, object body = null, string contentType = null, Action<HttpWebRequest> interceptRequest = null, bool updateCookies = true, Action<HttpStatusCode, string> onError = null, decimal timeoutInSeconds = -1M)
         {
-            var d = source.DownloadData(method, url, body, contentType, interceptRequest, updateCookies, onError, timeoutInSeconds);
+            var d = await source.DownloadDataAsync(method, url, body, contentType, interceptRequest, updateCookies, onError, timeoutInSeconds);
             return JToken.Parse(d);
         }
 
@@ -852,10 +851,10 @@ namespace Automa.IO
         /// <param name="onError">The on error.</param>
         /// <param name="timeoutInSeconds">The timeout in seconds.</param>
         /// <returns>System.String.</returns>
-        public static string DownloadFile(this IHasCookies source, string filePath, HttpMethod method, string url, object body = null, string contentType = null, Action<HttpWebRequest> interceptRequest = null, Action<Stream, Stream> interceptResponse = null, Func<string, string> interceptFilename = null, bool updateCookies = false, Action<HttpStatusCode, string> onError = null, decimal timeoutInSeconds = -1M)
+        public static async Task<string> DownloadFileAsync(this IHasCookies source, string filePath, HttpMethod method, string url, object body = null, string contentType = null, Action<HttpWebRequest> interceptRequest = null, Action<Stream, Stream> interceptResponse = null, Func<string, string> interceptFilename = null, bool updateCookies = false, Action<HttpStatusCode, string> onError = null, decimal timeoutInSeconds = -1M)
         {
-            var rs = source.DownloadPreamble(method, url, body, out var correlationId, contentType, interceptRequest, updateCookies, onError, timeoutInSeconds);
-            return DownloadCompleted(correlationId, CompleteDownload(rs, filePath, null, interceptResponse, interceptFilename));
+            var (res, correlation) = await source.DownloadPreambleAsync(method, url, body, contentType, interceptRequest, updateCookies, onError, timeoutInSeconds);
+            return DownloadCompleted(correlation, await CompleteDownloadAsync(res, filePath, null, interceptResponse, interceptFilename));
         }
 
         /// <summary>
@@ -874,16 +873,16 @@ namespace Automa.IO
         /// <param name="onError">The on error.</param>
         /// <param name="timeoutInSeconds">The timeout in seconds.</param>
         /// <returns>System.String.</returns>
-        public static string DownloadFile(this IHasCookies source, Stream stream, HttpMethod method, string url, object body = null, string contentType = null, Action<HttpWebRequest> interceptRequest = null, Action<Stream, Stream> interceptResponse = null, Func<string, string> interceptFilename = null, bool updateCookies = false, Action<HttpStatusCode, string> onError = null, decimal timeoutInSeconds = -1M)
+        public static async Task<string> DownloadFileAsync(this IHasCookies source, Stream stream, HttpMethod method, string url, object body = null, string contentType = null, Action<HttpWebRequest> interceptRequest = null, Action<Stream, Stream> interceptResponse = null, Func<string, string> interceptFilename = null, bool updateCookies = false, Action<HttpStatusCode, string> onError = null, decimal timeoutInSeconds = -1M)
         {
-            var rs = source.DownloadPreamble(method, url, body, out var correlationId, contentType, interceptRequest, updateCookies, onError, timeoutInSeconds);
-            return DownloadCompleted(correlationId, CompleteDownload(rs, null, stream, interceptResponse, interceptFilename));
+            var (res, correlation) = await source.DownloadPreambleAsync(method, url, body, contentType, interceptRequest, updateCookies, onError, timeoutInSeconds);
+            return DownloadCompleted(correlation, await CompleteDownloadAsync(res, null, stream, interceptResponse, interceptFilename));
         }
 
-        static string DownloadCompleted(long correlationId, string value)
+        static string DownloadCompleted(long correlation, string value)
         {
             if (!string.IsNullOrEmpty(DownloadDebugFilePattern))
-                using (var s = File.OpenWrite(string.Format(DownloadDebugFilePattern, correlationId, 200)))
+                using (var s = File.OpenWrite(string.Format(DownloadDebugFilePattern, correlation, 200)))
                 {
                     var bytes = Encoding.UTF8.GetBytes(value);
                     s.Write(bytes, 0, bytes.Length);
@@ -904,21 +903,21 @@ namespace Automa.IO
         /// <returns>System.String.</returns>
         public static string PathifyFileName(string fileName) => fileName.Replace(':', '_');
 
-        static string DownloadFileName(HttpWebResponse rs)
+        static string DownloadFileName(HttpWebResponse res)
         {
-            var contentDisposition = rs.GetResponseHeader("content-disposition");
+            var contentDisposition = res.GetResponseHeader("content-disposition");
             int filenameIdx, semicolonIdx;
             if (contentDisposition != null && (filenameIdx = contentDisposition.IndexOf("filename=") + 9) > 9)
                 return contentDisposition.Substring(filenameIdx, (semicolonIdx = contentDisposition.IndexOf(";", filenameIdx)) > -1 ? semicolonIdx - filenameIdx : contentDisposition.Length - filenameIdx).Replace("\"", "");
             return null;
         }
 
-        static string CompleteDownload(HttpWebResponse rs, string filePath, Stream stream, Action<Stream, Stream> interceptResponse, Func<string, string> interceptFilename)
+        static Task<string> CompleteDownloadAsync(HttpWebResponse res, string filePath, Stream stream, Action<Stream, Stream> interceptResponse, Func<string, string> interceptFilename)
         {
-            var fileName = DownloadFileName(rs);
+            var fileName = DownloadFileName(res);
             if (string.IsNullOrEmpty(fileName))
-                using (var r = new StreamReader(rs.GetResponseStream()))
-                    return r.ReadToEnd();
+                using (var r = new StreamReader(res.GetResponseStream()))
+                    return Task.FromResult(r.ReadToEnd());
             // file path
             var closeStream = stream == null;
             if (filePath != null)
@@ -934,7 +933,7 @@ namespace Automa.IO
             try
             {
                 var buffer = new byte[4096];
-                using (var input = rs.GetResponseStream())
+                using (var input = res.GetResponseStream())
                 {
                     interceptResponse?.Invoke(stream, input);
                     var size = input.Read(buffer, 0, buffer.Length);
@@ -952,61 +951,13 @@ namespace Automa.IO
                 {
                     stream.Flush();
                     stream.Close();
-                    stream = null;
                     if (!deleteFile)
                         File.Delete(fileName);
                 }
             }
-            return fileName;
+            return Task.FromResult(fileName);
         }
 
         #endregion
-    }
-
-    internal static class StreamReaderExtensions
-    {
-        static MethodInfo CheckAsyncTaskInProgressMethod = typeof(StreamReader).GetMethod("CheckAsyncTaskInProgress", BindingFlags.Instance | BindingFlags.NonPublic);
-        static MethodInfo ReadBufferMethod = typeof(StreamReader).GetMethods(BindingFlags.Instance | BindingFlags.NonPublic).FirstOrDefault(x => x.Name == "ReadBuffer" && !x.IsPrivate);
-        static FieldInfo charBufferField = typeof(StreamReader).GetField("_charBuffer", BindingFlags.Instance | BindingFlags.NonPublic) ?? typeof(StreamReader).GetField("charBuffer", BindingFlags.Instance | BindingFlags.NonPublic);
-        static FieldInfo charLenField = typeof(StreamReader).GetField("_charLen", BindingFlags.Instance | BindingFlags.NonPublic) ?? typeof(StreamReader).GetField("charLen", BindingFlags.Instance | BindingFlags.NonPublic);
-        static FieldInfo charPosField = typeof(StreamReader).GetField("_charPos", BindingFlags.Instance | BindingFlags.NonPublic) ?? typeof(StreamReader).GetField("charPos", BindingFlags.Instance | BindingFlags.NonPublic);
-
-        static void CheckAsyncTaskInProgress(this StreamReader source) => CheckAsyncTaskInProgressMethod.Invoke(source, null);
-        static void ReadBuffer(this StreamReader source) => ReadBufferMethod.Invoke(source, null);
-        static char[] charBuffer(this StreamReader source) => (char[])charBufferField.GetValue(source);
-        static int charLen(this StreamReader source) => (int)charLenField.GetValue(source);
-        static int charPos(this StreamReader source) => (int)charPosField.GetValue(source);
-        static void charPos(this StreamReader source, int value) => charPosField.SetValue(source, value);
-
-        public static string SafeReadToEnd(this StreamReader source)
-        {
-            if (source.BaseStream == null)
-                throw new InvalidOperationException("ReaderClosed");
-            source.CheckAsyncTaskInProgress();
-            var charBuffer = source.charBuffer();
-            var charLen = source.charLen(); var charPos = source.charPos();
-            var b = new StringBuilder(charLen - charPos);
-            try
-            {
-                while (true)
-                {
-                    b.Append(charBuffer, charPos, charLen - charPos);
-                    source.charPos(charLen);
-                    source.ReadBuffer();
-                    charLen = source.charLen(); charPos = source.charPos();
-                    if (charLen <= 0)
-                        return b.ToString();
-                }
-            }
-            catch (Exception e)
-            {
-                if (e.InnerException != null && !(e.InnerException is IOException))
-                    throw e.InnerException;
-                charLen = source.charLen(); charPos = source.charPos();
-                if (charLen > 0)
-                    b.Append(charBuffer, charPos, charLen - charPos);
-                return b.ToString();
-            }
-        }
     }
 }

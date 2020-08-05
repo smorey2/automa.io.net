@@ -61,10 +61,10 @@ namespace Automa.IO.Unanet.Records
             AddressModel.ExportFileAsync(una, sourceFolder);
             EmailModel.ExportFileAsync(una, sourceFolder);
             PhoneModel.ExportFileAsync(una, sourceFolder);
-            var filePath = Path.Combine(sourceFolder, una.Settings.organization_contact.file);
+            var filePath = Path.Combine(sourceFolder, una.Options.organization_contact.file);
             if (File.Exists(filePath))
                 File.Delete(filePath);
-            return Task.Run(() => una.GetEntitiesByExport(una.Settings.organization_contact.key, (z, f) =>
+            return Task.Run(() => una.GetEntitiesByExportAsync(una.Options.organization_contact.key, (z, f) =>
             {
                 f.Checked["suppressOutput"] = true;
                 f.FromSelect("organizationtype", type);
@@ -72,12 +72,12 @@ namespace Automa.IO.Unanet.Records
             }, sourceFolder));
         }
 
-        public static Dictionary<string, (string, string)[]> GetList(UnanetClient ctx, string orgKey) =>
-            ctx.GetEntitiesBySubList("organizations/contacts", $"orgKey={orgKey}").Single();
+        public static Task<Dictionary<string, (string, string)[]>> GetListAsync(UnanetClient ctx, string orgKey) =>
+            Single(ctx.GetEntitiesBySubListAsync("organizations/contacts", $"orgKey={orgKey}"));
 
         public static IEnumerable<OrganizationContactModel> Read(UnanetClient una, string sourceFolder)
         {
-            var filePath = Path.Combine(sourceFolder, una.Settings.organization_contact.file);
+            var filePath = Path.Combine(sourceFolder, una.Options.organization_contact.file);
             using (var sr = File.OpenRead(filePath))
                 return CsvReader.Read(sr, x => new OrganizationContactModel
                 {
@@ -418,58 +418,54 @@ namespace Automa.IO.Unanet.Records
             public string XCF { get; set; }
         }
 
-        public static ManageFlags ManageRecord(UnanetClient una, p_OrganizationContact1 s, out Dictionary<string, (Type, object)> fields, out string last, Action<p_OrganizationContact1> bespoke = null)
+        public static async Task<(ChangedFields changed, string last)> ManageRecordAsync(UnanetClient una, p_OrganizationContact1 s, Action<p_OrganizationContact1> bespoke = null)
         {
-            var _f = fields = new Dictionary<string, (Type, object)>();
-            T _t<T>(T value, string name) { _f[name] = (typeof(T), value); return value; }
-            //
+            var _ = new ChangedFields(ManageFlags.OrganizationContactChanged);
             bespoke?.Invoke(s);
-            if (ManageRecordBase(null, s.XCF, 1, out var cf, out var add, out last))
-                return ManageFlags.OrganizationContactChanged;
-            var list = add ? null : GetList(una, s.organization_codeKey);
+            if (ManageRecordBase(null, s.XCF, 1, out var cf, out var add, out var last2))
+                return (_.Changed(), last2);
+            var list = add ? null : await GetListAsync(una, s.organization_codeKey);
             //var key0 = list?.Where(x => string.Equals(x.Value[3].Item1, $"DEG, {s.last_name}", StringComparison.OrdinalIgnoreCase)).SingleOrDefault().Key;
             var key1 = list?.Where(x => string.Equals(x.Value[3].Item1, $"{s.last_name}, {s.first_name}", StringComparison.OrdinalIgnoreCase)).SingleOrDefault().Key;
             var key = key1;
             if (!add && key == null)
                 throw new Exception("unable to find record");
-            var r = una.SubmitSubManage("A", add ? HttpMethod.Post : HttpMethod.Put, "organizations/contacts", $"contactKey={key}&orgKey={s.organization_codeKey}",
+            var (r, last) = await una.SubmitSubManageAsync("A", add ? HttpMethod.Post : HttpMethod.Put, "organizations/contacts", $"contactKey={key}&orgKey={s.organization_codeKey}",
                  $"orgKey={s.organization_codeKey}", null,
-                out last, (z, f) =>
+                (z, f) =>
             {
-                //if (add || cf.Contains("oc")) f.Values["xxx"] = _t(s.organization_code, nameof(s.organization_code))s.;
-                if (add || cf.Contains("s")) f.Values["salutation"] = _t(s.salutation, nameof(s.salutation));
-                if (add || cf.Contains("fn")) f.Values["first_name"] = _t(s.first_name, nameof(s.first_name));
-                if (add || cf.Contains("mi")) f.Values["middleInitial"] = _t(s.middle_initial, nameof(s.middle_initial));
-                if (add || cf.Contains("ln")) f.Values["last_name"] = _t(s.last_name, nameof(s.last_name));
-                if (add || cf.Contains("s2")) f.Values["suffix"] = _t(s.suffix, nameof(s.suffix));
-                if (add || cf.Contains("t")) f.Values["title"] = _t(s.title, nameof(s.title));
-                if (add || cf.Contains("c") || cf.Contains("bind")) f.Values["comments"] = _t(s.comment, nameof(s.comment));
+                //if (add || cf.Contains("oc")) f.Values["xxx"] = _._(s.organization_code, nameof(s.organization_code))s.;
+                if (add || cf.Contains("s")) f.Values["salutation"] = _._(s.salutation, nameof(s.salutation));
+                if (add || cf.Contains("fn")) f.Values["first_name"] = _._(s.first_name, nameof(s.first_name));
+                if (add || cf.Contains("mi")) f.Values["middleInitial"] = _._(s.middle_initial, nameof(s.middle_initial));
+                if (add || cf.Contains("ln")) f.Values["last_name"] = _._(s.last_name, nameof(s.last_name));
+                if (add || cf.Contains("s2")) f.Values["suffix"] = _._(s.suffix, nameof(s.suffix));
+                if (add || cf.Contains("t")) f.Values["title"] = _._(s.title, nameof(s.title));
+                if (add || cf.Contains("c") || cf.Contains("bind")) f.Values["comments"] = _._(s.comment, nameof(s.comment));
                 //
-                if (add || cf.Contains("a")) f.Checked["active"] = _t(s.active, nameof(s.active)) == "Y";
-                if (add || cf.Contains("dbt")) f.Checked["default_bill_to"] = _t(s.default_bill_to, nameof(s.default_bill_to)) == "Y";
-                if (add || cf.Contains("dst")) f.Checked["default_ship_to"] = _t(s.default_ship_to, nameof(s.default_ship_to)) == "Y";
-                if (add || cf.Contains("drt")) f.Checked["default_remit_to"] = _t(s.default_remit_to, nameof(s.default_remit_to)) == "Y";
-                //if (add || cf.Contains("cc")) f.Values["xxxx"] = _t(s.contact_category, nameof(s.contact_category)); //: no field
+                if (add || cf.Contains("a")) f.Checked["active"] = _._(s.active, nameof(s.active)) == "Y";
+                if (add || cf.Contains("dbt")) f.Checked["default_bill_to"] = _._(s.default_bill_to, nameof(s.default_bill_to)) == "Y";
+                if (add || cf.Contains("dst")) f.Checked["default_ship_to"] = _._(s.default_ship_to, nameof(s.default_ship_to)) == "Y";
+                if (add || cf.Contains("drt")) f.Checked["default_remit_to"] = _._(s.default_remit_to, nameof(s.default_remit_to)) == "Y";
+                //if (add || cf.Contains("cc")) f.Values["xxxx"] = _._(s.contact_category, nameof(s.contact_category)); //: no field
                 //
-                if (add || cf.Contains("u1")) f.Values["udf_0"] = _t(s.user01, nameof(s.user01));
-                //if (add || cf.Contains("u2")) f.Values["udf_1"] = _t(s.user02, nameof(s.user02));
-                //if (add || cf.Contains("u3")) f.Values["udf_2"] = _t(s.user03, nameof(s.user03));
-                //if (add || cf.Contains("u4")) f.Values["udf_3"] = _t(s.user04, nameof(s.user04));
-                //if (add || cf.Contains("u5")) f.Values["udf_4"] = _t(s.user05, nameof(s.user05));
-                //if (add || cf.Contains("u6")) f.Values["udf_5"] = _t(s.user06, nameof(s.user06));
-                //if (add || cf.Contains("u7")) f.Values["udf_6"] = _t(s.user07, nameof(s.user07));
-                //if (add || cf.Contains("u8")) f.Values["udf_7"] = _t(s.user08, nameof(s.user08));
-                //if (add || cf.Contains("u9")) f.Values["udf_8"] = _t(s.user09, nameof(s.user09));
-                //if (add || cf.Contains("u10")) f.Values["udf_9"] = _t(s.user10, nameof(s.user10));
+                if (add || cf.Contains("u1")) f.Values["udf_0"] = _._(s.user01, nameof(s.user01));
+                //if (add || cf.Contains("u2")) f.Values["udf_1"] = _._(s.user02, nameof(s.user02));
+                //if (add || cf.Contains("u3")) f.Values["udf_2"] = _._(s.user03, nameof(s.user03));
+                //if (add || cf.Contains("u4")) f.Values["udf_3"] = _._(s.user04, nameof(s.user04));
+                //if (add || cf.Contains("u5")) f.Values["udf_4"] = _._(s.user05, nameof(s.user05));
+                //if (add || cf.Contains("u6")) f.Values["udf_5"] = _._(s.user06, nameof(s.user06));
+                //if (add || cf.Contains("u7")) f.Values["udf_6"] = _._(s.user07, nameof(s.user07));
+                //if (add || cf.Contains("u8")) f.Values["udf_7"] = _._(s.user08, nameof(s.user08));
+                //if (add || cf.Contains("u9")) f.Values["udf_8"] = _._(s.user09, nameof(s.user09));
+                //if (add || cf.Contains("u10")) f.Values["udf_9"] = _._(s.user10, nameof(s.user10));
                 //
                 //if (add || cf.Contains("xa")) AddressModel.ManageRecord(f, s.addresses);
                 //if (add || cf.Contains("xe")) EmailModel.ManageRecord(f, s.emails);
                 //if (add || cf.Contains("xn")) PhoneModel.ManageRecord(f, s.phones);
                 return f.ToString();
             });
-            return r != null ?
-                ManageFlags.OrganizationContactChanged :
-                ManageFlags.None;
+            return (_.Changed(r), last);
         }
     }
 }

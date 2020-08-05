@@ -410,9 +410,7 @@ namespace Automa.IO
             foreach (var v in Values)
             {
                 var hasValue = !string.IsNullOrEmpty(v.Value);
-                var skipValue = !Types.TryGetValue(v.Key, out var type) || type == "unknown" || type == "disabled" ? true :
-                    (type.StartsWith("checkbox") && !Checked[v.Key]) ||
-                    (type == "selectMultiple" && !hasValue);
+                var skipValue = !Types.TryGetValue(v.Key, out var type) || type == "unknown" || type == "disabled" || (type.StartsWith("checkbox") && !Checked[v.Key]) || (type == "selectMultiple" && !hasValue);
                 // multi-key
                 var key = v.Key;
                 var keyIdx = key.IndexOf(">");
@@ -438,9 +436,7 @@ namespace Automa.IO
             foreach (var v in Values)
             {
                 var hasValue = !string.IsNullOrEmpty(v.Value);
-                var skipValue = !Types.TryGetValue(v.Key, out var type) || type == "unknown" || type == "disabled" ? true :
-                    (type.StartsWith("checkbox") && !Checked[v.Key]) ||
-                    (type == "selectMultiple" && !hasValue);
+                var skipValue = !Types.TryGetValue(v.Key, out var type) || type == "unknown" || type == "disabled" || (type.StartsWith("checkbox") && !Checked[v.Key]) || (type == "selectMultiple" && !hasValue);
                 // multi-key
                 var key = v.Key;
                 var keyIdx = key.IndexOf(">");

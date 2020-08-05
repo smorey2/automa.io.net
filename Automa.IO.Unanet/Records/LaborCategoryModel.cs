@@ -24,10 +24,10 @@ namespace Automa.IO.Unanet.Records
 
         public static Task<(bool success, string message, bool hasFile, object tag)> ExportFileAsync(UnanetClient una, string sourceFolder)
         {
-            var filePath = Path.Combine(sourceFolder, una.Settings.labor_category_master.file);
+            var filePath = Path.Combine(sourceFolder, una.Options.labor_category_master.file);
             if (File.Exists(filePath))
                 File.Delete(filePath);
-            return Task.Run(() => una.GetEntitiesByExport(una.Settings.labor_category_master.key, (z, f) =>
+            return Task.Run(() => una.GetEntitiesByExportAsync(una.Options.labor_category_master.key, (z, f) =>
             {
                 f.Checked["suppressOutput"] = true;
                 f.FromSelect("dateRange", "Today");
@@ -37,7 +37,7 @@ namespace Automa.IO.Unanet.Records
 
         public static IEnumerable<LaborCategoryModel> Read(UnanetClient una, string sourceFolder)
         {
-            var filePath = Path.Combine(sourceFolder, una.Settings.labor_category_master.file);
+            var filePath = Path.Combine(sourceFolder, una.Options.labor_category_master.file);
             using (var sr = File.OpenRead(filePath))
                 return CsvReader.Read(sr, x => new LaborCategoryModel
                 {
@@ -54,12 +54,12 @@ namespace Automa.IO.Unanet.Records
                 }, 1).ToList();
         }
 
-        public static IEnumerable<LaborCategoryModel> EnsureAndRead(UnanetClient una, string sourceFolder)
+        public static Task<IEnumerable<LaborCategoryModel>> EnsureAndReadAsync(UnanetClient una, string sourceFolder)
         {
-            var filePath = Path.Combine(sourceFolder, una.Settings.labor_category_master.file);
+            var filePath = Path.Combine(sourceFolder, una.Options.labor_category_master.file);
             if (!File.Exists(filePath))
                 ExportFileAsync(una, sourceFolder).Wait();
-            return Read(una, sourceFolder);
+            return Task.FromResult(Read(una, sourceFolder));
         }
 
         public static string GetReadXml(UnanetClient una, string sourceFolder, string syncFileA = null)

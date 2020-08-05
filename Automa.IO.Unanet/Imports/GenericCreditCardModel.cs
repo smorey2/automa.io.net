@@ -13,11 +13,11 @@ namespace Automa.IO.Unanet.Imports
         [DisplayName("Supplier")] public string Supplier { get; set; }
 
         public static Task<string> ImportFileAsync(UnanetClient una, string sourceFolder, Stream set, string paymentMethod) =>
-            Task.Run(() => una.PutEntitiesByImport(una.Settings.credit_card_generic.key, f =>
+            Task.Run(() => una.PutEntitiesByImportAsync(una.Options.credit_card_generic.key, f =>
             {
                 f.FromSelectByKey("outputOption", "errors");
                 f.FromSelect("payment_method", paymentMethod);
-                f.Values["filename"] = una.Settings.credit_card_generic.file;
+                f.Values["filename"] = una.Options.credit_card_generic.file;
                 f.Files["filename"] = set;
             }, sourceFolder));
     }

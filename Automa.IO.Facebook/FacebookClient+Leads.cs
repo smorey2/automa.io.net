@@ -7,6 +7,7 @@ using System.Linq;
 using System.Net;
 using System.Net.Http;
 using System.Text;
+using System.Threading.Tasks;
 
 namespace Automa.IO.Facebook
 {
@@ -21,23 +22,23 @@ namespace Automa.IO.Facebook
         /// <param name="toDate">To date.</param>
         /// <param name="skipEmptyFile">The skip empty file.</param>
         /// <returns>IEnumerable&lt;System.String&gt;.</returns>
-        public IEnumerable<string> DownloadLeadFormCsvByPage(string path, long pageId, DateTime? fromDate, DateTime? toDate, FacebookSkipEmptyFile skipEmptyFile = FacebookSkipEmptyFile.None)
+        public async IAsyncEnumerable<string> DownloadLeadFormCsvByPageAsync(string path, long pageId, DateTime? fromDate, DateTime? toDate, FacebookSkipEmptyFile skipEmptyFile = FacebookSkipEmptyFile.None)
         {
-            _logger("DownloadLeadFormCsvByPage: " + pageId);
+            _logger($"DownloadLeadFormCsvByPage: {pageId}");
             EnsureAppIdAndSecret();
             EnsureRequestedScope();
             var maps = LoadCsvPageMaps(path, pageId);
-            var query = GetLeadFormsByPage(pageId)
-                .Select(x => new { id = x["id"], name = (string)x["name"], url = ToBusinessUrl((string)x["leadgen_export_csv_url"]) });
-            CsvPageMap[] map;
-            foreach (var item in query)
+            await foreach (var x in GetLeadFormsByPageAsync(pageId))
             {
-                _logger(item.id.ToString() + " - " + item.name);
-                var file = DownloadFacebookUrl(path, item.url, new
+                var id = x["id"].ToString();
+                var name = (string)x["name"];
+                var url = ToBusinessUrl((string)x["leadgen_export_csv_url"]);
+                _logger($"{id} - {name}");
+                var file = await DownloadFacebookUrlAsync(path, url, new
                 {
                     from_date = (fromDate != null ? (int?)ToTimestamp(fromDate.Value) : null),
                     to_date = (toDate != null ? (int?)ToTimestamp(toDate.Value) : null),
-                }, null, skipEmptyFile, (maps.TryGetValue(item.id.ToString(), out map) ? (Action<Stream, Stream>)((a, b) => CsvPageIntercept(item.id.ToString(), map, a, b)) : null));
+                }, null, skipEmptyFile, maps.TryGetValue(id, out var map) ? (Action<Stream, Stream>)((a, b) => CsvPageIntercept(id, map, a, b)) : null);
                 if (file != null)
                     yield return file;
             }
@@ -52,12 +53,12 @@ namespace Automa.IO.Facebook
         }
 
         IDictionary<string, CsvPageMap[]> LoadCsvPageMaps(string path, long pageId) => Directory.GetFiles(path, "*.map")
-                .Select(x => new { Name = Path.GetFileNameWithoutExtension(x), Map = JsonConvert.DeserializeObject<CsvPageMap[]>(File.ReadAllText(x)) })
-                .ToDictionary(x => x.Name, x => x.Map);
+            .Select(x => new { Name = Path.GetFileNameWithoutExtension(x), Map = JsonConvert.DeserializeObject<CsvPageMap[]>(File.ReadAllText(x)) })
+            .ToDictionary(x => x.Name, x => x.Map);
 
         void CsvPageIntercept(string mapName, CsvPageMap[] map, Stream fileStream, Stream input)
         {
-            _logger(string.Format("CsvPageIntercept: {0}[{1}]", mapName, map.Length));
+            _logger($"CsvPageIntercept: {mapName}[{map.Length}]");
             var buf = new MemoryStream();
             var v = input.ReadByte();
             while (v != -1)
@@ -78,7 +79,7 @@ namespace Automa.IO.Facebook
                     var index = Array.FindIndex(line, 0, line.Length, (byte b) =>
                     {
                         fidx = b == search[fidx] ? fidx + 1 : 0;
-                        return (fidx == search.Length);
+                        return fidx == search.Length;
                     }) - search.Length + 1;
                     if (index > -1)
                     {
@@ -92,15 +93,15 @@ namespace Automa.IO.Facebook
             fileStream.Write(line, 0, line.Length);
         }
 
-        IEnumerable<JToken> GetLeadFormsByPage(long pageId)
+        async IAsyncEnumerable<JToken> GetLeadFormsByPageAsync(long pageId)
         {
-            LoadMeAccounts();
-            var cursor = (Func<JToken>)(() => this.DownloadJson(HttpMethod.Get, $"{BASEv}/{pageId}/leadgen_forms", interceptRequest: r => InterceptRequestForAccount(r, pageId)));
+            await LoadMeAccountsAsync();
+            var cursor = (Func<Task<JToken>>)(() => this.DownloadJsonAsync(HttpMethod.Get, $"{BASEv}/{pageId}/leadgen_forms", interceptRequest: r => InterceptRequestForAccount(r, pageId)));
             while (cursor != null)
             {
-                var r = this.TryFunc(typeof(WebException), cursor);
+                var r = await this.TryFunc(typeof(WebException), cursor);
                 var paging = (IDictionary<string, JToken>)r["paging"];
-                cursor = paging.ContainsKey("next") ? (Func<JToken>)(() => this.DownloadJson(HttpMethod.Get, (string)paging["next"], interceptRequest: r2 => InterceptRequestForAccount(r2, pageId))) : null;
+                cursor = paging.ContainsKey("next") ? (Func<Task<JToken>>)(() => this.DownloadJsonAsync(HttpMethod.Get, (string)paging["next"], interceptRequest: r2 => InterceptRequestForAccount(r2, pageId))) : null;
                 foreach (var i in (JArray)r["data"])
                     yield return i;
             }

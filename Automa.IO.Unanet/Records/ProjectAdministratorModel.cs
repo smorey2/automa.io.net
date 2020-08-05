@@ -30,20 +30,20 @@ namespace Automa.IO.Unanet.Records
 
         public static Task<(bool success, string message, bool hasFile, object tag)> ExportFileAsync(UnanetClient una, string sourceFolder, string legalEntity = null)
         {
-            var filePath = Path.Combine(sourceFolder, una.Settings.project_administrator.file);
+            var filePath = Path.Combine(sourceFolder, una.Options.project_administrator.file);
             if (File.Exists(filePath))
                 File.Delete(filePath);
-            return Task.Run(() => una.GetEntitiesByExport(una.Settings.project_administrator.key, (z, f) =>
+            return Task.Run(() => una.GetEntitiesByExportAsync(una.Options.project_administrator.key, (z, f) =>
             {
                 f.Checked["suppressOutput"] = true;
-                f.FromSelect("legalEntity", legalEntity ?? una.Settings.LegalEntity);
+                f.FromSelect("legalEntity", legalEntity ?? una.Options.LegalEntity);
                 return null;
             }, sourceFolder));
         }
 
         public static IEnumerable<ProjectAdministratorModel> Read(UnanetClient una, string sourceFolder)
         {
-            var filePath = Path.Combine(sourceFolder, una.Settings.project_administrator.file);
+            var filePath = Path.Combine(sourceFolder, una.Options.project_administrator.file);
             using (var sr = File.OpenRead(filePath))
                 return CsvReader.Read(sr, x => new ProjectAdministratorModel
                 {
@@ -85,21 +85,19 @@ namespace Automa.IO.Unanet.Records
             public string XCF { get; set; }
         }
 
-        public static ManageFlags ManageRecord(UnanetClient una, p_ProjectAdministrator1 s, out Dictionary<string, (Type, object)> fields, out string last, Action<p_ProjectAdministrator1> bespoke = null)
+        public static async Task<(ChangedFields changed, string last)> ManageRecordAsync(UnanetClient una, p_ProjectAdministrator1 s, Action<p_ProjectAdministrator1> bespoke = null)
         {
-            var _f = fields = new Dictionary<string, (Type, object)>();
-            //T _t<T>(T value, string name) { _f[name] = (typeof(T), value); return value; }
-            //
+            var _ = new ChangedFields(ManageFlags.ProjectAdministratorChanged);
             bespoke?.Invoke(s);
             var canDelete = s.role != "projectManager";
-            if (ManageRecordBase(null, s.XCF, 1, out var cf, out var add, out last, canDelete: canDelete))
-                return ManageFlags.ProjectAdministratorChanged;
+            if (ManageRecordBase(null, s.XCF, 1, out var cf, out var add, out var last2, canDelete: canDelete))
+                return (_.Changed(), last2);
             var method = !cf.Contains("delete") ? add ? HttpMethod.Post : HttpMethod.Put : HttpMethod.Delete;
             if (canDelete && string.IsNullOrEmpty(s.username))
                 method = HttpMethod.Delete;
-            var r = una.SubmitSubManage("D", HttpMethod.Get, $"projects/controllers/{s.role}", null, //: POST
+            var (r, last) = await una.SubmitSubManageAsync("D", HttpMethod.Get, $"projects/controllers/{s.role}", null, //: POST
                 $"projectkey={s.project_codeKey}", null,
-                out last, (z, f) =>
+                (z, f) =>
             {
                 if (s.role == "projectApprover")
                 {
@@ -114,9 +112,7 @@ namespace Automa.IO.Unanet.Records
                 }
                 return f.ToString();
             });
-            return r != null ?
-                ManageFlags.ProjectAdministratorChanged :
-                ManageFlags.None;
+            return (_.Changed(r), last);
         }
     }
 }

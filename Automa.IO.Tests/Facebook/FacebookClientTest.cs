@@ -1,8 +1,9 @@
 ﻿using Automa.IO.Facebook;
 using NUnit.Framework;
 using System;
-using System.Linq;
+using System.Collections.Generic;
 using System.IO;
+using System.Threading.Tasks;
 
 namespace Automa.IO
 {
@@ -14,7 +15,7 @@ namespace Automa.IO
         [SetUp] public void Configure() => _client = GetFacebookClient();
         [TearDown] public void TearDown() { _client?.Dispose(); _client = null; }
 
-        FacebookClient GetFacebookClient(bool deleteFile = false)
+        FacebookClient GetFacebookClient(bool deleteFile = false, bool proxy = false)
         {
             if (!Directory.Exists(SourcePath))
                 Directory.CreateDirectory(SourcePath);
@@ -24,7 +25,7 @@ namespace Automa.IO
                 File.Delete(accessTokenFile);
             if (deleteFile && File.Exists(cookieFile))
                 File.Delete(cookieFile);
-            return new FacebookClient
+            return new FacebookClient(proxy ? new Config() : null)
             {
                 Logger = Console.WriteLine,
                 AccessToken = File.Exists(accessTokenFile) ? File.ReadAllText(accessTokenFile) : null,
@@ -40,9 +41,9 @@ namespace Automa.IO
         }
 
         [Test]
-        public void Should_read_getme_normally()
+        public async Task Should_read_getme_normally()
         {
-            var me = _client.GetMe();
+            var me = await _client.GetMeAsync();
             Console.WriteLine(me);
         }
 
@@ -54,12 +55,13 @@ namespace Automa.IO
         }
 
         [Test]
-        public void Should_pull_csv_from_page()
+        public async Task Should_pull_csv_from_page()
         {
             var pageId = 573293769395845L;
-            var files = _client.DownloadLeadFormCsvByPage("secret", pageId, DateTime.Now.AddDays(-5), null, FacebookSkipEmptyFile.TextHasSecondLine)
-                .ToArray();
-            Console.WriteLine(files.Length);
+            var files = new List<string>();
+            await foreach (var file in _client.DownloadLeadFormCsvByPageAsync("secret", pageId, DateTime.Now.AddDays(-5), null, FacebookSkipEmptyFile.TextHasSecondLine))
+                files.Add(file);
+            Console.WriteLine(files.Count);
         }
 
         [Test]

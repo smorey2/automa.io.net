@@ -43,16 +43,16 @@ namespace Automa.IO.Unanet.Records
 
         public static Task<(bool success, string message, bool hasFile, object tag)> ExportFileAsync(UnanetClient una, string windowEntity, string sourceFolder, int window, DateTime? begin = null, DateTime? end = null, string legalEntity = null, Action<HtmlFormPost> func = null, string tempPath = null)
         {
-            var filePath = tempPath ?? Path.Combine(sourceFolder, una.Settings.time.file);
+            var filePath = tempPath ?? Path.Combine(sourceFolder, una.Options.time.file);
             if (File.Exists(filePath))
                 File.Delete(filePath);
-            return Task.Run(() => una.GetEntitiesByExport(una.Settings.time.key, (z, f) =>
+            return Task.Run(() => una.GetEntitiesByExportAsync(una.Options.time.key, (z, f) =>
             {
                 GetWindowDates(windowEntity ?? nameof(TimeModel), window, out var beginDate, out var endDate);
                 f.Checked["suppressOutput"] = true;
                 f.Values["dateType"] = "range";
                 f.Values["beginDate"] = begin != null ? begin.FromDateTime("BOT") : beginDate.FromDateTime("BOT"); f.Values["endDate"] = end != null ? end.FromDateTime("EOT") : endDate.FromDateTime("EOT");
-                f.FromSelect("legalEntity", legalEntity ?? una.Settings.LegalEntity);
+                f.FromSelect("legalEntity", legalEntity ?? una.Options.LegalEntity);
                 f.Checked["exempt"] = true; f.Checked["nonExempt"] = true; f.Checked["nonEmployee"] = true; f.Checked["subcontractor"] = true;
                 f.Checked["INUSE"] = true; f.Checked["SUBMITTED"] = true; f.Checked["APPROVING"] = true;
                 f.Checked["DISAPPROVED"] = true; f.Checked["COMPLETED"] = true; f.Checked["LOCKED"] = true;
@@ -68,7 +68,7 @@ namespace Automa.IO.Unanet.Records
 
         public static IEnumerable<TimeModel> Read(UnanetClient una, string sourceFolder, string tempPath = null)
         {
-            var filePath = tempPath ?? Path.Combine(sourceFolder, una.Settings.time.file);
+            var filePath = tempPath ?? Path.Combine(sourceFolder, una.Options.time.file);
             using (var sr = File.OpenRead(filePath))
                 return CsvReader.Read(sr, x => new TimeModel
                 {

@@ -24,13 +24,13 @@ namespace Automa.IO.Umb.Reports
 
         static void ElementSelect(IWebElement element, bool value) { if (element.Selected != value) element.Click(); }
 
-        public static Task<bool> ExportFileAsync(UmbClient umb, string sourceFolder, DateTime? beginDate = null, DateTime? endDate = null)
+        public static async Task<bool> ExportFileAsync(UmbClient umb, string sourceFolder, DateTime? beginDate = null, DateTime? endDate = null)
         {
             sourceFolder = Environment.GetFolderPath(Environment.SpecialFolder.MyDocuments).Replace("Documents", "Downloads");
             var filePath = Path.Combine(sourceFolder, "TransactionReport.xls");
             if (File.Exists(filePath))
                 File.Delete(filePath);
-            var driver = umb.GetDriver();
+            var driver = await umb.GetDriverAsync();
             driver.Navigate().GoToUrl($"{umb.UmbUri}/Reports/report2_1010c.asp");
             //
             try
@@ -56,10 +56,10 @@ namespace Automa.IO.Umb.Reports
                 driver.FindElement(By.Name("xs_filetype")).SendKeys("Excel" + Keys.Enter); // Export File Type
                 driver.FindElement(By.ClassName("search")).Click();
             }
-            catch { return Task.FromResult(false); }
+            catch { return false; }
             var i = 0; while (!File.Exists(filePath) && i++ < 10)
                 Thread.Sleep(100);
-            return Task.FromResult(true);
+            return true;
         }
 
         public static Task<bool> ExportFileAsync_(UmbClient umb, string sourceFolder, DateTime? beginDate = null, DateTime? endDate = null)
@@ -67,30 +67,30 @@ namespace Automa.IO.Umb.Reports
             var filePath = Path.Combine(sourceFolder, "TransactionReport.xls");
             if (File.Exists(filePath))
                 File.Delete(filePath);
-            return Task.Run(() => umb.RunReport("Reports/report2_1010c.asp", f =>
-            {
-                f.Values["xs_d_st"] = "-1";
-                f.Values["xs_d_s_f"] = "i11";
-                f.Values["xs_d_s_d"] = "1";
-                f.Add("xs_cu", "text", null);
-                f.FromSelect("xs_bi", "[All Account Issuers]"); // Statement Issuer
+            return Task.Run(() => umb.RunReportAsync("Reports/report2_1010c.asp", f =>
+           {
+               f.Values["xs_d_st"] = "-1";
+               f.Values["xs_d_s_f"] = "i11";
+               f.Values["xs_d_s_d"] = "1";
+               f.Add("xs_cu", "text", null);
+               f.FromSelect("xs_bi", "[All Account Issuers]"); // Statement Issuer
                 f.Values["xs_pi"] = "0"; // Statement Period
                 f.Values["xs_l_ct"] = "0"; // Account Type
                 f.Values["xs_dt"] = "0";
-                f.Values["xs_tt"] = "0";
-                f.Values["xs_ts"] = "0";
-                f.Values["xs_ap"] = "0";
-                f.Values["xs_apx"] = "0";
-                f.Values["xs_mg"] = "0";
-                f.Values["xs_asc"] = "0";
-                f.Values["xs_abc"] = "0";
-                f.Values["xs_ar"] = "0";
-                f.Values["xs_eti"] = "0";
-                f.Values["xs_eti_c"] = "0";
-                f.Values["xs_ccm"] = "0";
-                f.Values["xs_bxt"] = "0";
-                f.Values["xs_bxs"] = "0";
-                if (beginDate != null) f.Values["xs_start"] = beginDate.Value.ToShortDateString(); // Start Date
+               f.Values["xs_tt"] = "0";
+               f.Values["xs_ts"] = "0";
+               f.Values["xs_ap"] = "0";
+               f.Values["xs_apx"] = "0";
+               f.Values["xs_mg"] = "0";
+               f.Values["xs_asc"] = "0";
+               f.Values["xs_abc"] = "0";
+               f.Values["xs_ar"] = "0";
+               f.Values["xs_eti"] = "0";
+               f.Values["xs_eti_c"] = "0";
+               f.Values["xs_ccm"] = "0";
+               f.Values["xs_bxt"] = "0";
+               f.Values["xs_bxs"] = "0";
+               if (beginDate != null) f.Values["xs_start"] = beginDate.Value.ToShortDateString(); // Start Date
                 if (endDate != null) f.Values["xs_end"] = endDate.Value.ToShortDateString(); // End Date
                 f.Checked["xs_umt"] = true; // Include Unmapped Transactions
                 f.Checked["xs_m_f"] = false; // Group Results
@@ -98,11 +98,11 @@ namespace Automa.IO.Umb.Reports
                 f.FromMultiCheckbox("xs_d_f", new[] { // additional fields
                         "i91", // Issuer Reference
                         "i85", // Authorization Number
-                    }, merge: HtmlFormPost.Merge.Include);
+                }, merge: HtmlFormPost.Merge.Include);
                 // submit
                 f.Add("xsl_outmode", "text", "20");
-                f.Add("xsl_outname", "text", "TransactionReport.xls");
-            }, sourceFolder));
+               f.Add("xsl_outname", "text", "TransactionReport.xls");
+           }, sourceFolder));
         }
 
         public static IEnumerable<TransactionReport> Read(UmbClient umb, string sourceFolder)

@@ -1,7 +1,7 @@
 ﻿using System;
 using System.Xml.Linq;
 
-namespace Automa.IO.Unanet
+namespace Automa.IO.Unanet.Reports
 {
     public class ReportBase
     {

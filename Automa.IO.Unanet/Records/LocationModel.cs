@@ -18,10 +18,10 @@ namespace Automa.IO.Unanet.Records
 
         public static Task<(bool success, string message, bool hasFile, object tag)> ExportFileAsync(UnanetClient una, string sourceFolder)
         {
-            var filePath = Path.Combine(sourceFolder, una.Settings.location_master.file);
+            var filePath = Path.Combine(sourceFolder, una.Options.location_master.file);
             if (File.Exists(filePath))
                 File.Delete(filePath);
-            return Task.Run(() => una.GetEntitiesByExport(una.Settings.location_master.key, (z, f) =>
+            return Task.Run(() => una.GetEntitiesByExportAsync(una.Options.location_master.key, (z, f) =>
             {
                 f.Checked["suppressOutput"] = true;
                 return null;
@@ -30,7 +30,7 @@ namespace Automa.IO.Unanet.Records
 
         public static IEnumerable<LocationModel> Read(UnanetClient una, string sourceFolder)
         {
-            var filePath = Path.Combine(sourceFolder, una.Settings.location_master.file);
+            var filePath = Path.Combine(sourceFolder, una.Options.location_master.file);
             using (var sr = File.OpenRead(filePath))
                 return CsvReader.Read(sr, x => new LocationModel
                 {
@@ -42,12 +42,12 @@ namespace Automa.IO.Unanet.Records
                 }, 1).ToList();
         }
 
-        public static IEnumerable<LocationModel> EnsureAndRead(UnanetClient una, string sourceFolder)
+        public static Task<IEnumerable<LocationModel>> EnsureAndReadAsync(UnanetClient una, string sourceFolder)
         {
-            var filePath = Path.Combine(sourceFolder, una.Settings.location_master.file);
+            var filePath = Path.Combine(sourceFolder, una.Options.location_master.file);
             if (!File.Exists(filePath))
                 ExportFileAsync(una, sourceFolder).Wait();
-            return Read(una, sourceFolder);
+            return Task.FromResult(Read(una, sourceFolder));
         }
 
         public static string GetReadXml(UnanetClient una, string sourceFolder, string syncFileA = null)

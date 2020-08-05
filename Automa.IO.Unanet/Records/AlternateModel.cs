@@ -21,10 +21,10 @@ namespace Automa.IO.Unanet.Records
 
         public static Task<(bool success, string message, bool hasFile, object tag)> ExportFileAsync(UnanetClient una, string sourceFolder)
         {
-            var filePath = Path.Combine(sourceFolder, una.Settings.alternate.file);
+            var filePath = Path.Combine(sourceFolder, una.Options.alternate.file);
             if (File.Exists(filePath))
                 File.Delete(filePath);
-            return Task.Run(() => una.GetEntitiesByExport(una.Settings.alternate.key, (z, f) =>
+            return Task.Run(() => una.GetEntitiesByExportAsync(una.Options.alternate.key, (z, f) =>
             {
                 f.Checked["suppressOutput"] = true;
                 return null;
@@ -33,7 +33,7 @@ namespace Automa.IO.Unanet.Records
 
         public static IEnumerable<AlternateModel> Read(UnanetClient una, string sourceFolder)
         {
-            var filePath = Path.Combine(sourceFolder, una.Settings.alternate.file);
+            var filePath = Path.Combine(sourceFolder, una.Options.alternate.file);
             using (var sr = File.OpenRead(filePath))
                 return CsvReader.Read(sr, x => new AlternateModel
                 {
@@ -64,18 +64,16 @@ namespace Automa.IO.Unanet.Records
             public string XCF { get; set; }
         }
 
-        public static ManageFlags ManageRecord(UnanetClient una, p_Alternate1 s, out Dictionary<string, (Type, object)> fields, out string last, Action<p_Alternate1> bespoke = null)
+        public static async Task<(ChangedFields changed, string last)> ManageRecordAsync(UnanetClient una, p_Alternate1 s, Action<p_Alternate1> bespoke = null)
         {
-            var _f = fields = new Dictionary<string, (Type, object)>();
-            //T _t<T>(T value, string name) { _f[name] = (typeof(T), value); return value; }
-            //
+            var _ = new ChangedFields(ManageFlags.AlternateChanged);
             bespoke?.Invoke(s);
-            if (ManageRecordBase(null, s.XCF, 1, out var cf, out var add, out last, canDelete: true))
-                return ManageFlags.AlternateChanged;
+            if (ManageRecordBase(null, s.XCF, 1, out var cf, out var add, out var last2, canDelete: true))
+                return (_.Changed(), last2);
             var method = !cf.Contains("delete") ? add ? HttpMethod.Post : HttpMethod.Put : HttpMethod.Delete;
-            var r = una.SubmitSubManage("D", HttpMethod.Get, $"people/alternates", null,
+            var (r, last) = await una.SubmitSubManageAsync("D", HttpMethod.Get, $"people/alternates", null,
                 $"personkey={s.alternate_usernameKey}", null,
-                out last, (z, f) =>
+                (z, f) =>
                 {
                     var roleKey = f.Selects["attributes"].FirstOrDefault(x => x.Value.Replace(" ", "").ToLowerInvariant() == s.role.ToLowerInvariant()).Key;
                     if (roleKey == null)
@@ -84,9 +82,7 @@ namespace Automa.IO.Unanet.Records
                     f.Add("button_save", "action", null);
                     return f.ToString();
                 });
-            return r != null ?
-                ManageFlags.AlternateChanged :
-                ManageFlags.None;
+            return (_.Changed(r), last);
         }
     }
 }

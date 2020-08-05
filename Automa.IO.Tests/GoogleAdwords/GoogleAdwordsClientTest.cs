@@ -12,14 +12,14 @@ namespace Automa.IO.GoogleAdwords
         [SetUp] public void Configure() => _client = GetGoogleAdwordsClient();
         [TearDown] public void TearDown() { _client?.Dispose(); _client = null; }
 
-        GoogleAdwordsClient GetGoogleAdwordsClient(bool deleteFile = false)
+        GoogleAdwordsClient GetGoogleAdwordsClient(bool deleteFile = false, bool proxy = false)
         {
             if (!Directory.Exists(SourcePath))
                 Directory.CreateDirectory(SourcePath);
             var cookieFile = Path.Combine(SourcePath, "googleAdwords.cookies.json");
             if (deleteFile && File.Exists(cookieFile))
                 File.Delete(cookieFile);
-            return new GoogleAdwordsClient
+            return new GoogleAdwordsClient(proxy ? new Config() : null)
             {
                 Logger = Console.WriteLine,
                 CookiesBytes = File.Exists(cookieFile) ? File.ReadAllBytes(cookieFile) : null,

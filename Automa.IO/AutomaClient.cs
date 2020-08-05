@@ -1,9 +1,12 @@
+using Automa.IO.Proxy;
 using OpenQA.Selenium;
+using OpenQA.Selenium.Chrome;
 using System;
 using System.Collections.Generic;
 using System.Net;
 using System.Security;
 using System.Security.Cryptography.X509Certificates;
+using System.Threading.Tasks;
 
 namespace Automa.IO
 {
@@ -13,7 +16,7 @@ namespace Automa.IO
     /// <seealso cref="System.IDisposable" />
     public abstract class AutomaClient : ITryMethod, IHasCookies, IDisposable
     {
-        public static readonly IAutoma EmptyAutoma = new EmptyAutoma();
+        public static readonly IAutoma EmptyAutoma = new InternalEmptyAutoma();
         readonly Func<AutomaClient, IAutoma> _automaFactory;
         IAutoma _automa;
 
@@ -26,12 +29,24 @@ namespace Automa.IO
         /// Initializes a new instance of the <see cref="AutomaClient" /> class.
         /// </summary>
         /// <param name="automaFactory">The client factory.</param>
-        public AutomaClient(Func<AutomaClient, IAutoma> automaFactory = null) => _automaFactory = automaFactory;
+        public AutomaClient(Func<AutomaClient, IAutoma> automaFactory = null, IProxyOptions proxyOptions = null)
+        {
+            _automaFactory = automaFactory;
+            ProxyOptions = proxyOptions;
+        }
 
         /// <summary>
         /// Performs application-defined tasks associated with freeing, releasing, or resetting unmanaged resources.
         /// </summary>
         public void Dispose() => Automa = null;
+
+        /// <summary>
+        /// Gets the proxy options.
+        /// </summary>
+        /// <value>
+        /// The proxy options.
+        /// </value>
+        public IProxyOptions ProxyOptions { get; }
 
         /// <summary>
         /// Gets or sets the logger.
@@ -50,7 +65,7 @@ namespace Automa.IO
         /// <value>The automa.</value>
         public IAutoma Automa
         {
-            get => _automa ?? (_automa = _automaFactory?.Invoke(this) ?? EmptyAutoma);
+            get => _automa ??= _automaFactory?.Invoke(this) ?? EmptyAutoma;
             set
             {
                 if (_automa != value)
@@ -62,11 +77,19 @@ namespace Automa.IO
             }
         }
 
-        public IWebDriver GetDriver(object tag = null, decimal loginTimeoutInSeconds = -1M)
+        public async Task<IWebDriver> GetDriverAsync(object tag = null, decimal loginTimeoutInSeconds = -1M)
         {
-            AutomaLogin(false, tag, loginTimeoutInSeconds);
-            return Automa.Driver;
+            await AutomaLoginAsync(false, tag, loginTimeoutInSeconds);
+            return Automa.Driver.Driver;
         }
+
+        /// <summary>
+        /// Gets or sets the type of the driver.
+        /// </summary>
+        /// <value>
+        /// The type of the driver.
+        /// </value>
+        public Type DriverType { get; set; } = typeof(ChromeDriver);
 
         #region Credentials
 
@@ -187,7 +210,7 @@ namespace Automa.IO
         /// <summary>
         /// Accesses the token flush.
         /// </summary>
-        public void AccessTokenFlush() => AccessTokenWriter?.Invoke(AccessToken);
+        public Task AccessTokenFlushAsync() { AccessTokenWriter?.Invoke(AccessToken); return Task.CompletedTask; }
 
         #endregion
 
@@ -214,7 +237,7 @@ namespace Automa.IO
         /// <summary>
         /// Cookieses the flush.
         /// </summary>
-        public void CookiesFlush() => CookiesWriter?.Invoke(CookiesBytes);
+        public Task CookiesFlushAsync() { CookiesWriter?.Invoke(CookiesBytes); return Task.CompletedTask; }
 
         /// <summary>
         /// Gets or sets the cookies value.
@@ -222,8 +245,8 @@ namespace Automa.IO
         /// <value>The cookies value.</value>
         public byte[] CookiesBytes
         {
-            get => this.GetCookies(CookieStorageType);
-            set => this.SetCookies(value, CookieStorageType);
+            get => this.GetCookiesAsync(CookieStorageType).GetAwaiter().GetResult();
+            set => this.SetCookiesAsync(value, CookieStorageType).Wait();
         }
 
         #endregion
@@ -246,7 +269,7 @@ namespace Automa.IO
         /// <param name="closeAfter">if set to <c>true</c> [close after].</param>
         /// <param name="tag">The tag.</param>
         /// <param name="loginTimeoutInSeconds">The login timeout in seconds.</param>
-        public virtual void TryLogin(bool closeAfter = true, object tag = null, decimal loginTimeoutInSeconds = -1M) => AutomaLogin(closeAfter, tag, loginTimeoutInSeconds);
+        public virtual Task TryLoginAsync(bool closeAfter = true, object tag = null, decimal loginTimeoutInSeconds = -1M) => AutomaLoginAsync(closeAfter, tag, loginTimeoutInSeconds);
 
         /// <summary>
         /// Automas the login.
@@ -256,14 +279,14 @@ namespace Automa.IO
         /// <param name="loginTimeoutInSeconds">The login timeout in seconds.</param>
         /// <returns><c>true</c> if XXXX, <c>false</c> otherwise.</returns>
         /// <exception cref="WebDriverException"></exception>
-        protected virtual void AutomaLogin(bool closeAfter = true, object tag = null, decimal loginTimeoutInSeconds = -1M)
+        protected virtual async Task AutomaLoginAsync(bool closeAfter = true, object tag = null, decimal loginTimeoutInSeconds = -1M)
         {
             _logger("AutomaClient::Login");
             try
             {
-                Automa.Login(tag, loginTimeoutInSeconds);
+                await Automa.LoginAsync(tag, loginTimeoutInSeconds);
                 Cookies = Automa.Cookies;
-                CookiesFlush();
+                await CookiesFlushAsync();
             }
             catch (Exception e)
             {
@@ -281,23 +304,16 @@ namespace Automa.IO
         }
 
         /// <summary>
-        /// Tries the select application.
+        /// Selects the application.
         /// </summary>
         /// <param name="application">The application.</param>
         /// <param name="tag">The tag.</param>
         /// <param name="selectTimeoutInSeconds">The select timeout in seconds.</param>
         /// <returns>System.Object.</returns>
-        public virtual object TrySelectApplication(string application, object tag = null, decimal selectTimeoutInSeconds = -1M)
+        public virtual async Task<object> AutomaSelectApplicationAsync(string application, object tag = null, decimal selectTimeoutInSeconds = -1M)
         {
-            _logger("AutomaClient::TrySelectApp");
-            Automa.SelectApplication(application, tag, selectTimeoutInSeconds);
-            return null;
-        }
-
-        protected virtual object AutomaSelectApplication(string application, object tag = null, decimal selectTimeoutInSeconds = -1M)
-        {
-            _logger("AutomaClient::TrySelectApp");
-            Automa.SelectApplication(application, tag, selectTimeoutInSeconds);
+            _logger("AutomaClient::SelectApplication");
+            await Automa.SelectApplicationAsync(application, tag, selectTimeoutInSeconds);
             return null;
         }
 

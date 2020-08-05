@@ -39,10 +39,10 @@ namespace Automa.IO.Unanet.Records
 
         public static Task<(bool success, string message, bool hasFile, object tag)> ExportFileAsync(UnanetClient una, string sourceFolder, AccessTypes accessTypes = AccessTypes.All, string[] roles = null)
         {
-            var filePath = Path.Combine(sourceFolder, una.Settings.organization_access.file);
+            var filePath = Path.Combine(sourceFolder, una.Options.organization_access.file);
             if (File.Exists(filePath))
                 File.Delete(filePath);
-            return Task.Run(() => una.GetEntitiesByExport(una.Settings.organization_access.key, (z, f) =>
+            return Task.Run(() => una.GetEntitiesByExportAsync(una.Options.organization_access.key, (z, f) =>
             {
                 f.Checked["suppressOutput"] = true;
                 // access type
@@ -67,7 +67,7 @@ namespace Automa.IO.Unanet.Records
 
         public static IEnumerable<PersonAccessModel> Read(UnanetClient una, string sourceFolder)
         {
-            var filePath = Path.Combine(sourceFolder, una.Settings.organization_access.file);
+            var filePath = Path.Combine(sourceFolder, una.Options.organization_access.file);
             using (var sr = File.OpenRead(filePath))
                 return CsvReader.Read(sr, x => new PersonAccessModel
                 {
@@ -114,23 +114,17 @@ namespace Automa.IO.Unanet.Records
             return elemsByName;
         }
 
-        public static ManageFlags ManageRecord(UnanetClient una, p_PersonAccess1 s, out Dictionary<string, (Type, object)> fields, out string last, Action<p_PersonAccess1> bespoke = null)
+        public static async Task<(ChangedFields changed, string last)> ManageRecordAsync(UnanetClient una, p_PersonAccess1 s, Action<p_PersonAccess1> bespoke = null)
         {
-            var _f = fields = new Dictionary<string, (Type, object)>();
-            T _t<T>(T value, string name) { _f[name] = (typeof(T), value); return value; }
-            //
+            var _ = new ChangedFields(ManageFlags.PersonAccessChanged);
             bespoke?.Invoke(s);
-            if (ManageRecordBase(null, s.XCF, 1, out var cf, out var add, out last))
-                return ManageFlags.OrganizationAddressChanged;
+            if (ManageRecordBase(null, s.XCF, 1, out var cf, out var add, out var last2))
+                return (_.Changed(), last2);
             if (add)
-            {
-                last = "role missing";
-                return ManageFlags.None;
-            }
-            //
-            var r = una.SubmitSubManage("0", HttpMethod.Get, "people/orgaccess/edit", null,
+                return (_, "role missing");
+            var (r, last) = await una.SubmitSubManageAsync("0", HttpMethod.Get, "people/orgaccess/edit", null,
                 $"personkey={s.usernameKey}&oapkey={s.key}", null,
-                out last, (z, f) =>
+                (z, f) =>
             {
                 // cache template
                 if (DateTime.Now > FormExpires || FormOptions == null || FormOrgTreesByName == null)
@@ -148,7 +142,7 @@ namespace Automa.IO.Unanet.Records
                 //
                 f.Values["personkey"] = s.usernameKey;
                 f.Values["oapkey"] = s.key;
-                var org_access = _t(s.org_access, nameof(s.org_access));
+                var org_access = _._(s.org_access, nameof(s.org_access));
                 switch (org_access)
                 {
                     case "!ALL!": f.FromSelectByKey("orgaccess", "all"); break;
@@ -161,9 +155,7 @@ namespace Automa.IO.Unanet.Records
                 }
                 return f.ToString();
             }, formOptions: FormOptions);
-            return r != null ?
-                ManageFlags.PersonAccessChanged :
-                ManageFlags.None;
+            return (_.Changed(r), last);
         }
     }
 }

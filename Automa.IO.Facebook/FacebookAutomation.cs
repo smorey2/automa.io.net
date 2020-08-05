@@ -1,6 +1,8 @@
 ﻿using OpenQA.Selenium;
 using System;
 using System.Net;
+using System.Threading;
+using System.Threading.Tasks;
 
 namespace Automa.IO.Facebook
 {
@@ -17,21 +19,22 @@ namespace Automa.IO.Facebook
         /// </summary>
         /// <param name="client">The client.</param>
         /// <param name="automa">The automa.</param>
-        /// <param name="driver">The driver.</param>
-        public FacebookAutomation(AutomaClient client, IAutoma automa, IWebDriver driver) : base(client, automa, driver) { }
+        public FacebookAutomation(AutomaClient client, IAutoma automa) : base(client, automa) { }
 
         /// <summary>
         /// Tries the go to URL.
         /// </summary>
         /// <param name="url">The URL.</param>
+        /// <param name="cancellationToken">The cancellation token.</param>
+        /// <returns></returns>
         /// <exception cref="LoginRequiredException"></exception>
-        public override string GoToUrl(string url)
+        public override Task<string> GoToUrlAsync(string url, CancellationToken? cancellationToken = null)
         {
             _driver.Navigate().GoToUrl(url);
             var title = _driver.Title;
             if (title.Contains("Log in") || title.Contains("Log In"))
                 throw new LoginRequiredException();
-            return title;
+            return Task.FromResult(title);
         }
 
         /// <summary>
@@ -40,8 +43,10 @@ namespace Automa.IO.Facebook
         /// <param name="cookies">The cookies.</param>
         /// <param name="credential">The credential.</param>
         /// <param name="tag">The tag.</param>
+        /// <param name="cancellationToken">The cancellation token.</param>
+        /// <returns></returns>
         /// <exception cref="LoginRequiredException"></exception>
-        public override void Login(Func<CookieCollection, CookieCollection> cookies, NetworkCredential credential, object tag)
+        public override Task LoginAsync(Func<CookieCollection, Task<CookieCollection>> cookies, NetworkCredential credential, object tag = null, CancellationToken? cancellationToken = null)
         {
             _driver.Navigate().GoToUrl(FacebookUri);
             var loginElement = _driver.FindElement(By.Id("email"));
@@ -55,6 +60,7 @@ namespace Automa.IO.Facebook
             if (title.Contains("Log in") || title.Contains("Log In"))
                 throw new LoginRequiredException();
             //cookies(_automa.Cookies);
+            return Task.CompletedTask;
         }
 
         /// <summary>
@@ -63,12 +69,13 @@ namespace Automa.IO.Facebook
         /// <param name="url">The URL.</param>
         /// <param name="userCode">The code.</param>
         /// <param name="tag">The tag.</param>
+        /// <param name="cancellationToken">The cancellation token.</param>
         /// <exception cref="System.InvalidOperationException"></exception>
         /// <exception cref="System.NotSupportedException"></exception>
         /// <exception cref="InvalidOperationException"></exception>
-        public override void SetDeviceAccessToken(string url, string userCode, object tag)
+        public override async Task SetDeviceAccessTokenAsync(string url, string userCode, object tag = null, CancellationToken? cancellationToken = null)
         {
-            var title = GoToUrl(url);
+            var title = await GoToUrlAsync(url);
             if (!title.Contains("Devices"))
                 throw new InvalidOperationException();
             var loginElement = _driver.FindElement(By.Name("user_code"));

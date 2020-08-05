@@ -1,12 +1,11 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.Diagnostics;
-using System.IO;
 using System.Linq;
-using System.Net;
 using System.Net.Http;
 using System.Text;
 using System.Text.RegularExpressions;
+using System.Threading.Tasks;
 using System.Web;
 using System.Xml.Linq;
 
@@ -137,22 +136,22 @@ namespace Automa.IO.Unanet.Records
             return (hours, b.ToString());
         }
 
-        static string PreAdjust(UnanetClient una, int keySheet, out string last) =>
-           una.PostValue(HttpMethod.Get, "people/time/preadjust", null, $"timesheetkey={keySheet}", out last, useSafeRead: true);
+        static Task<(string value, string last)> PreAdjustAsync(UnanetClient una, int keySheet) =>
+           una.PostValueAsync(HttpMethod.Get, "people/time/preadjust", null, $"timesheetkey={keySheet}", useSafeRead: true);
 
-        public static TimeSheetModel Get(UnanetClient una, int keySheet, out string last, bool preAdjust = false, bool useView = false)
+        public static async Task<(TimeSheetModel value, string last)> GetAsync(UnanetClient una, int keySheet, bool preAdjust = false, bool useView = false)
         {
-            var d0 = una.PostValue(HttpMethod.Get, useView ? "people/time/view" : "people/time/edit", null, $"timesheetkey={keySheet}", out last, useSafeRead: true);
+            var (d0, last) = await una.PostValueAsync(HttpMethod.Get, useView ? "people/time/view" : "people/time/edit", null, $"timesheetkey={keySheet}", useSafeRead: true);
             var time = Parse(d0, keySheet);
             if (preAdjust && (time.Status != SheetStatus.Inuse || time.Status != SheetStatus.InuseAdjustment))
             {
-                d0 = PreAdjust(una, keySheet, out last);
+                (d0, last) = await PreAdjustAsync(una, keySheet);
                 time = Parse(d0, keySheet);
             }
-            return time;
+            return (time, last);
         }
 
-        public static bool Save(UnanetClient una, TimeSheetModel s, string submitComments, string approvalComments, out string last)
+        public static async Task<(bool approvals, string last)> SaveAsync(UnanetClient una, TimeSheetModel s, string submitComments, string approvalComments)
         {
             var f = new HtmlFormPost { Action = "/roundarch/action/people/time/save" };
             if (s.Status == SheetStatus.Inuse)
@@ -201,25 +200,25 @@ namespace Automa.IO.Unanet.Records
                 }
             }
             f.Add("tito_count", "text", "0");
-            var d0 = una.PostValue(HttpMethod.Post, f.Action.Substring(18), f.ToString(), null, out last);
+            var (d0, last) = await una.PostValueAsync(HttpMethod.Post, f.Action.Substring(18), f.ToString(), null);
             var d1 = d0.ExtractSpanInner("<div class=\"error\">", "</div>");
             if (d1 != null)
                 last = d1.Replace("<BR>", null).Replace("<br>", null).Trim();
             if (last != null || !d0.Contains("Adjustments - Enter a change reason for all modified entries"))
-                return false;
+                return (false, last);
 
             // adjustments
             f = new HtmlFormPost(d0);
-            var post = f.ToString();
+            //var post = f.ToString();
             //f["ignore_warnings"] = "true";
             f.Values["globalComment"] = "true";
             f.Values["comments_00"] = approvalComments;
             f.Add("button_save", "text", null);
-            d0 = una.PostValue(HttpMethod.Post, f.Action.Substring(18), f.ToString(), null, out last);
+            (d0, last) = await una.PostValueAsync(HttpMethod.Post, f.Action.Substring(18), f.ToString(), null);
             d1 = d0.ExtractSpanInner("<div class=\"error\">", "</div>");
             if (d1 != null)
                 last = d1.Replace("<BR>", null).Replace("<br>", null).Trim();
-            return true;
+            return (true, last);
         }
 
         public void KillTitoEntry(int keySheet, out string last)

@@ -1,0 +1,14 @@
+<Project Sdk="Microsoft.NET.Sdk.Web">
+
+  <PropertyGroup>
+    <TargetFramework>netcoreapp3.1</TargetFramework>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="..\Automa.IO.Umb\Automa.IO.Umb.csproj" />
+    <ProjectReference Include="..\Automa.IO.Unanet\Automa.IO.Unanet.csproj" />
+    <ProjectReference Include="..\Automa.IO\Automa.IO.csproj" />
+  </ItemGroup>
+
+
+</Project>

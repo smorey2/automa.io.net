@@ -1,9 +1,9 @@
 ﻿namespace Automa.IO.Unanet
 {
     /// <summary>
-    /// Interface IUnanetSettings
+    /// IUnanetOptions
     /// </summary>
-    public interface IUnanetSettings
+    public interface IUnanetOptions
     {
         string UnanetUri { get; }
         string LegalEntity { get; }
@@ -49,10 +49,10 @@
     }
 
     /// <summary>
-    /// Class RoundarchUnanetSetting.
+    /// RoundarchUnanetOptions.
     /// </summary>
-    /// <seealso cref="Automa.IO.Unanet.IUnanetSettings" />
-    public class RoundarchUnanetSetting : IUnanetSettings
+    /// <seealso cref="Automa.IO.Unanet.IUnanetOptions" />
+    public class RoundarchUnanetOptions : IUnanetOptions
     {
         public string UnanetUri => "https://roundarch.unanet.biz/roundarch/action";
         public string LegalEntity => "75-00-DEG-00 - Digital Evolution Group, LLC";
@@ -98,10 +98,10 @@
     }
 
     /// <summary>
-    /// Class RoundarchSandUnanetSetting.
+    /// RoundarchSandUnanetOptions.
     /// </summary>
-    /// <seealso cref="Automa.IO.Unanet.IUnanetSettings" />
-    public class RoundarchSandUnanetSetting : IUnanetSettings
+    /// <seealso cref="Automa.IO.Unanet.IUnanetOptions" />
+    public class RoundarchSandUnanetOptions : IUnanetOptions
     {
         public string UnanetUri => "https://roundarch-sand.unanet.biz/roundarch-sand/action";
         public string LegalEntity => "75-00-DEG-00 - Digital Evolution Group, LLC";

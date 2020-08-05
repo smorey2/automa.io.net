@@ -55,20 +55,20 @@ namespace Automa.IO.Unanet.Records
 
         public static Task<(bool success, string message, bool hasFile, object tag)> ExportFileAsync(UnanetClient una, string sourceFolder, string legalEntity = null)
         {
-            var filePath = Path.Combine(sourceFolder, una.Settings.project_invoice_setup.file);
+            var filePath = Path.Combine(sourceFolder, una.Options.project_invoice_setup.file);
             if (File.Exists(filePath))
                 File.Delete(filePath);
-            return Task.Run(() => una.GetEntitiesByExport(una.Settings.project_invoice_setup.key, (z, f) =>
+            return Task.Run(() => una.GetEntitiesByExportAsync(una.Options.project_invoice_setup.key, (z, f) =>
             {
                 f.Checked["suppressOutput"] = true;
-                f.FromSelect("legalEntity", legalEntity ?? una.Settings.LegalEntity);
+                f.FromSelect("legalEntity", legalEntity ?? una.Options.LegalEntity);
                 return null;
             }, sourceFolder));
         }
 
         public static IEnumerable<ProjectInvoiceSetupModel> Read(UnanetClient una, string sourceFolder)
         {
-            var filePath = Path.Combine(sourceFolder, una.Settings.project_invoice_setup.file);
+            var filePath = Path.Combine(sourceFolder, una.Options.project_invoice_setup.file);
             using (var sr = File.OpenRead(filePath))
                 return CsvReader.Read(sr, x => new ProjectInvoiceSetupModel
                 {
@@ -134,20 +134,18 @@ namespace Automa.IO.Unanet.Records
             public string XCF { get; set; }
         }
 
-        public static ManageFlags ManageRecord(UnanetClient una, p_ProjectInvoiceSetup1 s, out Dictionary<string, (Type, object)> fields, out string last, Action<p_ProjectInvoiceSetup1> bespoke = null)
+        public static async Task<(ChangedFields changed, string last)> ManageRecordAsync(UnanetClient una, p_ProjectInvoiceSetup1 s, Action<p_ProjectInvoiceSetup1> bespoke = null)
         {
-            var _f = fields = new Dictionary<string, (Type, object)>();
-            T _t<T>(T value, string name) { _f[name] = (typeof(T), value); return value; }
-            //
+            var _ = new ChangedFields(ManageFlags.ProjectInvoiceSetupChanged);
             bespoke?.Invoke(s);
-            if (ManageRecordBase(null, s.XCF, 1, out var cf, out var add, out last))
-                return ManageFlags.ProjectInvoiceSetupChanged;
-            var r = una.SubmitSubManage("D", HttpMethod.Get, $"projects/accounting/invoice/edit", null,
+            if (ManageRecordBase(null, s.XCF, 1, out var cf, out var add, out var last2))
+                return (_.Changed(), last2);
+            var (r, last) = await una.SubmitSubManageAsync("D", HttpMethod.Get, $"projects/accounting/invoice/edit", null,
                 $"projectkey={s.project_codeKey}", null,
-                out last, (z, f) =>
+                (z, f) =>
             {
-                if (add || cf.Contains("gi")) f.Checked["generateInvoice"] = _t(s.generate_invoice, nameof(s.generate_invoice)) == "Y";
-                if (add || cf.Contains("io")) { f.Values["proj_invoice"] = _t(s.invoicing_option, nameof(s.invoicing_option)); f.Values["invoice_option"] = s.invoicing_option; }
+                if (add || cf.Contains("gi")) f.Checked["generateInvoice"] = _._(s.generate_invoice, nameof(s.generate_invoice)) == "Y";
+                if (add || cf.Contains("io")) { f.Values["proj_invoice"] = _._(s.invoicing_option, nameof(s.invoicing_option)); f.Values["invoice_option"] = s.invoicing_option; }
                 if (s.invoicing_option != "C")
                 {
                     f.Values["lead_projects_mod"] = "true";
@@ -155,20 +153,20 @@ namespace Automa.IO.Unanet.Records
                 }
                 else
                 {
-                    //if (add || cf.Contains("lpoc")) f.Values["xxxx"] = _t(s.lead_project_org_code, nameof(s.lead_project_org_code));
-                    //if (add || cf.Contains("lpc")) f.Values["xxxx"] = _t(s.lead_project_code, nameof(s.lead_project_code));
+                    //if (add || cf.Contains("lpoc")) f.Values["xxxx"] = _._(s.lead_project_org_code, nameof(s.lead_project_org_code));
+                    //if (add || cf.Contains("lpc")) f.Values["xxxx"] = _._(s.lead_project_code, nameof(s.lead_project_code));
                     f.Types["contributorsnotAssigned_orgCode_fltr"] = "disabled";
                     f.Types["contributorsnotAssigned_projCode_fltr"] = "disabled";
                     f.Values["lead_projects_mod"] = "false";
-                    f.Values["lead_projects"] = _t(s.lead_project_codeKey, nameof(s.lead_project_codeKey));
+                    f.Values["lead_projects"] = _._(s.lead_project_codeKey, nameof(s.lead_project_codeKey));
                 }
                 //
                 if (s.invoicing_option != "C")
                 {
-                    if (add || cf.Contains("pif")) f.FromSelect("invoiceFormat", _t(s.primary_invoice_format, nameof(s.primary_invoice_format)));
-                    //if (add || cf.Contains("aif")) f.FromSelect("xxxx", _t(s.additional_invoice_formats, nameof(s.additional_invoice_formats)));
-                    if (add || cf.Contains("inf")) f.FromSelectStartsWith("invoiceNumber", _t(s.invoice_number_format, nameof(s.invoice_number_format)));
-                    if (add || cf.Contains("pt")) f.FromSelect("paymentTerm", _t(s.payment_terms, nameof(s.payment_terms)));
+                    if (add || cf.Contains("pif")) f.FromSelect("invoiceFormat", _._(s.primary_invoice_format, nameof(s.primary_invoice_format)));
+                    //if (add || cf.Contains("aif")) f.FromSelect("xxxx", _._(s.additional_invoice_formats, nameof(s.additional_invoice_formats)));
+                    if (add || cf.Contains("inf")) f.FromSelectStartsWith("invoiceNumber", _._(s.invoice_number_format, nameof(s.invoice_number_format)));
+                    if (add || cf.Contains("pt")) f.FromSelect("paymentTerm", _._(s.payment_terms, nameof(s.payment_terms)));
                 }
                 else
                 {
@@ -180,19 +178,19 @@ namespace Automa.IO.Unanet.Records
                 //
                 if (s.invoicing_option != "C")
                 {
-                    if (add || cf.Contains("btc")) f.FromSelectStartsWith("bill_to_contact", _t(s.bill_to_contact, nameof(s.bill_to_contact)));
-                    if (add || cf.Contains("bta")) f.FromSelect("bill_to_address", !string.IsNullOrEmpty(_t(s.bill_to_address, nameof(s.bill_to_address))) ? s.bill_to_address : f.Selects["bill_to_address"].First().Value);
-                    if (add || cf.Contains("stc")) f.FromSelectStartsWith("ship_to_contact", _t(s.ship_to_contact, nameof(s.ship_to_contact)));
-                    if (add || cf.Contains("sta")) f.FromSelect("ship_to_address", _t(s.ship_to_address, nameof(s.ship_to_address)));
-                    if (add || cf.Contains("rtc")) f.FromSelectStartsWith("remit_to_contact", _t(s.remit_to_contact, nameof(s.remit_to_contact)));
-                    if (add || cf.Contains("rta")) f.FromSelect("remit_to_address", !string.IsNullOrEmpty(_t(s.remit_to_address, nameof(s.remit_to_address))) ? s.remit_to_address : f.Selects["remit_to_address"].First().Value);
-                    if (add || cf.Contains("idm")) f.FromSelectByKey("invoice_delivery_opt", _t(s.invoice_delivery_method, nameof(s.invoice_delivery_method)));
-                    if (add || cf.Contains("emt")) f.FromSelect("emailTemplate", _t(s.email_message_template, nameof(s.email_message_template)));
-                    if (add || cf.Contains("tel")) f.Values["toEmail"] = _t(s.to_email_list, nameof(s.to_email_list));
-                    if (add || cf.Contains("cel")) f.Values["ccEmail"] = _t(s.cc_email_list, nameof(s.cc_email_list));
-                    if (add || cf.Contains("bel")) f.Values["bccEmail"] = _t(s.bcc_email_list, nameof(s.bcc_email_list));
-                    if (add || cf.Contains("rdr")) f.Checked["delivery_req"] = _t(s.req_delivery_receipt, nameof(s.req_delivery_receipt)) == "Y";
-                    if (add || cf.Contains("rrr")) f.Checked["read_req"] = _t(s.req_read_receipt, nameof(s.req_read_receipt)) == "Y";
+                    if (add || cf.Contains("btc")) f.FromSelectStartsWith("bill_to_contact", _._(s.bill_to_contact, nameof(s.bill_to_contact)));
+                    if (add || cf.Contains("bta")) f.FromSelect("bill_to_address", !string.IsNullOrEmpty(_._(s.bill_to_address, nameof(s.bill_to_address))) ? s.bill_to_address : f.Selects["bill_to_address"].First().Value);
+                    if (add || cf.Contains("stc")) f.FromSelectStartsWith("ship_to_contact", _._(s.ship_to_contact, nameof(s.ship_to_contact)));
+                    if (add || cf.Contains("sta")) f.FromSelect("ship_to_address", _._(s.ship_to_address, nameof(s.ship_to_address)));
+                    if (add || cf.Contains("rtc")) f.FromSelectStartsWith("remit_to_contact", _._(s.remit_to_contact, nameof(s.remit_to_contact)));
+                    if (add || cf.Contains("rta")) f.FromSelect("remit_to_address", !string.IsNullOrEmpty(_._(s.remit_to_address, nameof(s.remit_to_address))) ? s.remit_to_address : f.Selects["remit_to_address"].First().Value);
+                    if (add || cf.Contains("idm")) f.FromSelectByKey("invoice_delivery_opt", _._(s.invoice_delivery_method, nameof(s.invoice_delivery_method)));
+                    if (add || cf.Contains("emt")) f.FromSelect("emailTemplate", _._(s.email_message_template, nameof(s.email_message_template)));
+                    if (add || cf.Contains("tel")) f.Values["toEmail"] = _._(s.to_email_list, nameof(s.to_email_list));
+                    if (add || cf.Contains("cel")) f.Values["ccEmail"] = _._(s.cc_email_list, nameof(s.cc_email_list));
+                    if (add || cf.Contains("bel")) f.Values["bccEmail"] = _._(s.bcc_email_list, nameof(s.bcc_email_list));
+                    if (add || cf.Contains("rdr")) f.Checked["delivery_req"] = _._(s.req_delivery_receipt, nameof(s.req_delivery_receipt)) == "Y";
+                    if (add || cf.Contains("rrr")) f.Checked["read_req"] = _._(s.req_read_receipt, nameof(s.req_read_receipt)) == "Y";
                 }
                 else
                 {
@@ -213,15 +211,15 @@ namespace Automa.IO.Unanet.Records
                 //
                 if (s.invoicing_option != "C")
                 {
-                    if (add || cf.Contains("spoc")) f.Checked["showProjectOrgCode"] = _t(s.show_project_org_code, nameof(s.show_project_org_code)) == "Y";
-                    if (add || cf.Contains("spc")) f.Checked["showProjectCode"] = _t(s.show_project_code, nameof(s.show_project_code)) == "Y";
-                    if (add || cf.Contains("spt")) f.Checked["showProjectTitle"] = _t(s.show_project_title, nameof(s.show_project_title)) == "Y";
-                    if (add || cf.Contains("spfv")) f.Checked["showProjectFundedValue"] = _t(s.show_project_funded_value, nameof(s.show_project_funded_value)) == "Y";
-                    if (add || cf.Contains("scl")) f.Checked["showCompanyLogo"] = _t(s.show_company_logo, nameof(s.show_company_logo)) == "Y";
-                    if (add || cf.Contains("cl")) f.FromSelect("companyLogo", _t(s.company_logo, nameof(s.company_logo))); f.Types["companyLogo"] = f.Checked["showCompanyLogo"] ? "text" : "disabled";
-                    if (add || cf.Contains("scn")) f.Checked["showContractNumber"] = _t(s.show_contract_number, nameof(s.show_contract_number)) == "Y";
-                    if (add || cf.Contains("cn")) f.Values["contractNumber"] = _t(s.contract_number, nameof(s.contract_number)); f.Types["contractNumber"] = f.Checked["showContractNumber"] ? "text" : "disabled";
-                    if (add || cf.Contains("son")) f.Checked["showOrderNumber"] = _t(s.show_order_number, nameof(s.show_order_number)) == "Y";
+                    if (add || cf.Contains("spoc")) f.Checked["showProjectOrgCode"] = _._(s.show_project_org_code, nameof(s.show_project_org_code)) == "Y";
+                    if (add || cf.Contains("spc")) f.Checked["showProjectCode"] = _._(s.show_project_code, nameof(s.show_project_code)) == "Y";
+                    if (add || cf.Contains("spt")) f.Checked["showProjectTitle"] = _._(s.show_project_title, nameof(s.show_project_title)) == "Y";
+                    if (add || cf.Contains("spfv")) f.Checked["showProjectFundedValue"] = _._(s.show_project_funded_value, nameof(s.show_project_funded_value)) == "Y";
+                    if (add || cf.Contains("scl")) f.Checked["showCompanyLogo"] = _._(s.show_company_logo, nameof(s.show_company_logo)) == "Y";
+                    if (add || cf.Contains("cl")) f.FromSelect("companyLogo", _._(s.company_logo, nameof(s.company_logo))); f.Types["companyLogo"] = f.Checked["showCompanyLogo"] ? "text" : "disabled";
+                    if (add || cf.Contains("scn")) f.Checked["showContractNumber"] = _._(s.show_contract_number, nameof(s.show_contract_number)) == "Y";
+                    if (add || cf.Contains("cn")) f.Values["contractNumber"] = _._(s.contract_number, nameof(s.contract_number)); f.Types["contractNumber"] = f.Checked["showContractNumber"] ? "text" : "disabled";
+                    if (add || cf.Contains("son")) f.Checked["showOrderNumber"] = _._(s.show_order_number, nameof(s.show_order_number)) == "Y";
                     f.Types["orderNumber"] = f.Checked["showOrderNumber"] ? "text" : "disabled";
                 }
                 else
@@ -238,16 +236,14 @@ namespace Automa.IO.Unanet.Records
                     f.Types["orderNumber"] = "text";
                 }
                 //
-                if (add || cf.Contains("on")) f.Values["orderNumber"] = _t(s.order_number, nameof(s.order_number));
-                if (add || cf.Contains("d")) f.Values["description"] = _t(s.description, nameof(s.description));
+                if (add || cf.Contains("on")) f.Values["orderNumber"] = _._(s.order_number, nameof(s.order_number));
+                if (add || cf.Contains("d")) f.Values["description"] = _._(s.description, nameof(s.description));
                 /*if (add || cf.Contains("im"))*/
-                f.Values["memo"] = _t(s.invoice_memo, nameof(s.invoice_memo));
+                f.Values["memo"] = _._(s.invoice_memo, nameof(s.invoice_memo));
                 f.Add("button_save", "action", null);
                 return f.ToString();
             });
-            return r != null ?
-                ManageFlags.ProjectInvoiceSetupChanged :
-                ManageFlags.None;
+            return (_.Changed(r), last);
         }
     }
 }

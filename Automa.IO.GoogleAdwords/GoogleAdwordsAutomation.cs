@@ -15,7 +15,6 @@ namespace Automa.IO.GoogleAdwords
         /// </summary>
         /// <param name="client">The client.</param>
         /// <param name="automa">The automa.</param>
-        /// <param name="driver">The driver.</param>
-        public GoogleAdwordsAutomation(AutomaClient client, IAutoma automa, IWebDriver driver) : base(client, automa, driver) { }
+        public GoogleAdwordsAutomation(AutomaClient client, IAutoma automa) : base(client, automa) { }
     }
 }

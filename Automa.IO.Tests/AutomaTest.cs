@@ -22,7 +22,7 @@ namespace Automa.IO
             var cookieFile = Path.Combine(SourcePath, "unanet.cookies.json");
             if (deleteFile && File.Exists(cookieFile))
                 File.Delete(cookieFile);
-            return new UnanetClient(new RoundarchUnanetSetting())
+            return new UnanetClient(new RoundarchUnanetOptions())
             {
                 Logger = Console.WriteLine,
                 CookiesBytes = File.Exists(cookieFile) ? File.ReadAllBytes(cookieFile) : null,

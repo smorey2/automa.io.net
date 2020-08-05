@@ -2,6 +2,7 @@
 using System.Collections.Generic;
 using System.Linq;
 using System.Net.Http;
+using System.Threading.Tasks;
 using System.Xml.Linq;
 
 namespace Automa.IO.Unanet.Records
@@ -19,23 +20,22 @@ namespace Automa.IO.Unanet.Records
 
         public class p_CustomerPayment : CustomerPaymentModel { }
 
-        public static ManageFlags ManageRecord(UnanetClient una, p_CustomerPayment s, out Dictionary<string, (Type, object)> fields, out string last, Action<string, string> setInfo, string legalEntityKey = null, string legalEntity = null, string bankAcct = "1003 - Capital City_A_CHK", Action<p_CustomerPayment> bespoke = null)
+        public static async Task<(ChangedFields changed, string last)> ManageRecordAsync(UnanetClient una, p_CustomerPayment s, Action<string, string> setInfo, string legalEntityKey = null, string legalEntity = null, string bankAcct = "1003 - Capital City_A_CHK", Action<p_CustomerPayment> bespoke = null)
         {
-            var _f = fields = new Dictionary<string, (Type, object)>();
-            //T _t<T>(T value, string name) { _f[name] = (typeof(T), value); return value; }
-            //
+            var _ = new ChangedFields(ManageFlags.None);
             if (!Unanet.Lookups.BankAccount.Value.TryGetValue(bankAcct, out var bankAcctKey))
                 throw new InvalidOperationException($"Can not find: {bankAcct}");
             bespoke?.Invoke(s);
             // first
+            string[] cps; string last = null;
             if (string.IsNullOrEmpty(s.CpKey))
             {
-                var cps = (string[])una.SubmitManage(HttpMethod.Post, "accounts_receivable/customer_payment", null,
-                    out last, (z, f) =>
+                (cps, last) = ((string[] cps, string last))await una.SubmitManageAsync(HttpMethod.Post, "accounts_receivable/customer_payment", null,
+                    async (z, f) =>
                 {
-                    var customers = Unanet.Una.GetAutoComplete("CP_CUSTOMER", $"{s.OrganizationCode} -", legalEntityKey: legalEntityKey ?? una.Settings.DefaultOrg.key);
+                    var customers = await Unanet.Una.GetAutoCompleteAsync("CP_CUSTOMER", $"{s.OrganizationCode} -", legalEntityKey: legalEntityKey ?? una.Options.DefaultOrg.key);
                     var customer = customers.Single();
-                    f.FromSelect("legalEntity", legalEntity ?? una.Settings.LegalEntity);
+                    f.FromSelect("legalEntity", legalEntity ?? una.Options.LegalEntity);
                     // customer payment
                     f.Values["bankAcct"] = bankAcct; f.Values["bankAcctKey"] = bankAcctKey;
                     f.Values["customer"] = customer.Value; f.Values["customerKey"] = customer.Key;
@@ -62,13 +62,12 @@ namespace Automa.IO.Unanet.Records
                 s.CpKey = cps[0]; s.CpDoc = cps[1];
                 setInfo(s.CpKey, $"D:{s.CpDoc}");
             }
-            else last = null;
             if (string.IsNullOrEmpty(s.CpKey))
-                return ManageFlags.None;
+                return (_, last);
             // second
-            var r = una.SubmitSubManage("D", HttpMethod.Get, "accounts_receivable/customer_payment/included", null, //: POST
+            var (r, last2) = await una.SubmitSubManageAsync("D", HttpMethod.Get, "accounts_receivable/customer_payment/included", null, //: POST
                 $"cpKey={s.CpKey}", null,
-                out last, (z, f) =>
+                (z, f) =>
                 {
                     var doc = z.ToHtmlDocument();
                     var rows = doc.DocumentNode.Descendants("tr")
@@ -100,7 +99,7 @@ namespace Automa.IO.Unanet.Records
                     f.Values["submitButton"] = "button_submit_next";
                     return f.ToString();
                 });
-            return ManageFlags.None;
+            return (_, last2);
         }
     }
 }

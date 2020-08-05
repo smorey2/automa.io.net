@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Net.Http;
 using System.Threading;
+using System.Threading.Tasks;
 
 namespace Automa.IO.Unanet.Records
 {
@@ -47,93 +48,96 @@ namespace Automa.IO.Unanet.Records
 
         #endregion
 
-        public static bool ManagerApprovalByKey(UnanetClient una, (string key, string keyType) key, string comments, string personName, out string last) => Approve(una, "people", "key", key, comments, personName, out last);
-        public static bool ManagerApprovalByKeyMatch(UnanetClient una, (string key, string keyType) key, string comments, string personName, out string last) => Approve(una, "people", "keyMatch", key, comments, personName, out last);
-        public static bool ProjectApprovalByKey(UnanetClient una, (string key, string keyType) key, string comments, string personName, out string last) => Approve(una, "projects", "key", key, comments, personName, out last);
-        public static bool ProjectApprovalByKeyMatch(UnanetClient una, (string key, string keyType) key, string comments, string personName, out string last) => Approve(una, "projects", "keyMatch", key, comments, personName, out last);
-        public static bool CustomerApprovalByKey(UnanetClient una, (string key, string keyType) key, string comments, string personName, out string last) => Approve(una, "customers", "key", key, comments, personName, out last);
-        public static bool CustomerApprovalByKeyMatch(UnanetClient una, (string key, string keyType) key, string comments, string personName, out string last) => Approve(una, "customers", "keyMatch", key, comments, personName, out last);
-        public static bool Approve(UnanetClient una, string type, string method, (string key, string keyType)? key, string comments, string personName, out string last)
+        public static Task<(bool value, string last)> ManagerApprovalByKeyAsync(UnanetClient una, (string key, string keyType) key, string comments, string personName) => ApproveAsync(una, "people", "key", key, comments, personName);
+        public static Task<(bool value, string last)> ManagerApprovalByKeyMatchAsync(UnanetClient una, (string key, string keyType) key, string comments, string personName) => ApproveAsync(una, "people", "keyMatch", key, comments, personName);
+        public static Task<(bool value, string last)> ProjectApprovalByKeyAsync(UnanetClient una, (string key, string keyType) key, string comments, string personName) => ApproveAsync(una, "projects", "key", key, comments, personName);
+        public static Task<(bool value, string last)> ProjectApprovalByKeyMatchAsync(UnanetClient una, (string key, string keyType) key, string comments, string personName) => ApproveAsync(una, "projects", "keyMatch", key, comments, personName);
+        public static Task<(bool value, string last)> CustomerApprovalByKeyAsync(UnanetClient una, (string key, string keyType) key, string comments, string personName) => ApproveAsync(una, "customers", "key", key, comments, personName);
+        public static Task<(bool value, string last)> CustomerApprovalByKeyMatchAsync(UnanetClient una, (string key, string keyType) key, string comments, string personName) => ApproveAsync(una, "customers", "keyMatch", key, comments, personName);
+        public static async Task<(bool value, string last)> ApproveAsync(UnanetClient una, string type, string method, (string key, string keyType)? key, string comments, string personName)
         {
-            var found = FindApproval(una, type, personName, out last);
-            if (last != null || found.grid?.Rows == null)
-                return false;
+            var (grid, form, last) = await FindApprovalAsync(una, type, personName);
+            if (last != null || grid?.Rows == null)
+                return (false, last);
             GridRow row;
             switch (method)
             {
                 case "all":
-                    foreach (var row0 in found.grid.Rows.Values)
-                        Approve(una, type, found, row0, comments, out last);
-                    return true;
+                    foreach (var row0 in grid.Rows.Values)
+                        last = await ApproveAsync(una, type, (grid, form), row0, comments);
+                    return (true, last);
                 case "first":
-                    row = found.grid.Rows.FirstOrDefault().Value;
+                    row = grid.Rows.FirstOrDefault().Value;
                     if (row == null)
-                        return false;
-                    Approve(una, type, found, row, comments, out last);
-                    return true;
+                        return (false, last);
+                    last = await ApproveAsync(una, type, (grid, form), row, comments);
+                    return (true, last);
                 case "firstTime":
-                    row = found.grid.Rows.FirstOrDefault(x => x.Key.keyType == "Time").Value;
+                    row = grid.Rows.FirstOrDefault(x => x.Key.keyType == "Time").Value;
                     if (row == null)
-                        return false;
-                    Approve(una, type, found, row, comments, out last);
-                    return true;
+                        return (false, last);
+                    last = await ApproveAsync(una, type, (grid, form), row, comments);
+                    return (true, last);
                 case "key":
-                    if (!found.grid.Rows.TryGetValue(key.Value, out row))
+                    if (!grid.Rows.TryGetValue(key.Value, out row))
                     {
                         last = $"Unable to find {key} for {personName}";
-                        return false;
+                        return (false, last);
                     }
-                    Approve(una, type, found, row, comments, out last);
-                    return true;
+                    last = await ApproveAsync(una, type, (grid, form), row, comments);
+                    return (true, last);
                 case "keyMatch":
-                    foreach (var row0 in found.grid.Rows.Values.Where(x => x.Key.EndsWith($",{key.Value.key}") && x.KeyType == key.Value.keyType))
-                        Approve(una, type, found, row0, comments, out last);
-                    return true;
+                    foreach (var row0 in grid.Rows.Values.Where(x => x.Key.EndsWith($",{key.Value.key}") && x.KeyType == key.Value.keyType))
+                        last = await ApproveAsync(una, type, (grid, form), row0, comments);
+                    return (true, last);
                 default: throw new ArgumentOutOfRangeException(nameof(method), method);
             }
         }
 
-        public static bool ApproveSheet(UnanetClient una, (string key, string keyType) key, string comments, string[] projApprs, string[] managers, string[] customers, out string last)
+        public static async Task<(bool value, string last)> ApproveSheetAsync(UnanetClient una, (string key, string keyType) key, string comments, string[] projApprs, string[] managers, string[] customers)
         {
-            last = null;
-            var changed = false;
+            bool value, changed = false; string last = null;
             if (projApprs != null)
                 foreach (var personName in projApprs)
-                    changed |= ProjectApprovalByKeyMatch(una, key, comments, personName, out last);
+                {
+                    (value, last) = await ProjectApprovalByKeyMatchAsync(una, key, comments, personName);
+                    changed |= value;
+                }
             if (managers != null)
                 foreach (var personName in managers)
                 {
-                    // delay to propagate
-                    Thread.Sleep(100);
-                    changed |= ManagerApprovalByKeyMatch(una, key, comments, personName, out last);
+                    Thread.Sleep(100); // delay to propagate
+                    (value, last) = await ManagerApprovalByKeyMatchAsync(una, key, comments, personName);
+                    changed |= value;
                 }
             if (customers != null)
                 foreach (var personName in customers)
-                    changed |= CustomerApprovalByKeyMatch(una, key, comments, personName, out last);
-            return changed;
+                {
+                    (value, last) = await CustomerApprovalByKeyMatchAsync(una, key, comments, personName);
+                    changed |= value;
+                }
+            return (changed, last);
         }
 
-        public static (Grid grid, HtmlFormPost form) FindApproval(UnanetClient una, string type, string personName, out string last)
+        public static async Task<(Grid grid, HtmlFormPost form, string last)> FindApprovalAsync(UnanetClient una, string type, string personName)
         {
-            last = null;
-            string prefix;
-            switch (type)
+            var prefix = type switch
             {
-                case "people": prefix = "queueMgrAlt"; break;
-                case "projects": prefix = "queuePmAlt"; break;
-                default: throw new ArgumentOutOfRangeException(nameof(type), type);
-            }
+                "people" => "queueMgrAlt",
+                "projects" => "queuePmAlt",
+                _ => throw new ArgumentOutOfRangeException(nameof(type), type),
+            };
             try
             {
-                var d0 = una.PostValue(HttpMethod.Get, $"{type}/approvals/alternate", null, null, out last);
+                var (d0, last) = await una.PostValueAsync(HttpMethod.Get, $"{type}/approvals/alternate", null, null);
                 if (d0.Contains("Unauthorized"))
                     throw new InvalidOperationException($"'{type}/approvals' was not authorized, please contact the administrator");
                 var items = ParseApproval(d0, prefix);
-                var found = items.TryGetValue(personName, out var item) ? item
+                var found = items.TryGetValue(personName, out var z) ? z
                     : personName == "first" ? items.Where(x => x.Key != "Benson, Tim").First().Value
                     : null;
                 if (found == null)
-                    return (null, null);
+                    return (null, null, last);
                 // first post
                 var f = new HtmlFormPost(d0);
                 var key = found.Key;
@@ -150,19 +154,18 @@ namespace Automa.IO.Unanet.Records
                 f.Add($"{prefix}_{key}_POVI", "value", "false");
                 var body = f.ToString();
                 var url = una.GetPostUrl(f.Action);
-                d0 = una.PostValue(HttpMethod.Post, url, body, null, out last);
+                (d0, last) = await una.PostValueAsync(HttpMethod.Post, url, body, null);
                 // second post
                 f = new HtmlFormPost(d0);
                 url = una.GetPostUrl(f.Action);
-                d0 = una.PostValue(HttpMethod.Post, url, body, null, out last);
+                (d0, last) = await una.PostValueAsync(HttpMethod.Post, url, body, null);
                 items = ParseApproval(d0, prefix);
-                found = items.TryGetValue(personName, out item) ? item
+                found = items.TryGetValue(personName, out z) ? z
                     : personName == "first" ? items.Where(x => x.Key != "Benson, Tim").First().Value
                     : null;
-                return (found, f);
+                return (found, f, last);
             }
-            catch (Exception e) { last = e.Message; }
-            return (null, null);
+            catch (Exception e) { return (null, null, e.Message); }
         }
 
         public static IDictionary<string, Grid> ParseApproval(string source, string prefix)
@@ -181,55 +184,50 @@ namespace Automa.IO.Unanet.Records
                     {
                         var ats = y.Attributes["id"].Value.Substring(prefix.Length + 1).Split('_');
                         var tds = y.Descendants("td").ToArray();
-                        switch (ats[1])
+                        return (ats[1]) switch
                         {
-                            case "Expense":
-                                return (GridRow)new GridExpenseRow
-                                {
-                                    Label = y.Attributes["id"].Value,
-                                    Key = ats[2],
-                                    KeyType = ats[1],
-                                    Name = tds[4].InnerText.Remove(tds[4].InnerText.IndexOf("(")).Trim(),
-                                    PersonName = tds[4].InnerText.ExtractSpanInner("(", ")").ToUpperInvariant(),
-                                    //
-                                    SomeId = tds[5].InnerText,
-                                    Amount = decimal.Parse(tds[6].InnerText.Replace("$", string.Empty)),
-                                    Expense = tds[7].InnerText,
-                                    Comments = tds.Length > 8 ? tds[8].InnerText.Replace("&nbsp;", " ").Trim() : string.Empty,
-                                };
-                            case "Time":
-                                return (GridRow)new GridTimeRow
-                                {
-                                    Label = y.Attributes["id"].Value,
-                                    Key = ats[2],
-                                    KeyType = ats[1],
-                                    Name = tds[3].InnerText.Remove(tds[3].InnerText.IndexOf("(")).Trim(),
-                                    PersonName = tds[3].InnerText.ExtractSpanInner("(", ")").ToUpperInvariant(),
-                                    //
-                                    Week = DateTime.Parse(tds[4].InnerText.Remove(tds[4].InnerText.IndexOf("&"))),
-                                    Hours = decimal.Parse(tds[5].InnerText),
-                                    Status = tds[6].InnerText,
-                                    StatusDate = DateTime.Parse(tds[7].InnerText),
-                                    Comments = tds.Length > 8 ? tds[8].InnerText.Replace("&nbsp;", " ").Trim() : string.Empty,
-                                };
-                            default:
-                                return null;
-                        }
+                            "Expense" => (GridRow)new GridExpenseRow
+                            {
+                                Label = y.Attributes["id"].Value,
+                                Key = ats[2],
+                                KeyType = ats[1],
+                                Name = tds[4].InnerText.Remove(tds[4].InnerText.IndexOf("(")).Trim(),
+                                PersonName = tds[4].InnerText.ExtractSpanInner("(", ")").ToUpperInvariant(),
+                                //
+                                SomeId = tds[5].InnerText,
+                                Amount = decimal.Parse(tds[6].InnerText.Replace("$", string.Empty)),
+                                Expense = tds[7].InnerText,
+                                Comments = tds.Length > 8 ? tds[8].InnerText.Replace("&nbsp;", " ").Trim() : string.Empty,
+                            },
+                            "Time" => (GridRow)new GridTimeRow
+                            {
+                                Label = y.Attributes["id"].Value,
+                                Key = ats[2],
+                                KeyType = ats[1],
+                                Name = tds[3].InnerText.Remove(tds[3].InnerText.IndexOf("(")).Trim(),
+                                PersonName = tds[3].InnerText.ExtractSpanInner("(", ")").ToUpperInvariant(),
+                                //
+                                Week = DateTime.Parse(tds[4].InnerText.Remove(tds[4].InnerText.IndexOf("&"))),
+                                Hours = decimal.Parse(tds[5].InnerText),
+                                Status = tds[6].InnerText,
+                                StatusDate = DateTime.Parse(tds[7].InnerText),
+                                Comments = tds.Length > 8 ? tds[8].InnerText.Replace("&nbsp;", " ").Trim() : string.Empty,
+                            },
+                            _ => null,
+                        };
                     }).Where(z => z != null).ToDictionary(z => (z.Key, z.KeyType)),
                 }).ToDictionary(x => x.Name);
             return r;
         }
 
-        public static void Approve(UnanetClient una, string type, (Grid grid, HtmlFormPost form) found, GridRow row, string comments, out string last)
+        public static async Task<string> ApproveAsync(UnanetClient una, string type, (Grid grid, HtmlFormPost form) found, GridRow row, string comments)
         {
-            last = null;
-            string approvalType;
-            switch (type)
+            var approvalType = type switch
             {
-                case "people": approvalType = "MANAGER"; break;
-                case "projects": approvalType = "PROJECT"; break;
-                default: throw new ArgumentOutOfRangeException(nameof(type), type);
-            }
+                "people" => "MANAGER",
+                "projects" => "PROJECT",
+                _ => throw new ArgumentOutOfRangeException(nameof(type), type),
+            };
             try
             {
                 var f = found.form;
@@ -258,9 +256,10 @@ namespace Automa.IO.Unanet.Records
                 f.Values["scrollToLabel"] = row.Label;
                 f.Add("comments", "text", comments);
                 var body = f.ToString();
-                var d0 = una.PostValue(HttpMethod.Post, url, body, null, out last);
+                var (d0, last) = await una.PostValueAsync(HttpMethod.Post, url, body, null);
+                return last;
             }
-            catch (Exception e) { last = e.Message; }
+            catch (Exception e) { return e.Message; }
         }
     }
 }

@@ -1,4 +1,5 @@
-﻿using Automa.IO.Unanet.Records;
+﻿using Automa.IO.Drivers;
+using Automa.IO.Unanet.Records;
 using NFluent;
 using NUnit.Framework;
 using System;
@@ -14,15 +15,16 @@ namespace Automa.IO.Unanet
         [SetUp] public void Configure() => _client = GetUnanetClient();
         [TearDown] public void TearDown() { _client?.Dispose(); _client = null; }
 
-        UnanetClient GetUnanetClient(bool deleteFile = false)
+        UnanetClient GetUnanetClient(bool deleteFile = false, bool proxy = false)
         {
             if (!Directory.Exists(SourcePath))
                 Directory.CreateDirectory(SourcePath);
             var cookieFile = Path.Combine(SourcePath, "unanet.cookies.json");
             if (deleteFile && File.Exists(cookieFile))
                 File.Delete(cookieFile);
-            return new UnanetClient(new RoundarchUnanetSetting())
+            return new UnanetClient(new RoundarchUnanetOptions(), proxy ? new Config() : null)
             {
+                DriverType = typeof(ChromeDriver),
                 Logger = Console.WriteLine,
                 CookiesBytes = File.Exists(cookieFile) ? File.ReadAllBytes(cookieFile) : null,
                 CookiesWriter = x => File.WriteAllBytes(cookieFile, x),
@@ -33,6 +35,17 @@ namespace Automa.IO.Unanet
         [Test]
         public void Should_export_people()
         {
+            var sourcePath = SourcePath;
+            var task1 = PersonModel.ExportFileAsync(_client, sourcePath).Result;
+            Check.That(task1.hasFile).IsTrue();
+            var task2 = PersonModel.GetReadXml(_client, sourcePath);
+            Check.That(task2).IsNotEmpty();
+        }
+
+        [Test]
+        public void Should_export_people_proxy()
+        {
+            _client = GetUnanetClient(true, proxy: true);
             var sourcePath = SourcePath;
             var task1 = PersonModel.ExportFileAsync(_client, sourcePath).Result;
             Check.That(task1.hasFile).IsTrue();
