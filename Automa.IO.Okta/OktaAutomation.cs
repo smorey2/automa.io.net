@@ -118,9 +118,9 @@ namespace Automa.IO.Okta
         public override async Task<object> SelectApplicationAsync(string application, object tag = null, CancellationToken? cancellationToken = null)
         {
             // okta
-            var url = await GoToUrlAsync($"{_oktaUri}/app/UserHome", cancellationToken);
+            var url = await GoToUrlAsync($"{_oktaUri}/app/UserHome", cancellationToken).ConfigureAwait(false);
             if (!url.StartsWith($"{_oktaUri}/login/login.htm"))
-                await _client.TryLoginAsync(false);
+                await _client.TryLoginAsync(false).ConfigureAwait(false);
             var apps = _driver.FindElements(By.ClassName("app-button"));
             if (apps.Count != 1)
                 throw new InvalidOperationException("more than one application found");

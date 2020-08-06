@@ -72,7 +72,7 @@ namespace Automa.IO
         {
             _client = client;
             _automa = automa;
-            _driver = automa.Driver.Driver;
+            _driver = automa.Driver?.Driver;
         }
 
         /// <summary>

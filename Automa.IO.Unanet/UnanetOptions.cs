@@ -48,6 +48,38 @@
         (string key, string file) credit_card_generic { get; }
     }
 
+    public class UnanetOptions : IUnanetOptions
+    {
+        public string UnanetUri { get; set; }
+        public string LegalEntity { get; set; }
+        public (string key, string name) DefaultOrg { get; set; }
+        public string WipAcct { get; set; }
+        public (string key, string file) location_master { get; set; }
+        public (string key, string file) labor_category_master { get; set; }
+        public (string key, string file) organization { get; set; }
+        public (string key, string file) customer_profile { get; set; }
+        public (string key, string file) organization_access { get; set; }
+        public (string key, string file) organization_address { get; set; }
+        public (string key, string file) organization_contact { get; set; }
+        public (string key, string file) organization_contact_address { get; set; }
+        public (string key, string file) organization_contact_email { get; set; }
+        public (string key, string file) organization_contact_phone { get; set; }
+        public (string key, string file) project { get; set; }
+        public (string key, string file) task { get; set; }
+        public (string key, string file) fixed_price_item { get; set; }
+        public (string key, string file) fixed_price_item_post { get; set; }
+        public (string key, string file) assignment { get; set; }
+        public (string key, string file) project_administrator { get; set; }
+        public (string key, string file) labor_category_project { get; set; }
+        public (string key, string file) project_invoice_setup { get; set; }
+        public (string key, string file) person { get; set; }
+        public (string key, string file) alternate { get; set; }
+        public (string key, string file) approval_group { get; set; }
+        public (string key, string file) time { get; set; }
+        public (string key, string file) invoice { get; set; }
+        public (string key, string file) credit_card_generic { get; set; }
+    }
+
     /// <summary>
     /// RoundarchUnanetOptions.
     /// </summary>

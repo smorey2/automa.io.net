@@ -29,7 +29,7 @@ namespace Automa.IO.Unanet.Reports
                         f.Checked[x] = true;
                 f.FromSelectByPredicate("time_period", contains, x => x.Value.StartsWith(contains));
                 return f.ToString();
-            });
+            }).ConfigureAwait(false);
             return !string.IsNullOrEmpty(source) ? Parse(source) : null;
         }
 

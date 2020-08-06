@@ -57,7 +57,7 @@ namespace Automa.IO.Unanet.Records
         }
 
         public static async Task<Dictionary<string, (string, string)[]>> GetListAsync(UnanetClient ctx, string orgKey) =>
-            (await ctx.GetEntitiesBySubListAsync("organizations/customer_org", $"orgKey={orgKey}")).Single();
+            (await ctx.GetEntitiesBySubListAsync("organizations/customer_org", $"orgKey={orgKey}").ConfigureAwait(false)).Single();
 
         public static IEnumerable<CustomerProfileModel> Read(UnanetClient una, string sourceFolder)
         {
@@ -120,7 +120,7 @@ namespace Automa.IO.Unanet.Records
             bespoke?.Invoke(s);
             if (ManageRecordBase(null, s.XCF, 1, out var cf, out var add, out var last2))
                 return (_.Changed(), last2);
-            var list = add ? null : await GetListAsync(una, s.organization_codeKey);
+            var list = add ? null : await GetListAsync(una, s.organization_codeKey).ConfigureAwait(false);
             if (list?.Count > 1) return (_.Changed(), $"list > 1");
             var key = list?.Single().Key;
             var (r, last) = await una.SubmitSubManageAsync("C", add ? HttpMethod.Post : HttpMethod.Put, "organizations/customer_org", $"key={key}",
@@ -143,7 +143,7 @@ namespace Automa.IO.Unanet.Records
                 //if (add || cf.Contains("u9")) f.Values["udf_8"] = _._(s.user09, nameof(s.user09));
                 //if (add || cf.Contains("u10")) f.Values["udf_9"] = _._(s.user10, nameof(s.user10));
                 return f.ToString();
-            });
+            }).ConfigureAwait(false);
             return (_.Changed(r), last);
         }
     }

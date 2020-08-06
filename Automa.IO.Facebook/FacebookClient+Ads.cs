@@ -13,9 +13,9 @@ namespace Automa.IO.Facebook
         public async Task<string> CreateCustomAudience(long accountId)
         {
             EnsureAppIdAndSecret();
-            return await this.TryFunc(async () =>
+            return await this.TryFuncAsync(async () =>
            {
-               var r = await this.DownloadJsonAsync(HttpMethod.Post, $"{BASEv}/act_{accountId}/customaudiences".ExpandPathAndQuery(new { subtype = "CUSTOM" }));
+               var r = await this.DownloadJsonAsync(HttpMethod.Post, $"{BASEv}/act_{accountId}/customaudiences".ExpandPathAndQuery(new { subtype = "CUSTOM" })).ConfigureAwait(false);
                return (string)null;
            });
         }

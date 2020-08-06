@@ -139,7 +139,7 @@ namespace Automa.IO.Unanet.Records
                                     f.Add("button_save", "action", null);
                                 }
                                 return f.ToString();
-                            }, formOptions: new HtmlFormOptions { ParseOptions = false });
+                            }, formOptions: new HtmlFormOptions { ParseOptions = false }).ConfigureAwait(false);
                         return (_.Changed(r), last);
                     }
                 case "2":
@@ -172,7 +172,7 @@ namespace Automa.IO.Unanet.Records
                                     return $"projectkey={s.project_codeKey}&restore=true&key={key}&keysListed={keysListed}";
                                 }
                                 return null;
-                            });
+                            }).ConfigureAwait(false);
                         return (_.Changed(r), last);
                     }
                 default: throw new ArgumentOutOfRangeException(nameof(s.assignment_type), s.assignment_type);

@@ -3,6 +3,7 @@ using System;
 using System.IO;
 using System.Net.Http;
 using System.Threading.Tasks;
+using Args = System.Collections.Generic.Dictionary<string, object>;
 
 namespace Automa.IO.Umb
 {
@@ -21,6 +22,29 @@ namespace Automa.IO.Umb
         public UmbClient(IProxyOptions proxyOptions = null)
             : base(client => new Automa(client, automa => new UmbAutomation(client, automa), 0M), proxyOptions) { }
 
+        #region Parse/Get
+
+        /// <summary>
+        /// Parses the client arguments.
+        /// </summary>
+        /// <param name="args">The arguments.</param>
+        /// <returns></returns>
+        protected static UmbClient ParseClientArgs(Args args) => new UmbClient();
+
+        /// <summary>
+        /// Gets the client arguments.
+        /// </summary>
+        /// <returns></returns>
+        public override Args GetClientArgs() =>
+            new Args
+            {
+                { "_base", base.GetClientArgs() },
+            };
+
+        #endregion
+
+        #region Login
+
         /// <summary>
         /// Ensures the access.
         /// </summary>
@@ -38,6 +62,8 @@ namespace Automa.IO.Umb
             return false;
         }
 
+        #endregion
+
         #region Report
 
         /// <summary>
@@ -54,7 +80,7 @@ namespace Automa.IO.Umb
             string body, url;
             // parse
             {
-                var d0 = await this.TryFunc(() => this.DownloadDataAsync(HttpMethod.Get, $"{UmbUri}/{report}"));
+                var d0 = await this.TryFuncAsync(() => this.DownloadDataAsync(HttpMethod.Get, $"{UmbUri}/{report}")).ConfigureAwait(false);
                 if (d0.IndexOf("Session Expired") != -1)
                     throw new LoginRequiredException();
                 var d1 = d0.ExtractSpan("<form name=\"parameterForm\"", "</form>");
@@ -67,7 +93,7 @@ namespace Automa.IO.Umb
             }
             // download
             {
-                var d0 = await this.TryFunc(() => this.DownloadFileAsync(executeFolder, HttpMethod.Get, url, body, interceptFilename: interceptFilename));
+                var d0 = await this.TryFuncAsync(() => this.DownloadFileAsync(executeFolder, HttpMethod.Get, url, body, interceptFilename: interceptFilename)).ConfigureAwait(false);
                 return !string.IsNullOrEmpty(d0);
             }
         }

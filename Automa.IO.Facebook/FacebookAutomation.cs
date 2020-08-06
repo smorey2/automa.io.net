@@ -75,7 +75,7 @@ namespace Automa.IO.Facebook
         /// <exception cref="InvalidOperationException"></exception>
         public override async Task SetDeviceAccessTokenAsync(string url, string userCode, object tag = null, CancellationToken? cancellationToken = null)
         {
-            var title = await GoToUrlAsync(url);
+            var title = await GoToUrlAsync(url).ConfigureAwait(false);
             if (!title.Contains("Devices"))
                 throw new InvalidOperationException();
             var loginElement = _driver.FindElement(By.Name("user_code"));

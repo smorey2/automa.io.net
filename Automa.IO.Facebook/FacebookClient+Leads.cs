@@ -29,7 +29,7 @@ namespace Automa.IO.Facebook
             EnsureRequestedScope();
             var maps = LoadCsvPageMaps(path, pageId);
             var list = new List<string>();
-            foreach (var x in await GetLeadFormsByPageAsync(pageId))
+            foreach (var x in await GetLeadFormsByPageAsync(pageId).ConfigureAwait(false))
             {
                 var id = x["id"].ToString();
                 var name = (string)x["name"];
@@ -37,9 +37,9 @@ namespace Automa.IO.Facebook
                 _logger($"{id} - {name}");
                 var file = await DownloadFacebookUrlAsync(path, url, new
                 {
-                    from_date = (fromDate != null ? (int?)ToTimestamp(fromDate.Value) : null),
-                    to_date = (toDate != null ? (int?)ToTimestamp(toDate.Value) : null),
-                }, null, skipEmptyFile, maps.TryGetValue(id, out var map) ? (Action<Stream, Stream>)((a, b) => CsvPageIntercept(id, map, a, b)) : null);
+                    from_date = fromDate != null ? (int?)ToTimestamp(fromDate.Value) : null,
+                    to_date = toDate != null ? (int?)ToTimestamp(toDate.Value) : null,
+                }, null, skipEmptyFile, maps.TryGetValue(id, out var map) ? (Action<Stream, Stream>)((a, b) => CsvPageIntercept(id, map, a, b)) : null).ConfigureAwait(false);
                 if (file != null)
                     list.Add(file);
             }
@@ -97,14 +97,14 @@ namespace Automa.IO.Facebook
 
         async Task<IEnumerable<JToken>> GetLeadFormsByPageAsync(long pageId)
         {
-            await LoadMeAccountsAsync();
-            var cursor = (Func<Task<JToken>>)(() => this.DownloadJsonAsync(HttpMethod.Get, $"{BASEv}/{pageId}/leadgen_forms", interceptRequest: r => InterceptRequestForAccount(r, pageId)));
+            await LoadMeAccountsAsync().ConfigureAwait(false);
+            var cursor = (Func<Task<JToken>>)(() => this.DownloadJson2Async(HttpMethod.Get, $"{BASEv}/{pageId}/leadgen_forms", interceptRequest: r => InterceptRequestForAccount(r, pageId)));
             var list = new List<JToken>();
             while (cursor != null)
             {
-                var r = await this.TryFunc(typeof(WebException), cursor);
+                var r = await this.TryFuncAsync(typeof(WebException), cursor).ConfigureAwait(false);
                 var paging = (IDictionary<string, JToken>)r["paging"];
-                cursor = paging.ContainsKey("next") ? (Func<Task<JToken>>)(() => this.DownloadJsonAsync(HttpMethod.Get, (string)paging["next"], interceptRequest: r2 => InterceptRequestForAccount(r2, pageId))) : null;
+                cursor = paging.ContainsKey("next") ? (Func<Task<JToken>>)(() => this.DownloadJson2Async(HttpMethod.Get, (string)paging["next"], interceptRequest: r2 => InterceptRequestForAccount(r2, pageId))) : null;
                 foreach (var i in (JArray)r["data"])
                     list.Add(i);
             }

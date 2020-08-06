@@ -4,10 +4,10 @@ using System.Text.Json.Serialization;
 
 namespace Automa.IO.Proxy
 {
-    class ProxyResponse
+    class WebApiResponse
     {
-        public long frame { get; set; }
+        public bool ok { get; set; }
         [JsonExtensionData]
-        public Dictionary<string, JsonElement> Data { get; set; }
+        public Dictionary<string, JsonElement> data { get; set; }
     }
 }

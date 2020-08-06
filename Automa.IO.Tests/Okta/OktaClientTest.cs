@@ -35,7 +35,7 @@ namespace Automa.IO.Okta
         [Test]
         public async Task Should_read_normally()
         {
-            var app = await _client.AutomaSelectApplicationAsync("workday");
+            var app = await _client.AutomaSelectApplicationAsync("workday").ConfigureAwait(false);
             //var file = _client.GetReport("/d/task/1422$2059.htmld");
             //Console.WriteLine(me);
         }
@@ -43,7 +43,7 @@ namespace Automa.IO.Okta
         [Test]
         public async Task Should_read_getme_normally()
         {
-            var app = await _client.AutomaSelectApplicationAsync("workday");
+            var app = await _client.AutomaSelectApplicationAsync("workday").ConfigureAwait(false);
             //var file = _client.GetReport("/d/task/1422$2059.htmld");
             //Console.WriteLine(me);
         }

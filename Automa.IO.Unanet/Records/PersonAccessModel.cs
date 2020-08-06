@@ -154,7 +154,7 @@ namespace Automa.IO.Unanet.Records
                         break;
                 }
                 return f.ToString();
-            }, formOptions: FormOptions);
+            }, formOptions: FormOptions).ConfigureAwait(false);
             return (_.Changed(r), last);
         }
     }

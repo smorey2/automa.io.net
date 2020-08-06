@@ -2,6 +2,8 @@
 using Google.Api.Ads.AdWords.Lib;
 using Google.Api.Ads.AdWords.v201809;
 using System;
+using System.Text.Json;
+using Args = System.Collections.Generic.Dictionary<string, object>;
 
 namespace Automa.IO.GoogleAdwords
 {
@@ -79,11 +81,46 @@ namespace Automa.IO.GoogleAdwords
         /// </value>
         public AdWordsUser AdWordsUser { get; private set; }
 
+        #region Parse/Get
+
+        /// <summary>
+        /// Parses the client arguments.
+        /// </summary>
+        /// <param name="args">The arguments.</param>
+        /// <returns></returns>
+        protected static GoogleAdwordsClient ParseClientArgs(Args args) => new GoogleAdwordsClient
+        {
+            AppId = args.TryGetValue("AppId", out var z) ? ((JsonElement)z).GetString() : null,
+            AppSecret = args.TryGetValue("AppSecret", out z) ? ((JsonElement)z).GetString() : null,
+            DeveloperToken = args.TryGetValue("DeveloperToken", out z) ? ((JsonElement)z).GetString() : null,
+        };
+
+        /// <summary>
+        /// Gets the client arguments.
+        /// </summary>
+        /// <returns></returns>
+        public override Args GetClientArgs() =>
+            new Args
+            {
+                { "_base", base.GetClientArgs() },
+                { "AppId", AppId },
+                { "AppSecret", AppSecret },
+                { "DeveloperToken", DeveloperToken },
+            };
+
+        #endregion
+
+        #region Ensure
+
         void EnsureAppIdAndSecret()
         {
             if (string.IsNullOrEmpty(AppId) || string.IsNullOrEmpty(AppSecret) || string.IsNullOrEmpty(DeveloperToken))
                 throw new InvalidOperationException("AppId, AppSecret, and DeveloperToken are required for this operation.");
         }
+
+        #endregion
+
+        #region CampaignPage
 
         /// <summary>
         /// Tests the specified account identifier.
@@ -119,5 +156,7 @@ namespace Automa.IO.GoogleAdwords
             } while (selector.paging.startIndex < page.totalNumEntries);
             Console.WriteLine($"Number of campaigns found: {page.totalNumEntries}");
         }
+
+        #endregion
     }
 }

@@ -73,7 +73,7 @@ namespace Automa.IO.Unanet.Records
         }
 
         public static async Task<Dictionary<string, (string, string)[]>> GetListAsync(UnanetClient ctx, string orgKey) =>
-            (await ctx.GetEntitiesBySubListAsync("organizations/contacts", $"orgKey={orgKey}")).Single();
+            (await ctx.GetEntitiesBySubListAsync("organizations/contacts", $"orgKey={orgKey}").ConfigureAwait(false)).Single();
 
         public static IEnumerable<OrganizationContactModel> Read(UnanetClient una, string sourceFolder)
         {
@@ -424,7 +424,7 @@ namespace Automa.IO.Unanet.Records
             bespoke?.Invoke(s);
             if (ManageRecordBase(null, s.XCF, 1, out var cf, out var add, out var last2))
                 return (_.Changed(), last2);
-            var list = add ? null : await GetListAsync(una, s.organization_codeKey);
+            var list = add ? null : await GetListAsync(una, s.organization_codeKey).ConfigureAwait(false);
             //var key0 = list?.Where(x => string.Equals(x.Value[3].Item1, $"DEG, {s.last_name}", StringComparison.OrdinalIgnoreCase)).SingleOrDefault().Key;
             var key1 = list?.Where(x => string.Equals(x.Value[3].Item1, $"{s.last_name}, {s.first_name}", StringComparison.OrdinalIgnoreCase)).SingleOrDefault().Key;
             var key = key1;
@@ -464,7 +464,7 @@ namespace Automa.IO.Unanet.Records
                 //if (add || cf.Contains("xe")) EmailModel.ManageRecord(f, s.emails);
                 //if (add || cf.Contains("xn")) PhoneModel.ManageRecord(f, s.phones);
                 return f.ToString();
-            });
+            }).ConfigureAwait(false);
             return (_.Changed(r), last);
         }
     }

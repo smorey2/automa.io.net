@@ -428,7 +428,7 @@ namespace Automa.IO.Unanet.Records
                 if (add || cf.Contains("lbtf")) f.Checked["limitBillToFunded"] = _._(s.limit_bill_to_funded, nameof(s.limit_bill_to_funded)) == "Y";
                 if (add || cf.Contains("lrtf")) f.Checked["limitRevToFunded"] = _._(s.limit_rev_to_funded, nameof(s.limit_rev_to_funded)) == "Y";
                 if (add || cf.Contains("pg")) f.FromSelectByPredicate("postingGroup", _._(s.posting_group, nameof(s.posting_group)), x => x.Value.StartsWith(s.posting_group));
-                // NEW
+                //
                 //if (add || cf.Contains("tnepr")) f.Values["xxx"] = _._(s.ts_non_emp_po_required, nameof(s.ts_non_emp_po_required));
                 //if (add || cf.Contains("enepr")) f.Values["xxx"] = _._(s.exp_non_emp_po_required, nameof(s.exp_non_emp_po_required));
                 //if (add || cf.Contains("ai")) f.Checked["xxx"] = _._(s.allows_item, nameof(s.allows_item)) == "Y";
@@ -451,7 +451,7 @@ namespace Automa.IO.Unanet.Records
                 //f.Values["lastUseLaborCategoryIndex"] = "2";
                 f.Remove("email_alert", "time_elapsed_alert_pct", "funding_expended_alert_pct", "hour_alert_pct", "hour_alert_denom", "total_cost_alert_pct", "total_cost_alert_denom", "labor_cost_alert_pct", "labor_cost_alert_denom", "expense_cost_alert_pct", "expense_cost_alert_denom", "total_bill_alert_pct", "total_bill_alert_denom");
                 f.Add("button_save", "action", null);
-            });
+            }).ConfigureAwait(false);
             return (_.Changed(r), last);
         }
     }

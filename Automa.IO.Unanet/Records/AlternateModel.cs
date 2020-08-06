@@ -81,7 +81,7 @@ namespace Automa.IO.Unanet.Records
                     f.Values[method == HttpMethod.Delete ? "unassign" : "assign"] = $"{s.usernameKey};{roleKey}";
                     f.Add("button_save", "action", null);
                     return f.ToString();
-                });
+                }).ConfigureAwait(false);
             return (_.Changed(r), last);
         }
     }

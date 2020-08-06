@@ -33,7 +33,7 @@ namespace Automa.IO.Unanet.Records
                 (cps, last) = ((string[] cps, string last))await una.SubmitManageAsync(HttpMethod.Post, "accounts_receivable/customer_payment", null,
                     async (z, f) =>
                 {
-                    var customers = await Unanet.Una.GetAutoCompleteAsync("CP_CUSTOMER", $"{s.OrganizationCode} -", legalEntityKey: legalEntityKey ?? una.Options.DefaultOrg.key);
+                    var customers = await Unanet.Una.GetAutoCompleteAsync("CP_CUSTOMER", $"{s.OrganizationCode} -", legalEntityKey: legalEntityKey ?? una.Options.DefaultOrg.key).ConfigureAwait(false);
                     var customer = customers.Single();
                     f.FromSelect("legalEntity", legalEntity ?? una.Options.LegalEntity);
                     // customer payment
@@ -58,7 +58,7 @@ namespace Automa.IO.Unanet.Records
                     var cpKey = x.ExtractSpanInner("<input name=\"cpKey\" type=\"hidden\" value=\"", "\">") ?? string.Empty;
                     var cpDoc = x.ExtractSpanInner("Document #:&nbsp;", "<") ?? string.Empty;
                     return new[] { cpKey, cpDoc };
-                });
+                }).ConfigureAwait(false);
                 s.CpKey = cps[0]; s.CpDoc = cps[1];
                 setInfo(s.CpKey, $"D:{s.CpDoc}");
             }
@@ -98,7 +98,7 @@ namespace Automa.IO.Unanet.Records
                     }
                     f.Values["submitButton"] = "button_submit_next";
                     return f.ToString();
-                });
+                }).ConfigureAwait(false);
             return (_, last2);
         }
     }

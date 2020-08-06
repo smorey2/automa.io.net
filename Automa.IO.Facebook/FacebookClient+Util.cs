@@ -19,7 +19,7 @@ namespace Automa.IO.Facebook
         {
             var url = pathAndQuery.ExpandPathAndQuery(attributes);
             _logger("GetFacebookUrl: " + url);
-            return this.TryFunc(typeof(WebException), () => this.DownloadDataAsync(HttpMethod.Get, url, postData));
+            return this.TryFuncAsync(typeof(WebException), () => this.DownloadDataAsync(HttpMethod.Get, url, postData));
         }
 
         /// <summary>
@@ -38,7 +38,7 @@ namespace Automa.IO.Facebook
         {
             var url = pathAndQuery.ExpandPathAndQuery(attributes);
             _logger("DownloadFacebookUrl: " + url);
-            var file = await this.TryFunc(typeof(WebException), () => this.DownloadFileAsync(filePath, HttpMethod.Get, url, postData, interceptResponse: interceptResponse));
+            var file = await this.TryFuncAsync(typeof(WebException), () => this.DownloadFileAsync(filePath, HttpMethod.Get, url, postData, interceptResponse: interceptResponse)).ConfigureAwait(false);
             switch (skipEmptyFile)
             {
                 case FacebookSkipEmptyFile.None: return file;

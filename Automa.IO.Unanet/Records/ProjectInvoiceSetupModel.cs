@@ -242,7 +242,7 @@ namespace Automa.IO.Unanet.Records
                 f.Values["memo"] = _._(s.invoice_memo, nameof(s.invoice_memo));
                 f.Add("button_save", "action", null);
                 return f.ToString();
-            });
+            }).ConfigureAwait(false);
             return (_.Changed(r), last);
         }
     }

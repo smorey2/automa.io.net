@@ -56,7 +56,7 @@ namespace Automa.IO.Unanet.Records
         public static Task<(bool value, string last)> CustomerApprovalByKeyMatchAsync(UnanetClient una, (string key, string keyType) key, string comments, string personName) => ApproveAsync(una, "customers", "keyMatch", key, comments, personName);
         public static async Task<(bool value, string last)> ApproveAsync(UnanetClient una, string type, string method, (string key, string keyType)? key, string comments, string personName)
         {
-            var (grid, form, last) = await FindApprovalAsync(una, type, personName);
+            var (grid, form, last) = await FindApprovalAsync(una, type, personName).ConfigureAwait(false);
             if (last != null || grid?.Rows == null)
                 return (false, last);
             GridRow row;
@@ -64,19 +64,19 @@ namespace Automa.IO.Unanet.Records
             {
                 case "all":
                     foreach (var row0 in grid.Rows.Values)
-                        last = await ApproveAsync(una, type, (grid, form), row0, comments);
+                        last = await ApproveAsync(una, type, (grid, form), row0, comments).ConfigureAwait(false);
                     return (true, last);
                 case "first":
                     row = grid.Rows.FirstOrDefault().Value;
                     if (row == null)
                         return (false, last);
-                    last = await ApproveAsync(una, type, (grid, form), row, comments);
+                    last = await ApproveAsync(una, type, (grid, form), row, comments).ConfigureAwait(false);
                     return (true, last);
                 case "firstTime":
                     row = grid.Rows.FirstOrDefault(x => x.Key.keyType == "Time").Value;
                     if (row == null)
                         return (false, last);
-                    last = await ApproveAsync(una, type, (grid, form), row, comments);
+                    last = await ApproveAsync(una, type, (grid, form), row, comments).ConfigureAwait(false);
                     return (true, last);
                 case "key":
                     if (!grid.Rows.TryGetValue(key.Value, out row))
@@ -84,11 +84,11 @@ namespace Automa.IO.Unanet.Records
                         last = $"Unable to find {key} for {personName}";
                         return (false, last);
                     }
-                    last = await ApproveAsync(una, type, (grid, form), row, comments);
+                    last = await ApproveAsync(una, type, (grid, form), row, comments).ConfigureAwait(false);
                     return (true, last);
                 case "keyMatch":
                     foreach (var row0 in grid.Rows.Values.Where(x => x.Key.EndsWith($",{key.Value.key}") && x.KeyType == key.Value.keyType))
-                        last = await ApproveAsync(una, type, (grid, form), row0, comments);
+                        last = await ApproveAsync(una, type, (grid, form), row0, comments).ConfigureAwait(false);
                     return (true, last);
                 default: throw new ArgumentOutOfRangeException(nameof(method), method);
             }
@@ -100,20 +100,20 @@ namespace Automa.IO.Unanet.Records
             if (projApprs != null)
                 foreach (var personName in projApprs)
                 {
-                    (value, last) = await ProjectApprovalByKeyMatchAsync(una, key, comments, personName);
+                    (value, last) = await ProjectApprovalByKeyMatchAsync(una, key, comments, personName).ConfigureAwait(false);
                     changed |= value;
                 }
             if (managers != null)
                 foreach (var personName in managers)
                 {
                     Thread.Sleep(100); // delay to propagate
-                    (value, last) = await ManagerApprovalByKeyMatchAsync(una, key, comments, personName);
+                    (value, last) = await ManagerApprovalByKeyMatchAsync(una, key, comments, personName).ConfigureAwait(false);
                     changed |= value;
                 }
             if (customers != null)
                 foreach (var personName in customers)
                 {
-                    (value, last) = await CustomerApprovalByKeyMatchAsync(una, key, comments, personName);
+                    (value, last) = await CustomerApprovalByKeyMatchAsync(una, key, comments, personName).ConfigureAwait(false);
                     changed |= value;
                 }
             return (changed, last);
@@ -130,7 +130,7 @@ namespace Automa.IO.Unanet.Records
             }
             try
             {
-                var (d0, last) = await una.PostValueAsync(HttpMethod.Get, $"{type}/approvals/alternate", null, null);
+                var (d0, last) = await una.PostValueAsync(HttpMethod.Get, $"{type}/approvals/alternate", null, null).ConfigureAwait(false);
                 if (d0.Contains("Unauthorized"))
                     throw new InvalidOperationException($"'{type}/approvals' was not authorized, please contact the administrator");
                 var items = ParseApproval(d0, prefix);
@@ -155,11 +155,11 @@ namespace Automa.IO.Unanet.Records
                 f.Add($"{prefix}_{key}_POVI", "value", "false");
                 var body = f.ToString();
                 var url = una.GetPostUrl(f.Action);
-                (d0, last) = await una.PostValueAsync(HttpMethod.Post, url, body, null);
+                (d0, last) = await una.PostValueAsync(HttpMethod.Post, url, body, null).ConfigureAwait(false);
                 // second post
                 f = new HtmlFormPost(d0);
                 url = una.GetPostUrl(f.Action);
-                (d0, last) = await una.PostValueAsync(HttpMethod.Post, url, body, null);
+                (d0, last) = await una.PostValueAsync(HttpMethod.Post, url, body, null).ConfigureAwait(false);
                 items = ParseApproval(d0, prefix);
                 found = items.TryGetValue(personName, out z) ? z
                     : personName == "first" ? items.Where(x => x.Key != "Benson, Tim").First().Value
@@ -260,7 +260,7 @@ namespace Automa.IO.Unanet.Records
                 f.Values["scrollToLabel"] = row.Label;
                 f.Add("comments", "text", comments);
                 var body = f.ToString();
-                var (d0, last) = await una.PostValueAsync(HttpMethod.Post, url, body, null);
+                var (d0, last) = await una.PostValueAsync(HttpMethod.Post, url, body, null).ConfigureAwait(false);
                 return last;
             }
             catch (Exception e) { return e.Message; }

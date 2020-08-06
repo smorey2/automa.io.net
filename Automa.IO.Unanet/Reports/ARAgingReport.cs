@@ -35,12 +35,12 @@ namespace Automa.IO.Unanet.Reports
             var filePath = Path.Combine(sourceFolder, "report.csv");
             if (File.Exists(filePath))
                 File.Delete(filePath);
-            return await Task.Run(() => una.RunReportAsync("financials/detail/accounts_receivable", (z, f) =>
+            return await Task.Run(async () => await una.RunReportAsync("financials/detail/accounts_receivable", (z, f) =>
             {
                 f.FromSelect("legalEntity", legalEntity ?? una.Options.LegalEntity);
                 f.FromSelect("arrangeBy", "Customer");
                 return f.ToString();
-            }, sourceFolder) != null);
+            }, sourceFolder).ConfigureAwait(false) != null);
         }
 
         public static IEnumerable<ARAgingReport> Read(UnanetClient una, string sourceFolder)

@@ -4,6 +4,7 @@ using NFluent;
 using NUnit.Framework;
 using System;
 using System.IO;
+using System.Threading.Tasks;
 
 namespace Automa.IO.Unanet
 {
@@ -33,21 +34,21 @@ namespace Automa.IO.Unanet
         }
 
         [Test]
-        public void Should_export_people()
+        public async Task Should_export_people()
         {
             var sourcePath = SourcePath;
-            var task1 = PersonModel.ExportFileAsync(_client, sourcePath).Result;
+            var task1 = await PersonModel.ExportFileAsync(_client, sourcePath).ConfigureAwait(false);
             Check.That(task1.hasFile).IsTrue();
             var task2 = PersonModel.GetReadXml(_client, sourcePath);
             Check.That(task2).IsNotEmpty();
         }
 
         [Test]
-        public void Should_export_people_proxy()
+        public async Task Should_export_people_proxy()
         {
             _client = GetUnanetClient(true, proxy: true);
             var sourcePath = SourcePath;
-            var task1 = PersonModel.ExportFileAsync(_client, sourcePath).Result;
+            var task1 = await PersonModel.ExportFileAsync(_client, sourcePath).ConfigureAwait(false);
             Check.That(task1.hasFile).IsTrue();
             var task2 = PersonModel.GetReadXml(_client, sourcePath);
             Check.That(task2).IsNotEmpty();

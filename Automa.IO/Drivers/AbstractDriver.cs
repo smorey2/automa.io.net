@@ -23,7 +23,8 @@ namespace Automa.IO.Drivers
         public AbstractDriver(IWebDriver webDriver, int implicitWaitInMinutes = 5)
         {
             Driver = webDriver;
-            Driver.Manage().Timeouts().ImplicitWait = TimeSpan.FromMinutes(implicitWaitInMinutes);
+            if (Driver != null)
+                Driver.Manage().Timeouts().ImplicitWait = TimeSpan.FromMinutes(implicitWaitInMinutes);
         }
 
         protected void Dispose(bool disposing)

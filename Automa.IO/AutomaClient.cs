@@ -4,9 +4,12 @@ using OpenQA.Selenium.Chrome;
 using System;
 using System.Collections.Generic;
 using System.Net;
+using System.Reflection;
 using System.Security;
 using System.Security.Cryptography.X509Certificates;
+using System.Text.Json;
 using System.Threading.Tasks;
+using Args = System.Collections.Generic.Dictionary<string, object>;
 
 namespace Automa.IO
 {
@@ -65,7 +68,9 @@ namespace Automa.IO
         /// <value>The automa.</value>
         public IAutoma Automa
         {
-            get => _automa ?? (_automa = _automaFactory?.Invoke(this) ?? EmptyAutoma);
+            get => _automa ?? (_automa = ProxyOptions == null
+                ? _automaFactory?.Invoke(this) ?? EmptyAutoma
+                : new Automa(this, automa => new ProxyAutomation(this, automa, ProxyOptions)));
             set
             {
                 if (_automa != value)
@@ -79,7 +84,7 @@ namespace Automa.IO
 
         public async Task<IWebDriver> GetDriverAsync(object tag = null, decimal loginTimeoutInSeconds = -1M)
         {
-            await AutomaLoginAsync(false, tag, loginTimeoutInSeconds);
+            await AutomaLoginAsync(false, tag, loginTimeoutInSeconds).ConfigureAwait(false);
             return Automa.Driver.Driver;
         }
 
@@ -90,6 +95,41 @@ namespace Automa.IO
         /// The type of the driver.
         /// </value>
         public Type DriverType { get; set; } = typeof(ChromeDriver);
+
+
+        #region Parse/Get
+
+        public static AutomaClient Parse(Args args)
+        {
+            if (!args.TryGetValue("_base", out var z))
+                throw new ArgumentOutOfRangeException(nameof(args));
+            var _base = ((JsonElement)z).GetObject<Dictionary<string, JsonElement>>();
+            var type = _base["Type"].GetAsType();
+            var parseClientArgsMethod = type.GetMethod("ParseClientArgs", BindingFlags.Static | BindingFlags.NonPublic);
+            var client = (AutomaClient)parseClientArgsMethod.Invoke(null, new object[] { args });
+            client.DriverType = _base["DriverType"].GetAsType();
+            client.ServiceLogin = _base["ServiceLogin"].GetString();
+            client.ServicePassword = _base["ServicePassword"].GetString();
+            client.ServiceCredential = _base["ServiceCredential"].GetString();
+            client.ConnectionString = _base["ConnectionString"].GetString();
+            client.ConnectionParams = _base["ConnectionParams"].GetObject<Dictionary<string, string>>();
+            return client;
+        }
+
+        public virtual Args GetClientArgs() =>
+            new Args
+            {
+                { "Type", GetType().AssemblyQualifiedName },
+                { "DriverType", DriverType.AssemblyQualifiedName },
+                { "ServiceLogin", ServiceLogin },
+                { "ServicePassword", ServicePassword },
+                { "ServiceCredential", ServiceCredential },
+                { "ConnectionString", ConnectionString },
+                { "ConnectionParams", ConnectionParams },
+            };
+
+        #endregion
+
 
         #region Credentials
 
@@ -284,9 +324,9 @@ namespace Automa.IO
             _logger("AutomaClient::Login");
             try
             {
-                await Automa.LoginAsync(tag, loginTimeoutInSeconds);
+                await Automa.LoginAsync(tag, loginTimeoutInSeconds).ConfigureAwait(false);
                 Cookies = Automa.Cookies;
-                await CookiesFlushAsync();
+                await CookiesFlushAsync().ConfigureAwait(false);
             }
             catch (Exception e)
             {
@@ -313,7 +353,7 @@ namespace Automa.IO
         public virtual async Task<object> AutomaSelectApplicationAsync(string application, object tag = null, decimal selectTimeoutInSeconds = -1M)
         {
             _logger("AutomaClient::SelectApplication");
-            await Automa.SelectApplicationAsync(application, tag, selectTimeoutInSeconds);
+            await Automa.SelectApplicationAsync(application, tag, selectTimeoutInSeconds).ConfigureAwait(false);
             return null;
         }
 

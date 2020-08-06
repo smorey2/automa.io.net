@@ -34,17 +34,17 @@ namespace Automa.IO
                 CookiesBytes = File.Exists(cookieFile) ? File.ReadAllBytes(cookieFile) : null,
                 CookiesWriter = x => File.WriteAllBytes(cookieFile, x),
                 ServiceCredential = "DEGSVC.Facebook.local",
+                RequestedScope = "manage_pages,ads_management",
                 AppId = "",
                 AppSecret = "",
                 ClientToken = "",
-                RequestedScope = "manage_pages,ads_management",
             };
         }
 
         [Test]
         public async Task Should_read_getme_normally()
         {
-            var me = await _client.GetMeAsync();
+            var me = await _client.GetMeAsync().ConfigureAwait(false);
             Console.WriteLine(me);
         }
 
@@ -59,7 +59,7 @@ namespace Automa.IO
         public async Task Should_pull_csv_from_page()
         {
             var pageId = 573293769395845L;
-            var files = (await _client.DownloadLeadFormCsvByPageAsync("secret", pageId, DateTime.Now.AddDays(-5), null, FacebookSkipEmptyFile.TextHasSecondLine)).ToList();
+            var files = (await _client.DownloadLeadFormCsvByPageAsync("secret", pageId, DateTime.Now.AddDays(-5), null, FacebookSkipEmptyFile.TextHasSecondLine).ConfigureAwait(false)).ToList();
             Console.WriteLine(files.Count);
         }
 

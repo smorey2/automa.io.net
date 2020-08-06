@@ -5,6 +5,11 @@
   </PropertyGroup>
 
   <ItemGroup>
+    <PackageReference Include="Selenium.WebDriver.ChromeDriver" Version="84.0.4147.3001" />
+    <PackageReference Include="Selenium.WebDriver.MicrosoftDriver" Version="17.17134.0" />
+  </ItemGroup>
+
+  <ItemGroup>
     <ProjectReference Include="..\Automa.IO.Umb\Automa.IO.Umb.csproj" />
     <ProjectReference Include="..\Automa.IO.Unanet\Automa.IO.Unanet.csproj" />
     <ProjectReference Include="..\Automa.IO\Automa.IO.csproj" />

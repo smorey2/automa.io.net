@@ -4,6 +4,7 @@ using NFluent;
 using NUnit.Framework;
 using System;
 using System.IO;
+using System.Threading.Tasks;
 
 namespace Automa.IO
 {
@@ -33,20 +34,20 @@ namespace Automa.IO
         }
 
         [Test]
-        public void Should_connect_with_ServiceCredential()
+        public async Task Should_connect_with_ServiceCredential()
         {
             _client = GetUnanetClient(true, 0);
             var sourcePath = SourcePath;
-            var task1 = PersonModel.ExportFileAsync(_client, sourcePath).Result;
+            var task1 = await PersonModel.ExportFileAsync(_client, sourcePath).ConfigureAwait(false);
             Check.That(task1.hasFile).IsTrue();
         }
 
         [Test]
-        public void Should_connect_with_ConnectionString()
+        public async Task Should_connect_with_ConnectionString()
         {
             _client = GetUnanetClient(true, 1);
             var sourcePath = SourcePath;
-            var task1 = PersonModel.ExportFileAsync(_client, sourcePath).Result;
+            var task1 = await PersonModel.ExportFileAsync(_client, sourcePath).ConfigureAwait(false);
             Check.That(task1.hasFile).IsTrue();
         }
     }

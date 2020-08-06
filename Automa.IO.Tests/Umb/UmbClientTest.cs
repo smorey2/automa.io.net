@@ -3,6 +3,7 @@ using NFluent;
 using NUnit.Framework;
 using System;
 using System.IO;
+using System.Threading.Tasks;
 
 namespace Automa.IO.Umb
 {
@@ -31,25 +32,25 @@ namespace Automa.IO.Umb
         }
 
         [Test]
-        public void Should_export_transactionreport()
+        public async Task Should_export_transactionreport()
         {
             var sourcePath = SourcePath;
             var beginDate = DateTime.Today.AddDays(-10);
             var endDate = DateTime.Today.AddDays(-1);
-            var task1 = TransactionReport.ExportFileAsync(_client, sourcePath, beginDate, endDate).Result;
+            var task1 = await TransactionReport.ExportFileAsync(_client, sourcePath, beginDate, endDate).ConfigureAwait(false);
             Check.That(task1).IsTrue();
             var task2 = TransactionReport.GetReadXml(_client, sourcePath);
             Check.That(task2).IsNotEmpty();
         }
 
         [Test]
-        public void Should_export_transactionreport_proxy()
+        public async Task Should_export_transactionreport_proxy()
         {
             _client = GetUmbClient(true, proxy: true);
             var sourcePath = SourcePath;
             var beginDate = DateTime.Today.AddDays(-10);
             var endDate = DateTime.Today.AddDays(-1);
-            var task1 = TransactionReport.ExportFileAsync(_client, sourcePath, beginDate, endDate).Result;
+            var task1 = await TransactionReport.ExportFileAsync(_client, sourcePath, beginDate, endDate).ConfigureAwait(false);
             Check.That(task1).IsTrue();
             var task2 = TransactionReport.GetReadXml(_client, sourcePath);
             Check.That(task2).IsNotEmpty();

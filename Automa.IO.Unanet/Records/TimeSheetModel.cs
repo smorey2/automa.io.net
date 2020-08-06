@@ -141,11 +141,11 @@ namespace Automa.IO.Unanet.Records
 
         public static async Task<(TimeSheetModel value, string last)> GetAsync(UnanetClient una, int keySheet, bool preAdjust = false, bool useView = false)
         {
-            var (d0, last) = await una.PostValueAsync(HttpMethod.Get, useView ? "people/time/view" : "people/time/edit", null, $"timesheetkey={keySheet}", useSafeRead: true);
+            var (d0, last) = await una.PostValueAsync(HttpMethod.Get, useView ? "people/time/view" : "people/time/edit", null, $"timesheetkey={keySheet}", useSafeRead: true).ConfigureAwait(false);
             var time = Parse(d0, keySheet);
             if (preAdjust && (time.Status != SheetStatus.Inuse || time.Status != SheetStatus.InuseAdjustment))
             {
-                (d0, last) = await PreAdjustAsync(una, keySheet);
+                (d0, last) = await PreAdjustAsync(una, keySheet).ConfigureAwait(false);
                 time = Parse(d0, keySheet);
             }
             return (time, last);
@@ -200,7 +200,7 @@ namespace Automa.IO.Unanet.Records
                 }
             }
             f.Add("tito_count", "text", "0");
-            var (d0, last) = await una.PostValueAsync(HttpMethod.Post, f.Action.Substring(18), f.ToString(), null);
+            var (d0, last) = await una.PostValueAsync(HttpMethod.Post, f.Action.Substring(18), f.ToString(), null).ConfigureAwait(false);
             var d1 = d0.ExtractSpanInner("<div class=\"error\">", "</div>");
             if (d1 != null)
                 last = d1.Replace("<BR>", null).Replace("<br>", null).Trim();
@@ -214,7 +214,7 @@ namespace Automa.IO.Unanet.Records
             f.Values["globalComment"] = "true";
             f.Values["comments_00"] = approvalComments;
             f.Add("button_save", "text", null);
-            (d0, last) = await una.PostValueAsync(HttpMethod.Post, f.Action.Substring(18), f.ToString(), null);
+            (d0, last) = await una.PostValueAsync(HttpMethod.Post, f.Action.Substring(18), f.ToString(), null).ConfigureAwait(false);
             d1 = d0.ExtractSpanInner("<div class=\"error\">", "</div>");
             if (d1 != null)
                 last = d1.Replace("<BR>", null).Replace("<br>", null).Trim();

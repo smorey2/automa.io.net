@@ -17,16 +17,6 @@ namespace Automa.IO.Unanet.Records
 
     public class ModelBase
     {
-        //public static async Task<T> Single<T>(IEnumerable<T> source)
-        //{
-        //    var list = new List<T>();
-        //    foreach (T item in await source)
-        //        list.Add(item);
-        //    if (list.Count != 1)
-        //        throw new InvalidOperationException("Not Single");
-        //    return list[0];
-        //}
-
         protected readonly static DateTime BeginDate = new DateTime(2019, 01, 01);
         protected readonly static DateTime BeginTimeWindowDate = new DateTime(2020, 01, 01); // new DateTime(2019, 09, 30);
         protected readonly static DateTime BeginInvoiceWindowDate = new DateTime(2020, 01, 01); // new DateTime(2019, 01, 01);

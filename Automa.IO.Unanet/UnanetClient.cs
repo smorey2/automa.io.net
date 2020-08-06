@@ -5,9 +5,11 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Net;
 using System.Net.Http;
+using System.Text.Json;
 using System.Threading;
 using System.Threading.Tasks;
 using System.Web;
+using Args = System.Collections.Generic.Dictionary<string, object>;
 
 namespace Automa.IO.Unanet
 {
@@ -54,6 +56,31 @@ namespace Automa.IO.Unanet
         /// </value>
         public string UnanetUri { get; }
 
+        #region Parse/Get
+
+        /// <summary>
+        /// Parses the client arguments.
+        /// </summary>
+        /// <param name="args">The arguments.</param>
+        /// <returns></returns>
+        protected static UnanetClient ParseClientArgs(Args args) => new UnanetClient(
+            args.TryGetValue("options", out var z) ? ((JsonElement)z).GetObject<UnanetOptions>() : null);
+
+        /// <summary>
+        /// Gets the client arguments.
+        /// </summary>
+        /// <returns></returns>
+        public override Args GetClientArgs() =>
+            new Args
+            {
+                { "_base", base.GetClientArgs() },
+                { "options", Options },
+            };
+
+        #endregion
+
+        #region Login
+
         /// <summary>
         /// Ensures the access.
         /// </summary>
@@ -73,6 +100,8 @@ namespace Automa.IO.Unanet
             return false;
         }
 
+        #endregion
+
         #region Report
 
         /// <summary>
@@ -89,7 +118,7 @@ namespace Automa.IO.Unanet
             string body, url;
             // parse
             {
-                var d0 = await this.TryFunc(() => this.DownloadDataAsync(HttpMethod.Get, $"{UnanetUri}/reports/{report}/search"));
+                var d0 = await this.TryFuncAsync(() => this.DownloadDataAsync(HttpMethod.Get, $"{UnanetUri}/reports/{report}/search")).ConfigureAwait(false);
                 var d1 = d0.ExtractSpan("<form method=\"post\" name=\"search\"", "</form>");
                 var htmlForm = new HtmlFormPost(d1);
                 body = action(d1, htmlForm);
@@ -99,9 +128,9 @@ namespace Automa.IO.Unanet
             }
             // download
             {
-                var d0 = await this.TryFunc(() => executeFolder != null
+                var d0 = await this.TryFuncAsync(() => executeFolder != null
                     ? this.DownloadFileAsync(executeFolder, HttpMethod.Post, $"{url}/csv", body, interceptFilename: interceptFilename)
-                    : this.DownloadDataAsync(HttpMethod.Post, url, body));
+                    : this.DownloadDataAsync(HttpMethod.Post, url, body)).ConfigureAwait(false);
                 return d0;
             }
         }
@@ -171,7 +200,7 @@ namespace Automa.IO.Unanet
         /// <exception cref="InvalidOperationException">Autocomplete Exceeded</exception>
         public async Task<Dictionary<string, string>> GetAutoCompleteAsync(string field, string matchStr = null, bool startsWith = true, string legalEntityKey = null)
         {
-            var d0 = await this.TryFunc(() => this.DownloadDataAsync(HttpMethod.Get, $"{UnanetUri}/autocomplete?field={field}&matchStr={HttpUtility.UrlEncode(matchStr)}&leKey={legalEntityKey}"));
+            var d0 = await this.TryFuncAsync(() => this.DownloadDataAsync(HttpMethod.Get, $"{UnanetUri}/autocomplete?field={field}&matchStr={HttpUtility.UrlEncode(matchStr)}&leKey={legalEntityKey}")).ConfigureAwait(false);
             var data = JsonConvert.DeserializeObject<AutoCompleteResult>(d0)?.Data;
             if (!string.IsNullOrEmpty(data.Error))
                 throw new InvalidOperationException(data.Error);
@@ -203,7 +232,7 @@ namespace Automa.IO.Unanet
                 htmlForm.Add("account_acctDesc_fltr", "value", string.Empty);
             }
             var body = htmlForm.ToString();
-            var d0 = await this.TryFunc(() => this.DownloadDataAsync(HttpMethod.Post, $"{UnanetUri}/options", body));
+            var d0 = await this.TryFuncAsync(() => this.DownloadDataAsync(HttpMethod.Post, $"{UnanetUri}/options", body)).ConfigureAwait(false);
             var htmlSelect = d0.ToHtmlDocument();
             var rows = htmlSelect.DocumentNode.Descendants("option")
                 .ToDictionary(x => x.Attributes["value"].Value, x => x.Attributes["text"].Value);
@@ -227,7 +256,7 @@ namespace Automa.IO.Unanet
             object tag;
             // parse
             {
-                var d0 = await this.TryFunc(() => this.DownloadDataAsync(HttpMethod.Get, $"{UnanetUri}/admin/export/template/criteria?xtKey={exportKey}"));
+                var d0 = await this.TryFuncAsync(() => this.DownloadDataAsync(HttpMethod.Get, $"{UnanetUri}/admin/export/template/criteria?xtKey={exportKey}")).ConfigureAwait(false);
                 var d1 = d0.ExtractSpan("<form method=\"post\" name=\"search\"", "</form>");
                 var htmlForm = new HtmlFormPost(d1);
                 tag = action(d1, htmlForm);
@@ -235,7 +264,7 @@ namespace Automa.IO.Unanet
             }
             // submit
             {
-                var d0 = await this.TryFunc(() => this.DownloadDataAsync(HttpMethod.Post, $"{UnanetUri}/admin/export/template/run", body, timeoutInSeconds: timeoutInSeconds ?? DownloadTimeoutInSeconds));
+                var d0 = await this.TryFuncAsync(() => this.DownloadDataAsync(HttpMethod.Post, $"{UnanetUri}/admin/export/template/run", body, timeoutInSeconds: timeoutInSeconds ?? DownloadTimeoutInSeconds)).ConfigureAwait(false);
                 var d1 = d0.ExtractSpan("<form name=\"downloadForm\"", "</form>");
                 if (d1 == null)
                 {
@@ -258,7 +287,7 @@ namespace Automa.IO.Unanet
                     try
                     {
                         Thread.Sleep(attempt * 1000);
-                        await this.TryFunc(() => this.DownloadFileAsync(executeFolder, HttpMethod.Get, $"{UnanetUri}/admin/export/downloadFile", body, interceptFilename: interceptFilename));
+                        await this.TryFuncAsync(() => this.DownloadFileAsync(executeFolder, HttpMethod.Get, $"{UnanetUri}/admin/export/downloadFile", body, interceptFilename: interceptFilename)).ConfigureAwait(false);
                         return (true, null, true, tag);
                     }
                     catch (WebException e)
@@ -285,7 +314,7 @@ namespace Automa.IO.Unanet
             // parse
             if (entitySelect == null)
             {
-                var d0 = await this.TryFunc(() => this.DownloadDataAsync(HttpMethod.Get, $"{UnanetUri}/{entity}/list"));
+                var d0 = await this.TryFuncAsync(() => this.DownloadDataAsync(HttpMethod.Get, $"{UnanetUri}/{entity}/list")).ConfigureAwait(false);
                 var d1 = d0.ExtractSpan("<form name=\"search\" method=\"post\"", "</form>");
                 var htmlForm = new HtmlFormPost(d1);
                 action(d1, htmlForm);
@@ -293,9 +322,9 @@ namespace Automa.IO.Unanet
             }
             // submit
             {
-                var d0 = await this.TryFunc(() => entitySelect == null ?
+                var d0 = await this.TryFuncAsync(() => entitySelect == null ?
                     this.DownloadDataAsync(HttpMethod.Post, $"{UnanetUri}/{entity}/list", body) :
-                    this.DownloadDataAsync(HttpMethod.Post, $"{UnanetUri}/{entity}/list?{entitySelect}"));
+                    this.DownloadDataAsync(HttpMethod.Post, $"{UnanetUri}/{entity}/list?{entitySelect}")).ConfigureAwait(false);
                 var startIdx = 0;
                 var list = new List<Dictionary<string, (string, string)[]>>();
                 while (true)
@@ -321,7 +350,7 @@ namespace Automa.IO.Unanet
         {
             // submit
             {
-                var d0 = await this.TryFunc(() => this.DownloadDataAsync(HttpMethod.Get, $"{UnanetUri}/{entity}/list?{entitySelect}"));
+                var d0 = await this.TryFuncAsync(() => this.DownloadDataAsync(HttpMethod.Get, $"{UnanetUri}/{entity}/list?{entitySelect}")).ConfigureAwait(false);
                 var startIdx = 0;
                 var list = new List<Dictionary<string, (string, string)[]>>();
                 while (true)
@@ -353,7 +382,7 @@ namespace Automa.IO.Unanet
             HttpContent body; string url;
             // parse
             {
-                var d0 = await this.TryFunc(() => this.DownloadDataAsync(HttpMethod.Get, $"{UnanetUri}/admin/import?importType={importType}"));
+                var d0 = await this.TryFuncAsync(() => this.DownloadDataAsync(HttpMethod.Get, $"{UnanetUri}/admin/import?importType={importType}")).ConfigureAwait(false);
                 var d1 = d0.ExtractSpan("<form method=\"post\" ", "</form>");
                 var htmlForm = new HtmlFormPost(d1);
                 action(htmlForm);
@@ -362,7 +391,7 @@ namespace Automa.IO.Unanet
             }
             // submit
             {
-                var d0 = await this.TryFunc(() => this.DownloadDataAsync(HttpMethod.Post, url, body));
+                var d0 = await this.TryFuncAsync(() => this.DownloadDataAsync(HttpMethod.Post, url, body)).ConfigureAwait(false);
                 return d0?.ExtractSpanInner("<p class=\"error\">", "</p>")?.Trim();
             }
         }
@@ -382,9 +411,9 @@ namespace Automa.IO.Unanet
         /// <returns></returns>
         public async Task<(string value, string last)> PostValueAsync(HttpMethod method, string entity, string entitySelect, string parentSelect, bool useSafeRead = false)
         {
-            var d0 = await this.TryFunc(() => method == HttpMethod.Get ?
+            var d0 = await this.TryFuncAsync(() => method == HttpMethod.Get ?
                 this.DownloadDataAsync(HttpMethod.Get, $"{UnanetUri}/{entity}?{parentSelect}", useSafeRead: useSafeRead) :
-                this.DownloadDataAsync(HttpMethod.Post, $"{UnanetUri}/{entity}?{parentSelect}", entitySelect, useSafeRead: useSafeRead));
+                this.DownloadDataAsync(HttpMethod.Post, $"{UnanetUri}/{entity}?{parentSelect}", entitySelect, useSafeRead: useSafeRead)).ConfigureAwait(false);
             return (d0, null);
         }
 
@@ -403,7 +432,7 @@ namespace Automa.IO.Unanet
             string body, last = null, url = null;
             // parse
             {
-                var d0 = await this.TryFunc(() => this.DownloadDataAsync(HttpMethod.Get, $"{UnanetUri}/{entity}/{(method == HttpMethod.Post ? "add" : "edit?" + entitySelect)}"));
+                var d0 = await this.TryFuncAsync(() => this.DownloadDataAsync(HttpMethod.Get, $"{UnanetUri}/{entity}/{(method == HttpMethod.Post ? "add" : "edit?" + entitySelect)}")).ConfigureAwait(false);
                 var htmlForm = new HtmlFormPost(d0);
                 try { action(d0, htmlForm); }
                 catch (Exception e) { last = e.Message; throw; }
@@ -414,7 +443,7 @@ namespace Automa.IO.Unanet
             }
             // submit
             {
-                var d0 = await this.TryFunc(() => this.DownloadDataAsync(HttpMethod.Post, url, body));
+                var d0 = await this.TryFuncAsync(() => this.DownloadDataAsync(HttpMethod.Post, url, body)).ConfigureAwait(false);
                 var d1 = d0.ExtractSpanInner("<div class=\"error\">", "</div>");
                 return d1 != null
                     ? (null, d1.ExtractSpanInner("<ul class=\"error\">", "</ul>"))
@@ -445,27 +474,27 @@ namespace Automa.IO.Unanet
                 switch (type)
                 {
                     case "0":
-                        d0 = await this.TryFunc(() => method == HttpMethod.Get ?
+                        d0 = await this.TryFuncAsync(() => method == HttpMethod.Get ?
                           this.DownloadDataAsync(HttpMethod.Get, $"{UnanetUri}/{entity}?{parentSelect}") :
-                          this.DownloadDataAsync(HttpMethod.Post, $"{UnanetUri}/{entity}?{parentSelect}", entitySelect)); break;
+                          this.DownloadDataAsync(HttpMethod.Post, $"{UnanetUri}/{entity}?{parentSelect}", entitySelect)).ConfigureAwait(false); break;
                     case "A":
-                        d0 = await this.TryFunc(() => method == HttpMethod.Post ?
+                        d0 = await this.TryFuncAsync(() => method == HttpMethod.Post ?
                           this.DownloadDataAsync(HttpMethod.Get, $"{UnanetUri}/{entity}/add?{parentSelect}") :
-                          this.DownloadDataAsync(HttpMethod.Post, $"{UnanetUri}/{entity}/edit?{parentSelect}", entitySelect)); break;
+                          this.DownloadDataAsync(HttpMethod.Post, $"{UnanetUri}/{entity}/edit?{parentSelect}", entitySelect)).ConfigureAwait(false); break;
                     case "B":
-                        d0 = await this.TryFunc(() => this.DownloadDataAsync(HttpMethod.Post, $"{UnanetUri}/{entity}/edit", $"{entitySelect}&restore=true&isCopy=false&editAll=false&{parentSelect}")); break;
+                        d0 = await this.TryFuncAsync(() => this.DownloadDataAsync(HttpMethod.Post, $"{UnanetUri}/{entity}/edit", $"{entitySelect}&restore=true&isCopy=false&editAll=false&{parentSelect}")).ConfigureAwait(false); break;
                     case "C":
-                        d0 = await this.TryFunc(() => method == HttpMethod.Post ?
+                        d0 = await this.TryFuncAsync(() => method == HttpMethod.Post ?
                           this.DownloadDataAsync(HttpMethod.Get, $"{UnanetUri}/{entity}/list?{parentSelect}") :
-                          this.DownloadDataAsync(HttpMethod.Post, $"{UnanetUri}/{entity}/list", $"{entitySelect}&addNext=false&edit=true&copy=false&nextKey=&{parentSelect}&{defaults}")); break;
+                          this.DownloadDataAsync(HttpMethod.Post, $"{UnanetUri}/{entity}/list", $"{entitySelect}&addNext=false&edit=true&copy=false&nextKey=&{parentSelect}&{defaults}")).ConfigureAwait(false); break;
                     case "D":
-                        d0 = await this.TryFunc(() => this.DownloadDataAsync(method, $"{UnanetUri}/{entity}?{parentSelect}")); break;
+                        d0 = await this.TryFuncAsync(() => this.DownloadDataAsync(method, $"{UnanetUri}/{entity}?{parentSelect}")).ConfigureAwait(false); break;
                     case "E":
-                        d0 = await this.TryFunc(() => method == HttpMethod.Put ?
+                        d0 = await this.TryFuncAsync(() => method == HttpMethod.Put ?
                           this.DownloadDataAsync(HttpMethod.Get, $"{UnanetUri}/{entity}/add?{parentSelect}") :
-                          this.DownloadDataAsync(HttpMethod.Post, $"{UnanetUri}/{entity}/add", parentSelect)); break;
+                          this.DownloadDataAsync(HttpMethod.Post, $"{UnanetUri}/{entity}/add", parentSelect)).ConfigureAwait(false); break;
                     case "F":
-                        d0 = await this.TryFunc(() => this.DownloadDataAsync(HttpMethod.Post, $"{UnanetUri}/{entity}", $"{parentSelect}&{defaults}")); break;
+                        d0 = await this.TryFuncAsync(() => this.DownloadDataAsync(HttpMethod.Post, $"{UnanetUri}/{entity}", $"{parentSelect}&{defaults}")).ConfigureAwait(false); break;
                     default: throw new ArgumentOutOfRangeException(nameof(type), type);
                 }
                 var htmlForm = new HtmlFormPost(d0, formOptions: formOptions);
@@ -485,7 +514,7 @@ namespace Automa.IO.Unanet
                     case "D": body = $"{entitySelect}"; break;
                     case "E": body = $"{entitySelect}"; break;
                     case "F":
-                        d0 = await this.TryFunc(() => this.DownloadDataAsync(HttpMethod.Post, $"{UnanetUri}/{entity}", $"{parentSelect}&{defaults}"));
+                        d0 = await this.TryFuncAsync(() => this.DownloadDataAsync(HttpMethod.Post, $"{UnanetUri}/{entity}", $"{parentSelect}&{defaults}")).ConfigureAwait(false);
                         body = func(d0, null);
                         break;
                     default: throw new ArgumentOutOfRangeException(nameof(type), type);
@@ -493,7 +522,7 @@ namespace Automa.IO.Unanet
             }
             // submit
             {
-                d0 = await this.TryFunc(() => this.DownloadDataAsync(HttpMethod.Post, url, body));
+                d0 = await this.TryFuncAsync(() => this.DownloadDataAsync(HttpMethod.Post, url, body)).ConfigureAwait(false);
                 var d1 = d0.ExtractSpanInner("<div class=\"error\">", "</div>");
                 return d1 != null
                     ? (null, d1.ExtractSpanInner("<ul class=\"error\">", "</ul>"))

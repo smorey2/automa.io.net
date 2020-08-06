@@ -111,7 +111,7 @@ namespace Automa.IO.Unanet.Records
                     else if (method == HttpMethod.Delete) f.Values["primary"] = "-1";
                 }
                 return f.ToString();
-            });
+            }).ConfigureAwait(false);
             return (_.Changed(r), last);
         }
     }

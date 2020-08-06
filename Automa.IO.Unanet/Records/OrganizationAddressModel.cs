@@ -41,7 +41,7 @@ namespace Automa.IO.Unanet.Records
         }
 
         public static async Task<Dictionary<string, (string, string)[]>> GetListAsync(UnanetClient ctx, string orgKey) =>
-            (await ctx.GetEntitiesBySubListAsync("organizations/addresses", $"orgKey={orgKey}")).Single();
+            (await ctx.GetEntitiesBySubListAsync("organizations/addresses", $"orgKey={orgKey}").ConfigureAwait(false)).Single();
 
         public static IEnumerable<OrganizationAddressModel> Read(UnanetClient una, string sourceFolder)
         {
@@ -98,7 +98,7 @@ namespace Automa.IO.Unanet.Records
             bespoke?.Invoke(s);
             if (ManageRecordBase(null, s.XCF, 1, out var cf, out var add, out var last2))
                 return (_.Changed(), last2);
-            var list = add ? null : await GetListAsync(una, s.organization_codeKey);
+            var list = add ? null : await GetListAsync(una, s.organization_codeKey).ConfigureAwait(false);
             //if (list?.Count == 2 && Enumerable.SequenceEqual(list.ElementAt(0).Value, list.ElementAt(1).Value))
             //{
             //    ctx.SubmitSubList("organizations/addresses", list.ElementAt(1).Key, $"orgKey={s.organization_codeKey}", "&streetAddress=&city=&state=&postalCode=&country=", true, out last);
@@ -121,7 +121,7 @@ namespace Automa.IO.Unanet.Records
                 if (add || cf.Contains("dst")) f.Checked["shipTo"] = _._(s.default_ship_to, nameof(s.default_ship_to)) == "Y";
                 if (add || cf.Contains("drt")) f.Checked["remitTo"] = _._(s.default_remit_to, nameof(s.default_remit_to)) == "Y";
                 return f.ToString();
-            });
+            }).ConfigureAwait(false);
             return (_.Changed(r), last);
         }
     }

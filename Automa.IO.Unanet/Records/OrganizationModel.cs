@@ -86,7 +86,7 @@ namespace Automa.IO.Unanet.Records
             {
                 f.FromSelect("organizationtype", type);
                 f.Values["list"] = "true";
-            })).Single()
+            }).ConfigureAwait(false)).Single()
             .ToDictionary(x => x.Value[4].Item1, x => new Tuple<string, string>(x.Key, x.Value[5].Item1));
 
         public static IEnumerable<OrganizationModel> Read(UnanetClient una, string sourceFolder, string type = "CUSTOMER")
@@ -273,7 +273,7 @@ namespace Automa.IO.Unanet.Records
                 f.Add("button_save", "action", null);
                 f.Remove("legalEntity", "defaultGLPostOrg", "legalEntityOrg",
                     "beginDate", "endDate", "fporg", "finParentOrg", "cporg", "costPoolParentOrg");
-            });
+            }).ConfigureAwait(false);
             return (_.Changed(r), last);
         }
     }

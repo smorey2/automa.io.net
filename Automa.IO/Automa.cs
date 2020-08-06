@@ -81,9 +81,9 @@ namespace Automa.IO
         public Automa(AutomaClient client, Func<IAutoma, IAutomation> automationFactory, decimal defaultTimeoutInSeconds = 60M, Action<DriverOptions> driverOptions = null)
         {
             _client = client ?? throw new ArgumentNullException(nameof(client));
+            Driver = client.ProxyOptions == null ? (AbstractDriver)Activator.CreateInstance(client.DriverType, driverOptions) : AbstractDriver.EmptyDriver;
             _automation = automationFactory?.Invoke(this) ?? throw new ArgumentNullException(nameof(automationFactory));
             DefaultTimeoutInSeconds = defaultTimeoutInSeconds;
-            Driver = client.ProxyOptions == null ? (AbstractDriver)Activator.CreateInstance(client.DriverType, driverOptions) : AbstractDriver.EmptyDriver;
         }
 
         /// <summary>

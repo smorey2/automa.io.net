@@ -1,5 +1,4 @@
 using HtmlAgilityPack;
-using Newtonsoft.Json;
 using Newtonsoft.Json.Linq;
 using OpenQA.Selenium;
 using System;
@@ -10,6 +9,7 @@ using System.Linq;
 using System.Net;
 using System.Net.Http;
 using System.Text;
+using System.Text.Json;
 using System.Threading;
 using System.Threading.Tasks;
 using NetCookie = System.Net.Cookie;
@@ -21,6 +21,8 @@ namespace Automa.IO
     /// </summary>
     public static partial class AutomaExtensions
     {
+        static readonly JsonSerializerOptions _jsonOptions = Default.JsonOptions;
+
         #region IWebDriver
 
         /// <summary>
@@ -97,6 +99,22 @@ namespace Automa.IO
                 url = driver.Url;
             }
             return waitUrls.Any(x => url.StartsWith(x));
+        }
+
+        #endregion
+
+        #region JsonElement
+
+        public static Type GetAsType(this JsonElement source) => Type.GetType(source.GetString());
+        public static object GetObject(this JsonElement source, Type type, JsonSerializerOptions jsonOptions = null) => JsonSerializer.Deserialize(source.GetRawText(), type, jsonOptions ?? _jsonOptions);
+        public static T GetObject<T>(this JsonElement source, JsonSerializerOptions jsonOptions = null) => JsonSerializer.Deserialize<T>(source.GetRawText(), jsonOptions ?? _jsonOptions);
+        public static object GetTypedObject(this JsonElement source, JsonSerializerOptions jsonOptions = null)
+        {
+            var (obj, typeName) = source.GetObject<(JsonElement obj, string typeName)>();
+            if (string.IsNullOrEmpty(typeName))
+                return null;
+            var type = Type.GetType(typeName);
+            return obj.GetObject(type);
         }
 
         #endregion
@@ -574,6 +592,351 @@ namespace Automa.IO
 
         #endregion
 
+        #region ITryMethod : Async
+
+        /// <summary>
+        /// Tries the function.
+        /// </summary>
+        /// <typeparam name="T"></typeparam>
+        /// <param name="source">The source.</param>
+        /// <param name="action">The action.</param>
+        /// <param name="closeAfter">if set to <c>true</c> [close after].</param>
+        /// <param name="tag">The tag.</param>
+        /// <param name="loginTimeoutInSeconds">The login timeout in seconds.</param>
+        /// <returns>T.</returns>
+        /// <exception cref="ArgumentNullException">action</exception>
+        /// <exception cref="System.ArgumentNullException">action</exception>
+        public static async Task<T> TryFuncAsync<T>(this ITryMethod source, Func<Task<T>> action, bool closeAfter = true, object tag = null, decimal loginTimeoutInSeconds = -1M)
+        {
+            if (action == null)
+                throw new ArgumentNullException(nameof(action));
+            source.EnsureAccess(AccessMethod.TryFunc, AccessMode.Preamble, ref tag);
+            var value = await action().ConfigureAwait(false);
+            if (value == null)
+                return default;
+            if (source.EnsureAccess(AccessMethod.TryFunc, AccessMode.Request, ref tag, value))
+            {
+                await source.TryLoginAsync(closeAfter, tag, loginTimeoutInSeconds).ConfigureAwait(false);
+                return await action().ConfigureAwait(false);
+            }
+            return value;
+        }
+
+        /// <summary>
+        /// Tries the function.
+        /// </summary>
+        /// <typeparam name="T1">The type of the 1.</typeparam>
+        /// <typeparam name="T"></typeparam>
+        /// <param name="source">The source.</param>
+        /// <param name="action">The action.</param>
+        /// <param name="t1">The t1.</param>
+        /// <param name="closeAfter">if set to <c>true</c> [close after].</param>
+        /// <param name="tag">The tag.</param>
+        /// <param name="loginTimeoutInSeconds">The login timeout in seconds.</param>
+        /// <returns>T.</returns>
+        /// <exception cref="ArgumentNullException">action</exception>
+        /// <exception cref="System.ArgumentNullException">action</exception>
+        public static async Task<T> TryFuncAsync<T1, T>(this ITryMethod source, Func<T1, Task<T>> action, T1 t1, bool closeAfter = true, object tag = null, decimal loginTimeoutInSeconds = -1M)
+        {
+            if (action == null)
+                throw new ArgumentNullException(nameof(action));
+            source.EnsureAccess(AccessMethod.TryFunc, AccessMode.Preamble, ref tag);
+            var value = await action(t1).ConfigureAwait(false);
+            if (value == null)
+                return default;
+            if (source.EnsureAccess(AccessMethod.TryFunc, AccessMode.Request, ref tag, value))
+            {
+                await source.TryLoginAsync(closeAfter, tag, loginTimeoutInSeconds).ConfigureAwait(false);
+                return await action(t1).ConfigureAwait(false);
+            }
+            return value;
+        }
+
+        /// <summary>
+        /// Tries the function.
+        /// </summary>
+        /// <typeparam name="T"></typeparam>
+        /// <param name="source">The source.</param>
+        /// <param name="exceptionType">Type of the exception.</param>
+        /// <param name="action">The action.</param>
+        /// <param name="closeAfter">if set to <c>true</c> [close after].</param>
+        /// <param name="tag">The tag.</param>
+        /// <param name="loginTimeoutInSeconds">The login timeout in seconds.</param>
+        /// <returns>T.</returns>
+        /// <exception cref="ArgumentNullException">action</exception>
+        /// <exception cref="System.ArgumentNullException">action</exception>
+        public static async Task<T> TryFuncAsync<T>(this ITryMethod source, Type exceptionType, Func<Task<T>> action, bool closeAfter = true, object tag = null, decimal loginTimeoutInSeconds = -1M)
+        {
+            if (exceptionType == null)
+                exceptionType = typeof(Exception);
+            if (action == null)
+                throw new ArgumentNullException(nameof(action));
+            source.EnsureAccess(AccessMethod.TryFunc, AccessMode.Preamble, ref tag);
+            try { return await action().ConfigureAwait(false); }
+            catch (Exception e)
+            {
+                if (exceptionType.IsAssignableFrom(e.GetType()) && source.EnsureAccess(AccessMethod.TryFunc, AccessMode.Exception, ref tag, e.Message))
+                {
+                    await source.TryLoginAsync(closeAfter, tag, loginTimeoutInSeconds).ConfigureAwait(false);
+                    return await action().ConfigureAwait(false);
+                }
+                else throw e;
+            }
+        }
+        /// <summary>
+        /// Tries the function.
+        /// </summary>
+        /// <typeparam name="TException">The type of the t exception.</typeparam>
+        /// <typeparam name="T"></typeparam>
+        /// <param name="source">The source.</param>
+        /// <param name="action">The action.</param>
+        /// <param name="closeAfter">if set to <c>true</c> [close after].</param>
+        /// <param name="tag">The tag.</param>
+        /// <param name="loginTimeoutInSeconds">The login timeout in seconds.</param>
+        /// <returns>T.</returns>
+        public static Task<T> TryFuncAsync<TException, T>(this ITryMethod source, Func<Task<T>> action, bool closeAfter = true, object tag = null, decimal loginTimeoutInSeconds = -1M) where TException : Exception => source.TryFuncAsync(typeof(TException), action, closeAfter, tag, loginTimeoutInSeconds);
+
+        /// <summary>
+        /// Tries the function.
+        /// </summary>
+        /// <typeparam name="T1">The type of the 1.</typeparam>
+        /// <typeparam name="T"></typeparam>
+        /// <param name="source">The source.</param>
+        /// <param name="exceptionType">Type of the exception.</param>
+        /// <param name="action">The action.</param>
+        /// <param name="t1">The t1.</param>
+        /// <param name="closeAfter">if set to <c>true</c> [close after].</param>
+        /// <param name="tag">The tag.</param>
+        /// <param name="loginTimeoutInSeconds">The login timeout in seconds.</param>
+        /// <returns>T.</returns>
+        /// <exception cref="ArgumentNullException">action</exception>
+        /// <exception cref="System.ArgumentNullException">action</exception>
+        public static async Task<T> TryFuncAsync<T1, T>(this ITryMethod source, Type exceptionType, Func<T1, Task<T>> action, T1 t1, bool closeAfter = true, object tag = null, decimal loginTimeoutInSeconds = -1M)
+        {
+            if (exceptionType == null)
+                exceptionType = typeof(Exception);
+            if (action == null)
+                throw new ArgumentNullException(nameof(action));
+            source.EnsureAccess(AccessMethod.TryFunc, AccessMode.Preamble, ref tag);
+            try { return await action(t1).ConfigureAwait(false); }
+            catch (Exception e)
+            {
+                if (exceptionType.IsAssignableFrom(e.GetType()) && source.EnsureAccess(AccessMethod.TryFunc, AccessMode.Exception, ref tag, e.Message))
+                {
+                    await source.TryLoginAsync(closeAfter, tag, loginTimeoutInSeconds).ConfigureAwait(false);
+                    return await action(t1).ConfigureAwait(false);
+                }
+                else throw e;
+            }
+        }
+        /// <summary>
+        /// Tries the function.
+        /// </summary>
+        /// <typeparam name="TException">The type of the t exception.</typeparam>
+        /// <typeparam name="T1">The type of the t1.</typeparam>
+        /// <typeparam name="T"></typeparam>
+        /// <param name="source">The source.</param>
+        /// <param name="action">The action.</param>
+        /// <param name="t1">The t1.</param>
+        /// <param name="closeAfter">if set to <c>true</c> [close after].</param>
+        /// <param name="tag">The tag.</param>
+        /// <param name="loginTimeoutInSeconds">The login timeout in seconds.</param>
+        /// <returns>T.</returns>
+        public static Task<T> TryFuncAsync<TException, T1, T>(this ITryMethod source, Func<T1, Task<T>> action, T1 t1, bool closeAfter = true, object tag = null, decimal loginTimeoutInSeconds = -1M) where TException : Exception => source.TryFuncAsync(typeof(TException), action, t1, closeAfter, tag, loginTimeoutInSeconds);
+
+        /// <summary>
+        /// Tries the action.
+        /// </summary>
+        /// <param name="source">The source.</param>
+        /// <param name="exceptionType">Type of the exception.</param>
+        /// <param name="action">The action.</param>
+        /// <param name="closeAfter">if set to <c>true</c> [close after].</param>
+        /// <param name="tag">The tag.</param>
+        /// <param name="loginTimeoutInSeconds">The login timeout in seconds.</param>
+        /// <exception cref="ArgumentNullException">action</exception>
+        /// <exception cref="System.ArgumentNullException">action</exception>
+        public static async Task TryActionAsync(this ITryMethod source, Type exceptionType, Func<Task> action, bool closeAfter = true, object tag = null, decimal loginTimeoutInSeconds = -1M)
+        {
+            if (exceptionType == null)
+                exceptionType = typeof(Exception);
+            if (action == null)
+                throw new ArgumentNullException(nameof(action));
+            source.EnsureAccess(AccessMethod.TryAction, AccessMode.Preamble, ref tag);
+            try { await action().ConfigureAwait(false); }
+            catch (Exception e)
+            {
+                if (exceptionType.IsAssignableFrom(e.GetType()) && source.EnsureAccess(AccessMethod.TryAction, AccessMode.Exception, ref tag, e.Message))
+                {
+                    await source.TryLoginAsync(closeAfter, tag, loginTimeoutInSeconds).ConfigureAwait(false);
+                    await action().ConfigureAwait(false);
+                }
+                else throw e;
+            }
+        }
+        /// <summary>
+        /// Tries the action.
+        /// </summary>
+        /// <typeparam name="TException">The type of the t exception.</typeparam>
+        /// <param name="source">The source.</param>
+        /// <param name="action">The action.</param>
+        /// <param name="closeAfter">if set to <c>true</c> [close after].</param>
+        /// <param name="tag">The tag.</param>
+        /// <param name="loginTimeoutInSeconds">The login timeout in seconds.</param>
+        public static Task TryActionAsync<TException>(this ITryMethod source, Func<Task> action, bool closeAfter = true, object tag = null, decimal loginTimeoutInSeconds = -1M) where TException : Exception => source.TryActionAsync(typeof(TException), action, closeAfter, tag, loginTimeoutInSeconds);
+
+        /// <summary>
+        /// Tries the action.
+        /// </summary>
+        /// <typeparam name="T1">The type of the 1.</typeparam>
+        /// <param name="source">The source.</param>
+        /// <param name="exceptionType">Type of the exception.</param>
+        /// <param name="action">The action.</param>
+        /// <param name="t1">The t1.</param>
+        /// <param name="closeAfter">if set to <c>true</c> [close after].</param>
+        /// <param name="tag">The tag.</param>
+        /// <param name="loginTimeoutInSeconds">The login timeout in seconds.</param>
+        /// <exception cref="ArgumentNullException">action</exception>
+        /// <exception cref="System.ArgumentNullException">action</exception>
+        public static async Task TryActionAsync<T1>(this ITryMethod source, Type exceptionType, Func<T1, Task> action, T1 t1, bool closeAfter = true, object tag = null, decimal loginTimeoutInSeconds = -1M)
+        {
+            if (exceptionType == null)
+                exceptionType = typeof(Exception);
+            if (action == null)
+                throw new ArgumentNullException(nameof(action));
+            source.EnsureAccess(AccessMethod.TryAction, AccessMode.Preamble, ref tag);
+            try { await action(t1).ConfigureAwait(false); }
+            catch (Exception e)
+            {
+                if (exceptionType.IsAssignableFrom(e.GetType()) && source.EnsureAccess(AccessMethod.TryAction, AccessMode.Exception, ref tag, e.Message))
+                {
+                    await source.TryLoginAsync(closeAfter, tag, loginTimeoutInSeconds).ConfigureAwait(false);
+                    await action(t1).ConfigureAwait(false);
+                }
+                else throw e;
+            }
+        }
+        /// <summary>
+        /// Tries the action.
+        /// </summary>
+        /// <typeparam name="TException">The type of the t exception.</typeparam>
+        /// <typeparam name="T1">The type of the t1.</typeparam>
+        /// <param name="source">The source.</param>
+        /// <param name="action">The action.</param>
+        /// <param name="t1">The t1.</param>
+        /// <param name="closeAfter">if set to <c>true</c> [close after].</param>
+        /// <param name="tag">The tag.</param>
+        /// <param name="loginTimeoutInSeconds">The login timeout in seconds.</param>
+        public static Task TryActionAsync<TException, T1>(this ITryMethod source, Func<T1, Task> action, T1 t1, bool closeAfter = true, object tag = null, decimal loginTimeoutInSeconds = -1M) where TException : Exception => source.TryActionAsync(typeof(TException), action, t1, closeAfter, tag, loginTimeoutInSeconds);
+
+        /// <summary>
+        /// Tries the pager function.
+        /// </summary>
+        /// <typeparam name="TCursor">The type of the cursor.</typeparam>
+        /// <typeparam name="T"></typeparam>
+        /// <param name="source">The source.</param>
+        /// <param name="action">The action.</param>
+        /// <param name="cursor">The cursor.</param>
+        /// <param name="nextCursor">The next cursor.</param>
+        /// <param name="closeAfter">if set to <c>true</c> [close after].</param>
+        /// <param name="tag">The tag.</param>
+        /// <param name="loginTimeoutInSeconds">The login timeout in seconds.</param>
+        /// <returns>IEnumerable&lt;T&gt;.</returns>
+        /// <exception cref="ArgumentNullException">action
+        /// or
+        /// nextCursor</exception>
+        /// <exception cref="System.ArgumentNullException">action
+        /// or
+        /// nextCursor</exception>
+        public static async Task<IEnumerable<T>> TryPagerFuncAsync<TCursor, T>(this ITryMethod source, Func<TCursor, Task<T>> action, TCursor cursor, Func<TCursor, T, TCursor> nextCursor, bool closeAfter = true, object tag = null, decimal loginTimeoutInSeconds = -1M)
+        {
+            if (action == null)
+                throw new ArgumentNullException(nameof(action));
+            if (nextCursor == null)
+                throw new ArgumentNullException(nameof(nextCursor));
+            source.EnsureAccess(AccessMethod.TryPager, AccessMode.Preamble, ref tag);
+            var list = new List<T>();
+            while (cursor != null)
+            {
+                var value = await action(cursor).ConfigureAwait(false);
+                if (value == null)
+                    break;
+                if (source.EnsureAccess(AccessMethod.TryPager, AccessMode.Request, ref tag, value))
+                {
+                    await source.TryLoginAsync(closeAfter, tag, loginTimeoutInSeconds).ConfigureAwait(false);
+                    value = await action(cursor).ConfigureAwait(false);
+                }
+                cursor = nextCursor(cursor, value);
+                list.Add(value);
+            }
+            return list;
+        }
+
+        /// <summary>
+        /// Tries the pager function.
+        /// </summary>
+        /// <typeparam name="TCursor">The type of the cursor.</typeparam>
+        /// <typeparam name="T"></typeparam>
+        /// <param name="source">The source.</param>
+        /// <param name="exceptionType">Type of the exception.</param>
+        /// <param name="action">The action.</param>
+        /// <param name="cursor">The cursor.</param>
+        /// <param name="nextCursor">The next cursor.</param>
+        /// <param name="closeAfter">if set to <c>true</c> [close after].</param>
+        /// <param name="tag">The tag.</param>
+        /// <param name="loginTimeoutInSeconds">The login timeout in seconds.</param>
+        /// <returns>IEnumerable&lt;T&gt;.</returns>
+        /// <exception cref="ArgumentNullException">action
+        /// or
+        /// nextCursor</exception>
+        /// <exception cref="System.ArgumentNullException">action
+        /// or
+        /// nextCursor</exception>
+        public static async Task<IEnumerable<T>> TryPagerFuncAsync<TCursor, T>(this ITryMethod source, Type exceptionType, Func<TCursor, Task<T>> action, TCursor cursor, Func<TCursor, T, TCursor> nextCursor, bool closeAfter = true, object tag = null, decimal loginTimeoutInSeconds = -1M)
+        {
+            if (exceptionType == null)
+                exceptionType = typeof(Exception);
+            if (action == null)
+                throw new ArgumentNullException(nameof(action));
+            if (nextCursor == null)
+                throw new ArgumentNullException(nameof(nextCursor));
+            source.EnsureAccess(AccessMethod.TryPager, AccessMode.Preamble, ref tag);
+            var list = new List<T>();
+            while (cursor != null)
+            {
+                T value;
+                try { value = await action(cursor).ConfigureAwait(false); }
+                catch (Exception e)
+                {
+                    if (exceptionType.IsAssignableFrom(e.GetType()) && source.EnsureAccess(AccessMethod.TryPager, AccessMode.Exception, ref tag, e.Message))
+                    {
+                        await source.TryLoginAsync(closeAfter, tag, loginTimeoutInSeconds).ConfigureAwait(false);
+                        value = await action(cursor).ConfigureAwait(false);
+                    }
+                    else throw e;
+                }
+                cursor = nextCursor(cursor, value);
+                list.Add(value);
+            }
+            return list;
+        }
+        /// <summary>
+        /// Tries the pager function.
+        /// </summary>
+        /// <typeparam name="TException">The type of the t exception.</typeparam>
+        /// <typeparam name="TCursor">The type of the t cursor.</typeparam>
+        /// <typeparam name="T"></typeparam>
+        /// <param name="source">The source.</param>
+        /// <param name="action">The action.</param>
+        /// <param name="cursor">The cursor.</param>
+        /// <param name="nextCursor">The next cursor.</param>
+        /// <param name="closeAfter">if set to <c>true</c> [close after].</param>
+        /// <param name="tag">The tag.</param>
+        /// <param name="loginTimeoutInSeconds">The login timeout in seconds.</param>
+        /// <returns>IEnumerable&lt;T&gt;.</returns>
+        public static Task<IEnumerable<T>> TryPagerFuncAsync<TException, TCursor, T>(this ITryMethod source, Func<TCursor, Task<T>> action, TCursor cursor, Func<TCursor, T, TCursor> nextCursor, bool closeAfter = true, object tag = null, decimal loginTimeoutInSeconds = -1M) where TException : Exception => source.TryPagerFuncAsync(typeof(TException), action, cursor, nextCursor, closeAfter, tag, loginTimeoutInSeconds);
+
+        #endregion
+
         #region IHasCookies
 
         const byte COOKIEMAGIC = 0x12;
@@ -599,7 +962,7 @@ namespace Automa.IO
             switch (storageType)
             {
                 case CookieStorageType.Json:
-                    return Task.FromResult(Encoding.ASCII.GetBytes(JsonConvert.SerializeObject(source.Cookies.Cast<NetCookie>().Select(x =>
+                    return Task.FromResult(Encoding.ASCII.GetBytes(JsonSerializer.Serialize(source.Cookies.Cast<NetCookie>().Select(x =>
                         new CookieShim { Name = x.Name, Value = x.Value, Domain = x.Domain, Path = x.Path, Expires = x.Expires })
                         .ToArray())));
                 case CookieStorageType.Binary:
@@ -632,7 +995,7 @@ namespace Automa.IO
             switch (storageType)
             {
                 case CookieStorageType.Json:
-                    foreach (var x in JsonConvert.DeserializeObject<CookieShim[]>(Encoding.ASCII.GetString(value)).Select(x =>
+                    foreach (var x in JsonSerializer.Deserialize<CookieShim[]>(Encoding.ASCII.GetString(value)).Select(x =>
                         new NetCookie(x.Name, x.Value, x.Path, x.Domain) { Expires = x.Expires }))
                         source.Cookies.Add(x);
                     return Task.CompletedTask;
@@ -665,7 +1028,7 @@ namespace Automa.IO
             if (cookies != null)
             {
                 source.Cookies = cookies;
-                await source.CookiesFlushAsync();
+                await source.CookiesFlushAsync().ConfigureAwait(false);
             }
             return source.Cookies;
         }
@@ -770,8 +1133,8 @@ namespace Automa.IO
                 var res = (HttpWebResponse)req.GetResponse();
                 if (updateCookies)
                 {
-                    await source.CookieMergeAsyc(res.Cookies);
-                    await source.CookiesFlushAsync();
+                    await source.CookieMergeAsyc(res.Cookies).ConfigureAwait(false);
+                    await source.CookiesFlushAsync().ConfigureAwait(false);
                 }
                 return (res, correlation);
             }
@@ -812,7 +1175,7 @@ namespace Automa.IO
         /// <returns>System.String.</returns>
         public static async Task<string> DownloadDataAsync(this IHasCookies source, HttpMethod method, string url, object body = null, string contentType = null, Action<HttpWebRequest> interceptRequest = null, bool updateCookies = true, Action<HttpStatusCode, string> onError = null, decimal timeoutInSeconds = -1M, bool useSafeRead = false)
         {
-            var (res, correlation) = await source.DownloadPreambleAsync(method, url, body, contentType, interceptRequest, updateCookies, onError, timeoutInSeconds);
+            var (res, correlation) = await source.DownloadPreambleAsync(method, url, body, contentType, interceptRequest, updateCookies, onError, timeoutInSeconds).ConfigureAwait(false);
             using (var r = new StreamReader(res.GetResponseStream()))
                 return DownloadCompleted(correlation, !useSafeRead ? r.ReadToEnd() : r.SafeReadToEnd());
         }
@@ -829,10 +1192,28 @@ namespace Automa.IO
         /// <param name="updateCookies">if set to <c>true</c> [update cookies].</param>
         /// <param name="onError">The on error.</param>
         /// <returns>JToken.</returns>
-        public static async Task<JToken> DownloadJsonAsync(this IHasCookies source, HttpMethod method, string url, object body = null, string contentType = null, Action<HttpWebRequest> interceptRequest = null, bool updateCookies = true, Action<HttpStatusCode, string> onError = null, decimal timeoutInSeconds = -1M)
+        public static async Task<JToken> DownloadJson2Async(this IHasCookies source, HttpMethod method, string url, object body = null, string contentType = null, Action<HttpWebRequest> interceptRequest = null, bool updateCookies = true, Action<HttpStatusCode, string> onError = null, decimal timeoutInSeconds = -1M)
         {
-            var d = await source.DownloadDataAsync(method, url, body, contentType, interceptRequest, updateCookies, onError, timeoutInSeconds);
+            var d = await source.DownloadDataAsync(method, url, body, contentType, interceptRequest, updateCookies, onError, timeoutInSeconds).ConfigureAwait(false);
             return JToken.Parse(d);
+        }
+
+        /// <summary>
+        /// Downloads the json.
+        /// </summary>
+        /// <param name="source">The source.</param>
+        /// <param name="method">The method.</param>
+        /// <param name="url">The URL.</param>
+        /// <param name="body">The post data.</param>
+        /// <param name="contentType">Type of the content.</param>
+        /// <param name="interceptRequest">The intercept request.</param>
+        /// <param name="updateCookies">if set to <c>true</c> [update cookies].</param>
+        /// <param name="onError">The on error.</param>
+        /// <returns>JToken.</returns>
+        public static async Task<JsonElement> DownloadJsonAsync(this IHasCookies source, HttpMethod method, string url, object body = null, string contentType = null, Action<HttpWebRequest> interceptRequest = null, bool updateCookies = true, Action<HttpStatusCode, string> onError = null, decimal timeoutInSeconds = -1M)
+        {
+            var d = await source.DownloadDataAsync(method, url, body, contentType, interceptRequest, updateCookies, onError, timeoutInSeconds).ConfigureAwait(false);
+            return JsonDocument.Parse(d).RootElement;
         }
 
         /// <summary>
@@ -853,8 +1234,8 @@ namespace Automa.IO
         /// <returns>System.String.</returns>
         public static async Task<string> DownloadFileAsync(this IHasCookies source, string filePath, HttpMethod method, string url, object body = null, string contentType = null, Action<HttpWebRequest> interceptRequest = null, Action<Stream, Stream> interceptResponse = null, Func<string, string> interceptFilename = null, bool updateCookies = false, Action<HttpStatusCode, string> onError = null, decimal timeoutInSeconds = -1M)
         {
-            var (res, correlation) = await source.DownloadPreambleAsync(method, url, body, contentType, interceptRequest, updateCookies, onError, timeoutInSeconds);
-            return DownloadCompleted(correlation, await CompleteDownloadAsync(res, filePath, null, interceptResponse, interceptFilename));
+            var (res, correlation) = await source.DownloadPreambleAsync(method, url, body, contentType, interceptRequest, updateCookies, onError, timeoutInSeconds).ConfigureAwait(false);
+            return DownloadCompleted(correlation, await CompleteDownloadAsync(res, filePath, null, interceptResponse, interceptFilename).ConfigureAwait(false));
         }
 
         /// <summary>
@@ -875,8 +1256,8 @@ namespace Automa.IO
         /// <returns>System.String.</returns>
         public static async Task<string> DownloadFileAsync(this IHasCookies source, Stream stream, HttpMethod method, string url, object body = null, string contentType = null, Action<HttpWebRequest> interceptRequest = null, Action<Stream, Stream> interceptResponse = null, Func<string, string> interceptFilename = null, bool updateCookies = false, Action<HttpStatusCode, string> onError = null, decimal timeoutInSeconds = -1M)
         {
-            var (res, correlation) = await source.DownloadPreambleAsync(method, url, body, contentType, interceptRequest, updateCookies, onError, timeoutInSeconds);
-            return DownloadCompleted(correlation, await CompleteDownloadAsync(res, null, stream, interceptResponse, interceptFilename));
+            var (res, correlation) = await source.DownloadPreambleAsync(method, url, body, contentType, interceptRequest, updateCookies, onError, timeoutInSeconds).ConfigureAwait(false);
+            return DownloadCompleted(correlation, await CompleteDownloadAsync(res, null, stream, interceptResponse, interceptFilename).ConfigureAwait(false));
         }
 
         static string DownloadCompleted(long correlation, string value)

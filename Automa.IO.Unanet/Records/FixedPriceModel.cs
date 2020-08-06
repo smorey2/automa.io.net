@@ -48,7 +48,7 @@ namespace Automa.IO.Unanet.Records
                     f.Checked["includePosted"] = true;
                     f.Checked["includeRevSchedules"] = true;
                     return null;
-                }, sourceFolder)).success &&
+                }, sourceFolder).ConfigureAwait(false)).success &&
                 (await una.GetEntitiesByExportAsync(una.Options.fixed_price_item_post.key, (z, f) =>
                 {
                     f.Checked["suppressOutput"] = true;
@@ -58,7 +58,7 @@ namespace Automa.IO.Unanet.Records
                     f.Checked["includePosted"] = false;
                     f.Checked["includeRevSchedules"] = true;
                     return null;
-                }, sourceFolder)).success, true, (object)null));
+                }, sourceFolder).ConfigureAwait(false)).success, true, (object)null));
         }
 
         public static IEnumerable<FixedPriceModel> Read(UnanetClient una, string sourceFolder)
@@ -158,7 +158,7 @@ namespace Automa.IO.Unanet.Records
                 if (add || cf.Contains("rrm")) f.FromSelectByKey("revRecMethod", recMethod);
                 f.Add("button_save", "action", null);
                 return f.ToString();
-            });
+            }).ConfigureAwait(false);
             return (_.Changed(r), last);
         }
     }

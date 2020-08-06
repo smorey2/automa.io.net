@@ -439,7 +439,7 @@ namespace Automa.IO.Unanet.Records
                     //f.Values["redisplayRateEdit"] = "true";
                     //f.Values["selectedRateKey"] = rateKey;
                 }
-            });
+            }).ConfigureAwait(false);
             return (_.Changed(r), last);
         }
     }

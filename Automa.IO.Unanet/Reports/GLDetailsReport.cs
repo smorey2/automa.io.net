@@ -46,7 +46,7 @@ namespace Automa.IO.Unanet.Reports
             string account = null;
             if (accountType == "Wip")
             {
-                var options = await una.GetOptionsAsync("AccountMenu", "account", wipAcct ?? una.Options.WipAcct);
+                var options = await una.GetOptionsAsync("AccountMenu", "account", wipAcct ?? una.Options.WipAcct).ConfigureAwait(false);
                 if (options.Count != 1)
                     throw new InvalidOperationException($"Can not find: {wipAcct ?? una.Options.WipAcct}");
                 account = options.First().Key;
@@ -54,7 +54,7 @@ namespace Automa.IO.Unanet.Reports
             var filePath = Path.Combine(sourceFolder, "report.csv");
             if (File.Exists(filePath))
                 File.Delete(filePath);
-            return await Task.Run(() => una.RunReportAsync("financials/detail/general_ledger", (z, f) =>
+            return await Task.Run(async () => await una.RunReportAsync("financials/detail/general_ledger", (z, f) =>
             {
                 f.FromSelect("legalEntity", legalEntity ?? una.Options.LegalEntity);
                 if (accountType == "Wip") f.Values["account"] = account;
@@ -65,7 +65,7 @@ namespace Automa.IO.Unanet.Reports
                 f.FromSelect("fpRange", "custom");
                 f.FromSelect("orgHierarchy", "Organization");
                 return f.ToString();
-            }, sourceFolder) != null);
+            }, sourceFolder).ConfigureAwait(false) != null);
         }
 
         public static IEnumerable<GLDetailsReport> Read(UnanetClient una, string accountType, string sourceFolder)

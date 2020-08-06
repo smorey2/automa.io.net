@@ -30,7 +30,7 @@ namespace Automa.IO.Umb.Reports
             var filePath = Path.Combine(sourceFolder, "TransactionReport.xls");
             if (File.Exists(filePath))
                 File.Delete(filePath);
-            var driver = await umb.GetDriverAsync();
+            var driver = await umb.GetDriverAsync().ConfigureAwait(false);
             driver.Navigate().GoToUrl($"{umb.UmbUri}/Reports/report2_1010c.asp");
             //
             try

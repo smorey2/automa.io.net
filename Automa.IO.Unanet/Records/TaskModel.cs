@@ -298,7 +298,7 @@ namespace Automa.IO.Unanet.Records
                 //if (add || cf.Contains("u19")) f.Values["udf_18"] = _._(s.user19, nameof(s.user19));
                 //if (add || cf.Contains("u20")) f.Values["udf_19"] = _._(s.user20, nameof(s.user20));
                 return f.ToString();
-            });
+            }).ConfigureAwait(false);
             return (_.Changed(r), last);
         }
     }
