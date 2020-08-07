@@ -27,7 +27,7 @@ namespace Automa.IO.Drivers
                 Driver.Manage().Timeouts().ImplicitWait = TimeSpan.FromMinutes(implicitWaitInMinutes);
         }
 
-        protected void Dispose(bool disposing)
+        protected virtual void Dispose(bool disposing)
         {
             if (!_disposed)
             {
@@ -60,7 +60,7 @@ namespace Automa.IO.Drivers
         /// <value>The cookies.</value>
         /// <exception cref="ArgumentNullException">value</exception>
         /// <exception cref="System.ArgumentNullException">value</exception>
-        public CookieCollection Cookies
+        public virtual CookieCollection Cookies
         {
             get
             {

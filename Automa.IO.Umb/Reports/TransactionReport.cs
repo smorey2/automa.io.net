@@ -30,33 +30,35 @@ namespace Automa.IO.Umb.Reports
             var filePath = Path.Combine(sourceFolder, "TransactionReport.xls");
             if (File.Exists(filePath))
                 File.Delete(filePath);
-            var driver = await umb.GetDriverAsync().ConfigureAwait(false);
-            driver.Navigate().GoToUrl($"{umb.UmbUri}/Reports/report2_1010c.asp");
-            //
-            try
+            using (var automa = umb.Automa)
             {
-                driver.FindElement(By.Name("xs_bi")).SendKeys("[All Account Issuers]" + Keys.Enter); // Statement Issuer
-                driver.FindElement(By.Name("xs_pi")).SendKeys("" + Keys.Enter); // Statement Period
-                driver.FindElement(By.Name("xs_l_ct")).SendKeys("[All Types]" + Keys.Enter); // Account Type
-                if (beginDate != null) driver.FindElement(By.Name("xs_start")).SendKeys(beginDate.Value.ToShortDateString()); // Start Date
-                if (endDate != null) driver.FindElement(By.Name("xs_end")).SendKeys(endDate.Value.ToShortDateString()); // End Date
-                ElementSelect(driver.FindElement(By.Name("xs_umt")), true); // Include Unmapped Transactions
-                ElementSelect(driver.FindElement(By.Name("xs_m_f")), false); // Group Results
-                ElementSelect(driver.FindElement(By.Id("xs_m_s_4")), true); // Transaction List
+                var driver = await umb.GetDriverAsync().ConfigureAwait(false);
+                driver.Navigate().GoToUrl($"{umb.UmbUri}/Reports/report2_1010c.asp");
+                try
+                {
+                    driver.FindElement(By.Name("xs_bi")).SendKeys("[All Account Issuers]" + Keys.Enter); // Statement Issuer
+                    driver.FindElement(By.Name("xs_pi")).SendKeys("" + Keys.Enter); // Statement Period
+                    driver.FindElement(By.Name("xs_l_ct")).SendKeys("[All Types]" + Keys.Enter); // Account Type
+                    if (beginDate != null) driver.FindElement(By.Name("xs_start")).SendKeys(beginDate.Value.ToShortDateString()); // Start Date
+                    if (endDate != null) driver.FindElement(By.Name("xs_end")).SendKeys(endDate.Value.ToShortDateString()); // End Date
+                    ElementSelect(driver.FindElement(By.Name("xs_umt")), true); // Include Unmapped Transactions
+                    ElementSelect(driver.FindElement(By.Name("xs_m_f")), false); // Group Results
+                    ElementSelect(driver.FindElement(By.Id("xs_m_s_4")), true); // Transaction List
 
-                // additional fields
-                var additionalFields = driver.FindElements(By.ClassName("accordion")).First(x => x.Text == "Additional Fields");
-                additionalFields.Click(); Thread.Sleep(500); // Additional Fields
-                ElementSelect(driver.FindElement(By.Id("i91")), true); Thread.Sleep(500); // Issuer Reference
-                driver.FindElement(By.ClassName("two")).Click(); Thread.Sleep(500); // page 2
-                ElementSelect(driver.FindElement(By.Id("i85")), true); Thread.Sleep(500); // Authorization Number
+                    // additional fields
+                    var additionalFields = driver.FindElements(By.ClassName("accordion")).First(x => x.Text == "Additional Fields");
+                    additionalFields.Click(); Thread.Sleep(500); // Additional Fields
+                    ElementSelect(driver.FindElement(By.Id("i91")), true); Thread.Sleep(500); // Issuer Reference
+                    driver.FindElement(By.ClassName("two")).Click(); Thread.Sleep(500); // page 2
+                    ElementSelect(driver.FindElement(By.Id("i85")), true); Thread.Sleep(500); // Authorization Number
 
-                // submit
-                driver.FindElement(By.Name("xs_filename")).SendKeys("TransactionReport"); // Export File Name
-                driver.FindElement(By.Name("xs_filetype")).SendKeys("Excel" + Keys.Enter); // Export File Type
-                driver.FindElement(By.ClassName("search")).Click();
+                    // submit
+                    driver.FindElement(By.Name("xs_filename")).SendKeys("TransactionReport"); // Export File Name
+                    driver.FindElement(By.Name("xs_filetype")).SendKeys("Excel" + Keys.Enter); // Export File Type
+                    driver.FindElement(By.ClassName("search")).Click();
+                }
+                catch { return false; }
             }
-            catch { return false; }
             var i = 0; while (!File.Exists(filePath) && i++ < 10)
                 Thread.Sleep(100);
             return true;

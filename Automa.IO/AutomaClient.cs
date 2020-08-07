@@ -70,7 +70,7 @@ namespace Automa.IO
         {
             get => _automa ?? (_automa = ProxyOptions == null
                 ? _automaFactory?.Invoke(this) ?? EmptyAutoma
-                : new Automa(this, automa => new ProxyAutomation(this, automa, ProxyOptions)));
+                : new Automa(this, automa => new ProxyAutomation(this, automa)));
             set
             {
                 if (_automa != value)
@@ -84,7 +84,9 @@ namespace Automa.IO
 
         public async Task<IWebDriver> GetDriverAsync(object tag = null, decimal loginTimeoutInSeconds = -1M)
         {
-            await AutomaLoginAsync(false, tag, loginTimeoutInSeconds).ConfigureAwait(false);
+            if (_automa == null)
+                throw new InvalidOperationException("Must be called in a Automa using block");
+            await AutomaLoginAsync(tag, loginTimeoutInSeconds).ConfigureAwait(false);
             return Automa.Driver.Driver;
         }
 
@@ -95,7 +97,6 @@ namespace Automa.IO
         /// The type of the driver.
         /// </value>
         public Type DriverType { get; set; } = typeof(ChromeDriver);
-
 
         #region Parse/Get
 
@@ -108,11 +109,11 @@ namespace Automa.IO
             var parseClientArgsMethod = type.GetMethod("ParseClientArgs", BindingFlags.Static | BindingFlags.NonPublic);
             var client = (AutomaClient)parseClientArgsMethod.Invoke(null, new object[] { args });
             client.DriverType = _base["DriverType"].GetAsType();
-            client.ServiceLogin = _base["ServiceLogin"].GetString();
-            client.ServicePassword = _base["ServicePassword"].GetString();
-            client.ServiceCredential = _base["ServiceCredential"].GetString();
-            client.ConnectionString = _base["ConnectionString"].GetString();
-            client.ConnectionParams = _base["ConnectionParams"].GetObject<Dictionary<string, string>>();
+            //client.ServiceLogin = _base["ServiceLogin"].GetString();
+            //client.ServicePassword = _base["ServicePassword"].GetString();
+            //client.ServiceCredential = _base["ServiceCredential"].GetString();
+            //client.ConnectionString = _base["ConnectionString"].GetString();
+            //client.ConnectionParams = _base["ConnectionParams"].GetObject<Dictionary<string, string>>();
             return client;
         }
 
@@ -121,15 +122,14 @@ namespace Automa.IO
             {
                 { "Type", GetType().AssemblyQualifiedName },
                 { "DriverType", DriverType.AssemblyQualifiedName },
-                { "ServiceLogin", ServiceLogin },
-                { "ServicePassword", ServicePassword },
-                { "ServiceCredential", ServiceCredential },
-                { "ConnectionString", ConnectionString },
-                { "ConnectionParams", ConnectionParams },
+                //{ "ServiceLogin", ServiceLogin },
+                //{ "ServicePassword", ServicePassword },
+                //{ "ServiceCredential", ServiceCredential },
+                //{ "ConnectionString", ConnectionString },
+                //{ "ConnectionParams", ConnectionParams },
             };
 
         #endregion
-
 
         #region Credentials
 
@@ -309,7 +309,15 @@ namespace Automa.IO
         /// <param name="closeAfter">if set to <c>true</c> [close after].</param>
         /// <param name="tag">The tag.</param>
         /// <param name="loginTimeoutInSeconds">The login timeout in seconds.</param>
-        public virtual Task TryLoginAsync(bool closeAfter = true, object tag = null, decimal loginTimeoutInSeconds = -1M) => AutomaLoginAsync(closeAfter, tag, loginTimeoutInSeconds);
+        public virtual async Task TryLoginAsync(bool closeAfter = true, object tag = null, decimal loginTimeoutInSeconds = -1M)
+        {
+            _logger("AutomaClient::Login");
+            using (var automa = Automa)
+            {
+                await AutomaLoginAsync(tag, loginTimeoutInSeconds);
+            }
+            _logger("AutomaClient::Done");
+        }
 
         /// <summary>
         /// Automas the login.
@@ -319,9 +327,8 @@ namespace Automa.IO
         /// <param name="loginTimeoutInSeconds">The login timeout in seconds.</param>
         /// <returns><c>true</c> if XXXX, <c>false</c> otherwise.</returns>
         /// <exception cref="WebDriverException"></exception>
-        protected virtual async Task AutomaLoginAsync(bool closeAfter = true, object tag = null, decimal loginTimeoutInSeconds = -1M)
+        protected virtual async Task AutomaLoginAsync(object tag = null, decimal loginTimeoutInSeconds = -1M)
         {
-            _logger("AutomaClient::Login");
             try
             {
                 await Automa.LoginAsync(tag, loginTimeoutInSeconds).ConfigureAwait(false);
@@ -333,13 +340,6 @@ namespace Automa.IO
                 _logger(e.Message);
                 if (e.Message.StartsWith("session not created:")) throw new WebDriverException(e.Message, e);
                 else throw;
-            }
-            finally
-            {
-                if (closeAfter)
-                    try { Automa.Dispose(); }
-                    catch { }
-                _logger("AutomaClient::Done");
             }
         }
 

@@ -1,4 +1,5 @@
 using Automa.IO.Drivers;
+using Automa.IO.Proxy;
 using OpenQA.Selenium;
 using System;
 using System.Net;
@@ -81,7 +82,9 @@ namespace Automa.IO
         public Automa(AutomaClient client, Func<IAutoma, IAutomation> automationFactory, decimal defaultTimeoutInSeconds = 60M, Action<DriverOptions> driverOptions = null)
         {
             _client = client ?? throw new ArgumentNullException(nameof(client));
-            Driver = client.ProxyOptions == null ? (AbstractDriver)Activator.CreateInstance(client.DriverType, driverOptions) : AbstractDriver.EmptyDriver;
+            Driver = client.ProxyOptions == null
+                ? (AbstractDriver)Activator.CreateInstance(client.DriverType, driverOptions)
+                : new ProxyDriver(client, driverOptions);
             _automation = automationFactory?.Invoke(this) ?? throw new ArgumentNullException(nameof(automationFactory));
             DefaultTimeoutInSeconds = defaultTimeoutInSeconds;
         }

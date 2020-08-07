@@ -612,12 +612,13 @@ namespace Automa.IO
                 throw new ArgumentNullException(nameof(action));
             source.EnsureAccess(AccessMethod.TryFunc, AccessMode.Preamble, ref tag);
             var value = await action().ConfigureAwait(false);
-            if (value == null)
-                return default;
-            if (source.EnsureAccess(AccessMethod.TryFunc, AccessMode.Request, ref tag, value))
+            if (value == null) return default;
+            else if (source.EnsureAccess(AccessMethod.TryFunc, AccessMode.Request, ref tag, value))
             {
                 await source.TryLoginAsync(closeAfter, tag, loginTimeoutInSeconds).ConfigureAwait(false);
-                return await action().ConfigureAwait(false);
+                value = await action().ConfigureAwait(false);
+                if (value == null) return default;
+                else if (source.EnsureAccess(AccessMethod.TryFunc, AccessMode.Request, ref tag, value)) throw new SecondAttemptFailedException();
             }
             return value;
         }
@@ -642,12 +643,13 @@ namespace Automa.IO
                 throw new ArgumentNullException(nameof(action));
             source.EnsureAccess(AccessMethod.TryFunc, AccessMode.Preamble, ref tag);
             var value = await action(t1).ConfigureAwait(false);
-            if (value == null)
-                return default;
-            if (source.EnsureAccess(AccessMethod.TryFunc, AccessMode.Request, ref tag, value))
+            if (value == null) return default;
+            else if (source.EnsureAccess(AccessMethod.TryFunc, AccessMode.Request, ref tag, value))
             {
                 await source.TryLoginAsync(closeAfter, tag, loginTimeoutInSeconds).ConfigureAwait(false);
-                return await action(t1).ConfigureAwait(false);
+                value = await action(t1).ConfigureAwait(false);
+                if (value == null) return default;
+                else if (source.EnsureAccess(AccessMethod.TryFunc, AccessMode.Request, ref tag, value)) throw new SecondAttemptFailedException();
             }
             return value;
         }
@@ -678,7 +680,12 @@ namespace Automa.IO
                 if (exceptionType.IsAssignableFrom(e.GetType()) && source.EnsureAccess(AccessMethod.TryFunc, AccessMode.Exception, ref tag, e.Message))
                 {
                     await source.TryLoginAsync(closeAfter, tag, loginTimeoutInSeconds).ConfigureAwait(false);
-                    return await action().ConfigureAwait(false);
+                    try { return await action().ConfigureAwait(false); }
+                    catch (Exception e2)
+                    {
+                        if (exceptionType.IsAssignableFrom(e2.GetType()) && source.EnsureAccess(AccessMethod.TryFunc, AccessMode.Exception, ref tag, e2.Message)) throw new SecondAttemptFailedException();
+                        else throw e2;
+                    }
                 }
                 else throw e;
             }
@@ -724,7 +731,12 @@ namespace Automa.IO
                 if (exceptionType.IsAssignableFrom(e.GetType()) && source.EnsureAccess(AccessMethod.TryFunc, AccessMode.Exception, ref tag, e.Message))
                 {
                     await source.TryLoginAsync(closeAfter, tag, loginTimeoutInSeconds).ConfigureAwait(false);
-                    return await action(t1).ConfigureAwait(false);
+                    try { return await action(t1).ConfigureAwait(false); }
+                    catch (Exception e2)
+                    {
+                        if (exceptionType.IsAssignableFrom(e2.GetType()) && source.EnsureAccess(AccessMethod.TryFunc, AccessMode.Exception, ref tag, e2.Message)) throw new SecondAttemptFailedException();
+                        else throw e2;
+                    }
                 }
                 else throw e;
             }
@@ -768,7 +780,12 @@ namespace Automa.IO
                 if (exceptionType.IsAssignableFrom(e.GetType()) && source.EnsureAccess(AccessMethod.TryAction, AccessMode.Exception, ref tag, e.Message))
                 {
                     await source.TryLoginAsync(closeAfter, tag, loginTimeoutInSeconds).ConfigureAwait(false);
-                    await action().ConfigureAwait(false);
+                    try { await action().ConfigureAwait(false); }
+                    catch (Exception e2)
+                    {
+                        if (exceptionType.IsAssignableFrom(e2.GetType()) && source.EnsureAccess(AccessMethod.TryAction, AccessMode.Exception, ref tag, e2.Message)) throw new SecondAttemptFailedException();
+                        else throw e2;
+                    }
                 }
                 else throw e;
             }
@@ -810,7 +827,12 @@ namespace Automa.IO
                 if (exceptionType.IsAssignableFrom(e.GetType()) && source.EnsureAccess(AccessMethod.TryAction, AccessMode.Exception, ref tag, e.Message))
                 {
                     await source.TryLoginAsync(closeAfter, tag, loginTimeoutInSeconds).ConfigureAwait(false);
-                    await action(t1).ConfigureAwait(false);
+                    try { await action(t1).ConfigureAwait(false); }
+                    catch (Exception e2)
+                    {
+                        if (exceptionType.IsAssignableFrom(e.GetType()) && source.EnsureAccess(AccessMethod.TryAction, AccessMode.Exception, ref tag, e.Message)) throw new SecondAttemptFailedException();
+                        else throw e2;
+                    }
                 }
                 else throw e;
             }
@@ -858,12 +880,13 @@ namespace Automa.IO
             while (cursor != null)
             {
                 var value = await action(cursor).ConfigureAwait(false);
-                if (value == null)
-                    break;
-                if (source.EnsureAccess(AccessMethod.TryPager, AccessMode.Request, ref tag, value))
+                if (value == null) break;
+                else if (source.EnsureAccess(AccessMethod.TryPager, AccessMode.Request, ref tag, value))
                 {
                     await source.TryLoginAsync(closeAfter, tag, loginTimeoutInSeconds).ConfigureAwait(false);
                     value = await action(cursor).ConfigureAwait(false);
+                    if (value == null) break;
+                    else if (source.EnsureAccess(AccessMethod.TryPager, AccessMode.Request, ref tag, value)) throw new SecondAttemptFailedException();
                 }
                 cursor = nextCursor(cursor, value);
                 list.Add(value);
@@ -910,7 +933,12 @@ namespace Automa.IO
                     if (exceptionType.IsAssignableFrom(e.GetType()) && source.EnsureAccess(AccessMethod.TryPager, AccessMode.Exception, ref tag, e.Message))
                     {
                         await source.TryLoginAsync(closeAfter, tag, loginTimeoutInSeconds).ConfigureAwait(false);
-                        value = await action(cursor).ConfigureAwait(false);
+                        try { value = await action(cursor).ConfigureAwait(false); }
+                        catch (Exception e2)
+                        {
+                            if (exceptionType.IsAssignableFrom(e2.GetType()) && source.EnsureAccess(AccessMethod.TryPager, AccessMode.Exception, ref tag, e2.Message)) throw new SecondAttemptFailedException();
+                            else throw e2;
+                        }
                     }
                     else throw e;
                 }

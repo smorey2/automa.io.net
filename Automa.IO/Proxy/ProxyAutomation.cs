@@ -2,7 +2,6 @@
 using System.Net;
 using System.Threading;
 using System.Threading.Tasks;
-using Args = System.Collections.Generic.Dictionary<string, object>;
 
 namespace Automa.IO.Proxy
 {
@@ -12,40 +11,17 @@ namespace Automa.IO.Proxy
     /// <seealso cref="Automa.IO.Automation" />
     public class ProxyAutomation : Automation
     {
-        readonly WebApiClient _api;
+        readonly ProxyDriver _proxyDriver;
 
-        public ProxyAutomation(AutomaClient client, IAutoma automa, IProxyOptions options) : base(client, automa) => _api = new WebApiClient(options);
+        public ProxyAutomation(AutomaClient client, IAutoma automa) : base(client, automa) => _proxyDriver = (ProxyDriver)automa.Driver;
 
-        public override async Task LoginAsync(Func<CookieCollection, Task<CookieCollection>> cookies, NetworkCredential credential, object tag = null, CancellationToken? cancellationToken = null)
-        {
-            var response = await _api.Post<LoginResponse>("Login", new Args
-            {
-                { "_client", _client.GetClientArgs() },
-                { "credential", credential },
-                { "tag", (tag, tag?.GetType().AssemblyQualifiedName) },
-            }, cancellationToken).ConfigureAwait(false);
-        }
+        public override Task LoginAsync(Func<CookieCollection, Task<CookieCollection>> cookies, NetworkCredential credential, object tag = null, CancellationToken? cancellationToken = null)
+            => _proxyDriver.LoginAsync(cookies, credential, tag, cancellationToken);
 
-        public override async Task<object> SelectApplicationAsync(string application, object tag = null, CancellationToken? cancellationToken = null)
-        {
-            var response = await _api.Post<SelectApplicationResponse>("SelectApplication", new Args
-            {
-                { "_client", _client.GetClientArgs() },
-                { "application", application },
-                { "tag", (tag, tag?.GetType().AssemblyQualifiedName) },
-            }, cancellationToken).ConfigureAwait(false);
-            return null;
-        }
+        public override Task<object> SelectApplicationAsync(string application, object tag = null, CancellationToken? cancellationToken = null)
+            => _proxyDriver.SelectApplicationAsync(application, tag, cancellationToken);
 
-        public override async Task SetDeviceAccessTokenAsync(string url, string userCode, object tag = null, CancellationToken? cancellationToken = null)
-        {
-            var response = await _api.Post<SetDeviceAccessTokenResponse>("SetDeviceAccessToken", new Args
-            {
-                { "_client", _client.GetClientArgs() },
-                { "url", url },
-                { "userCode", userCode },
-                { "tag", (tag, tag?.GetType().AssemblyQualifiedName) },
-            }, cancellationToken).ConfigureAwait(false);
-        }
+        public override Task SetDeviceAccessTokenAsync(string url, string userCode, object tag = null, CancellationToken? cancellationToken = null)
+            => _proxyDriver.SetDeviceAccessTokenAsync(url, userCode, tag, cancellationToken);
     }
 }

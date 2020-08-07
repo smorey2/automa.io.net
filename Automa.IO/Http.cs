@@ -1,29 +1,30 @@
 using System;
+using System.IO;
 using System.Net.Http;
 using System.Text.Json;
 using System.Threading;
 using System.Threading.Tasks;
 
-namespace Automa.IO.Proxy
+namespace Automa.IO
 {
     public interface IHttp
     {
-        Task<T> Execute<T>(HttpRequestMessage requestMessage, CancellationToken? cancellationToken = null);
+        Task<T> ExecuteAsync<T>(HttpRequestMessage requestMessage, CancellationToken? cancellationToken = null);
     }
 
     class Http : IHttp
     {
         readonly HttpClient _client;
-        readonly JsonSerializerOptions _serializerOptions;
+        readonly JsonSerializerOptions _jsonOptions;
         public static string LastErrorContent;
 
-        public Http(HttpClient client, JsonSerializerOptions serializerOptions)
+        public Http(HttpClient client, JsonSerializerOptions jsonOptions)
         {
             _client = client;
-            _serializerOptions = serializerOptions;
+            _jsonOptions = jsonOptions;
         }
 
-        public async Task<T> Execute<T>(HttpRequestMessage requestMessage, CancellationToken? cancellationToken = null)
+        public async Task<T> ExecuteAsync<T>(HttpRequestMessage requestMessage, CancellationToken? cancellationToken = null)
         {
             try
             {
@@ -31,6 +32,7 @@ namespace Automa.IO.Proxy
                 if (!response.IsSuccessStatusCode)
                     LastErrorContent = await response.Content.ReadAsStringAsync();
                 response.EnsureSuccessStatusCode();
+
                 return await DeserializeAsync<T>(response).ConfigureAwait(false);
             }
             catch (Exception e)
@@ -40,6 +42,6 @@ namespace Automa.IO.Proxy
         }
 
         async ValueTask<T> DeserializeAsync<T>(HttpResponseMessage response) =>
-            await JsonSerializer.DeserializeAsync<T>(await response.Content.ReadAsStreamAsync().ConfigureAwait(false), _serializerOptions);
+            await JsonSerializer.DeserializeAsync<T>(await response.Content.ReadAsStreamAsync().ConfigureAwait(false), _jsonOptions);
     }
 }

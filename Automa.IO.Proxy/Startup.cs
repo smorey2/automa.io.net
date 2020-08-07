@@ -19,7 +19,7 @@ namespace Automa.IO
         // This method gets called by the runtime. Use this method to add services to the container.
         public void ConfigureServices(IServiceCollection services)
         {
-            services.AddTransient<WebHost>();
+            services.AddTransient<ProxyHost>();
             services.AddControllers();
         }
 
@@ -34,6 +34,7 @@ namespace Automa.IO
             app.UseHttpsRedirection();
 
             app.UseRouting();
+            app.UseWebSockets();
 
             app.UseAuthorization();
 

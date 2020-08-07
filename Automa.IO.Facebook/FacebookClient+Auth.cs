@@ -62,13 +62,15 @@ namespace Automa.IO.Facebook
         /// <param name="loginTimeoutInSeconds">The login timeout in seconds.</param>
         public override async Task TryLoginAsync(bool closeAfter = true, object tag = null, decimal loginTimeoutInSeconds = 30)
         {
+            _logger("AutomaClient::Login");
             using (var automa = Automa)
             {
-                await AutomaLoginAsync(false, tag, loginTimeoutInSeconds).ConfigureAwait(false);
+                await AutomaLoginAsync(tag, loginTimeoutInSeconds).ConfigureAwait(false);
                 await SetDeviceAccessTokenAsync(RequestedScope, Automa.SetDeviceAccessTokenAsync, tag, loginTimeoutInSeconds).ConfigureAwait(false);
                 await SetExtendedAccessTokenAsync().ConfigureAwait(false);
                 await AccessTokenFlushAsync().ConfigureAwait(false);
             }
+            _logger("AutomaClient::Done");
         }
 
         /// <summary>
