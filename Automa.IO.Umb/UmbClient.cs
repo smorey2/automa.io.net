@@ -1,4 +1,5 @@
 ﻿using Automa.IO.Proxy;
+using Automa.IO.Umb.Reports;
 using System;
 using System.IO;
 using System.Net.Http;
@@ -14,6 +15,11 @@ namespace Automa.IO.Umb
     public partial class UmbClient : AutomaClient
     {
         public string UmbUri => "https://commercialcard.umb.com";
+
+        static UmbClient()
+        {
+            CustomRegistry.Add(typeof(TransactionReport.CustomTransactionReport), new TransactionReport.CustomTransactionReport());
+        }
 
         /// <summary>
         /// Initializes a new instance of the <see cref="UmbClient" /> class.

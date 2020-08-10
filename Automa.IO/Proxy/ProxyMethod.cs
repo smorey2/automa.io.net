@@ -5,12 +5,12 @@
     /// </summary>
     public enum ProxyMethod
     {
-        Ready,
         Open,
         Login,
         SelectApplication,
         SetDeviceAccessToken,
         GetCookies,
+        Custom,
         Dispose,
     }
 }

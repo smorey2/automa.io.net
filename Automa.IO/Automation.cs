@@ -12,6 +12,17 @@ namespace Automa.IO
     public interface IAutomation
     {
         /// <summary>
+        /// Customs the asynchronous.
+        /// </summary>
+        /// <param name="registration">The registration.</param>
+        /// <param name="custom">The custom.</param>
+        /// <param name="param">The parameter.</param>
+        /// <param name="tag">The tag.</param>
+        /// <param name="cancellationToken">The cancellation token.</param>
+        /// <returns></returns>
+        Task<object> CustomAsync(Type registration, ICustom custom, object param = null, object tag = null, CancellationToken? cancellationToken = null);
+
+        /// <summary>
         /// Goes to URL.
         /// </summary>
         /// <param name="url">The URL.</param>
@@ -32,16 +43,6 @@ namespace Automa.IO
         Task LoginAsync(Func<CookieCollection, Task<CookieCollection>> cookies, NetworkCredential credential, object tag = null, CancellationToken? cancellationToken = null);
 
         /// <summary>
-        /// Sets the device access token.
-        /// </summary>
-        /// <param name="url">The URL.</param>
-        /// <param name="userCode">The user code.</param>
-        /// <param name="tag">The tag.</param>
-        /// <param name="cancellationToken">The cancellation token.</param>
-        /// <returns></returns>
-        Task SetDeviceAccessTokenAsync(string url, string userCode, object tag = null, CancellationToken? cancellationToken = null);
-
-        /// <summary>
         /// Selects the application.
         /// </summary>
         /// <param name="application">The application.</param>
@@ -51,6 +52,16 @@ namespace Automa.IO
         /// System.Object.
         /// </returns>
         Task<object> SelectApplicationAsync(string application, object tag = null, CancellationToken? cancellationToken = null);
+
+        /// <summary>
+        /// Sets the device access token.
+        /// </summary>
+        /// <param name="url">The URL.</param>
+        /// <param name="userCode">The user code.</param>
+        /// <param name="tag">The tag.</param>
+        /// <param name="cancellationToken">The cancellation token.</param>
+        /// <returns></returns>
+        Task SetDeviceAccessTokenAsync(string url, string userCode, object tag = null, CancellationToken? cancellationToken = null);
     }
 
     /// <summary>
@@ -74,6 +85,19 @@ namespace Automa.IO
             _automa = automa;
             _driver = automa.Driver?.Driver;
         }
+
+        /// <summary>
+        /// Customs the asynchronous.
+        /// </summary>
+        /// <param name="registration">The registration.</param>
+        /// <param name="custom">The custom.</param>
+        /// <param name="param">The parameter.</param>
+        /// <param name="tag">The tag.</param>
+        /// <param name="cancellationToken">The cancellation token.</param>
+        /// <returns></returns>
+        /// <exception cref="NotSupportedException"></exception>
+        public virtual async Task<object> CustomAsync(Type registration, ICustom custom, object param = null, object tag = null, CancellationToken? cancellationToken = null) =>
+            await custom.ExecuteAsync(_client, param, tag, cancellationToken);
 
         /// <summary>
         /// Goes to URL.

@@ -1,6 +1,6 @@
+using Automa.IO.Drivers;
 using Automa.IO.Proxy;
 using OpenQA.Selenium;
-using OpenQA.Selenium.Chrome;
 using System;
 using System.Collections.Generic;
 using System.Net;
@@ -20,6 +20,7 @@ namespace Automa.IO
     public abstract class AutomaClient : ITryMethod, IHasCookies, IDisposable
     {
         public static readonly IAutoma EmptyAutoma = new InternalEmptyAutoma();
+        public static readonly IDictionary<Type, ICustom> CustomRegistry = new Dictionary<Type, ICustom>();
         readonly Func<AutomaClient, IAutoma> _automaFactory;
         IAutoma _automa;
 
@@ -82,11 +83,15 @@ namespace Automa.IO
             }
         }
 
-        public async Task<IWebDriver> GetDriverAsync(object tag = null, decimal loginTimeoutInSeconds = -1M)
+        /// <summary>
+        /// Gets the web driver.
+        /// </summary>
+        /// <returns></returns>
+        /// <exception cref="InvalidOperationException">Must be called in a Automa using block</exception>
+        public IWebDriver GetWebDriver()
         {
             if (_automa == null)
                 throw new InvalidOperationException("Must be called in a Automa using block");
-            await AutomaLoginAsync(tag, loginTimeoutInSeconds).ConfigureAwait(false);
             return Automa.Driver.Driver;
         }
 
@@ -291,7 +296,7 @@ namespace Automa.IO
 
         #endregion
 
-        #region TryMethods
+        #region Automa
 
         /// <summary>
         /// Ensures the access.
@@ -306,29 +311,67 @@ namespace Automa.IO
         /// <summary>
         /// Tries the login.
         /// </summary>
-        /// <param name="closeAfter">if set to <c>true</c> [close after].</param>
         /// <param name="tag">The tag.</param>
         /// <param name="loginTimeoutInSeconds">The login timeout in seconds.</param>
-        public virtual async Task TryLoginAsync(bool closeAfter = true, object tag = null, decimal loginTimeoutInSeconds = -1M)
+        public virtual async Task TryLoginAsync(object tag = null, decimal loginTimeoutInSeconds = -1M)
         {
-            _logger("AutomaClient::Login");
+            _logger("AutomaClient::TryLogin");
             using (var automa = Automa)
             {
                 await AutomaLoginAsync(tag, loginTimeoutInSeconds);
+                _logger("AutomaClient::Done");
             }
-            _logger("AutomaClient::Done");
+        }
+
+        /// <summary>
+        /// Tries the select application asynchronous.
+        /// </summary>
+        /// <param name="application">The application.</param>
+        /// <param name="tag">The tag.</param>
+        /// <param name="loginTimeoutInSeconds">The login timeout in seconds.</param>
+        /// <returns></returns>
+        public virtual async Task<object> TrySelectApplicationAsync(string application, object tag = null, decimal loginTimeoutInSeconds = -1M)
+        {
+            _logger("AutomaClient::TrySelectApplication");
+            using (var automa = Automa)
+            {
+                var r = await AutomaSelectApplicationAsync(application, tag, loginTimeoutInSeconds);
+                _logger("AutomaClient::Done");
+                return r;
+            }
+        }
+
+        /// <summary>
+        /// Tries the custom asynchronous.
+        /// </summary>
+        /// <typeparam name="T"></typeparam>
+        /// <param name="registration">The registration.</param>
+        /// <param name="param">The parameter.</param>
+        /// <param name="tag">The tag.</param>
+        /// <param name="loginTimeoutInSeconds">The login timeout in seconds.</param>
+        /// <returns></returns>
+        public virtual async Task<T> TryCustomAsync<T>(Type registration, object param = null, object tag = null, decimal loginTimeoutInSeconds = -1M)
+        {
+            _logger("AutomaClient::TryCustom");
+            using (var automa = Automa)
+            {
+                await AutomaLoginAsync(tag, loginTimeoutInSeconds);
+                var obj = await AutomaCustomAsync<T>(registration, param, tag, loginTimeoutInSeconds);
+                _logger("AutomaClient::Done");
+                return obj.value;
+            }
         }
 
         /// <summary>
         /// Automas the login.
         /// </summary>
-        /// <param name="closeAfter">if set to <c>true</c> [close after].</param>
         /// <param name="tag">The tag.</param>
         /// <param name="loginTimeoutInSeconds">The login timeout in seconds.</param>
         /// <returns><c>true</c> if XXXX, <c>false</c> otherwise.</returns>
         /// <exception cref="WebDriverException"></exception>
         protected virtual async Task AutomaLoginAsync(object tag = null, decimal loginTimeoutInSeconds = -1M)
         {
+            _logger("AutomaClient::Login");
             try
             {
                 await Automa.LoginAsync(tag, loginTimeoutInSeconds).ConfigureAwait(false);
@@ -350,11 +393,26 @@ namespace Automa.IO
         /// <param name="tag">The tag.</param>
         /// <param name="selectTimeoutInSeconds">The select timeout in seconds.</param>
         /// <returns>System.Object.</returns>
-        public virtual async Task<object> AutomaSelectApplicationAsync(string application, object tag = null, decimal selectTimeoutInSeconds = -1M)
+        protected virtual async Task<object> AutomaSelectApplicationAsync(string application, object tag = null, decimal selectTimeoutInSeconds = -1M)
         {
             _logger("AutomaClient::SelectApplication");
-            await Automa.SelectApplicationAsync(application, tag, selectTimeoutInSeconds).ConfigureAwait(false);
-            return null;
+            return await Automa.SelectApplicationAsync(application, tag, selectTimeoutInSeconds).ConfigureAwait(false);
+        }
+
+        /// <summary>
+        /// Automas the custom asynchronous.
+        /// </summary>
+        /// <typeparam name="T"></typeparam>
+        /// <param name="registration">The registration.</param>
+        /// <param name="param">The parameter.</param>
+        /// <param name="tag">The tag.</param>
+        /// <param name="selectTimeoutInSeconds">The select timeout in seconds.</param>
+        /// <returns></returns>
+        protected virtual async Task<(T value, ICustom custom)> AutomaCustomAsync<T>(Type registration, object param = null, object tag = null, decimal selectTimeoutInSeconds = -1M)
+        {
+            _logger("AutomaClient::Custom");
+            var (value, custom) = await Automa.CustomAsync(registration, param, tag, selectTimeoutInSeconds).ConfigureAwait(false);
+            return ((T)value, custom);
         }
 
         #endregion

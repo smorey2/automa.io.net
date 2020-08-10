@@ -57,10 +57,9 @@ namespace Automa.IO.Facebook
         /// <summary>
         /// Tries the login.
         /// </summary>
-        /// <param name="closeAfter">if set to <c>true</c> [close after].</param>
         /// <param name="tag">The tag.</param>
         /// <param name="loginTimeoutInSeconds">The login timeout in seconds.</param>
-        public override async Task TryLoginAsync(bool closeAfter = true, object tag = null, decimal loginTimeoutInSeconds = 30)
+        public override async Task TryLoginAsync(object tag = null, decimal loginTimeoutInSeconds = 30)
         {
             _logger("AutomaClient::Login");
             using (var automa = Automa)

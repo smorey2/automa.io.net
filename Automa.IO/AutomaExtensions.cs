@@ -259,13 +259,12 @@ namespace Automa.IO
         /// <typeparam name="T"></typeparam>
         /// <param name="source">The source.</param>
         /// <param name="action">The action.</param>
-        /// <param name="closeAfter">if set to <c>true</c> [close after].</param>
         /// <param name="tag">The tag.</param>
         /// <param name="loginTimeoutInSeconds">The login timeout in seconds.</param>
         /// <returns>T.</returns>
         /// <exception cref="ArgumentNullException">action</exception>
         /// <exception cref="System.ArgumentNullException">action</exception>
-        public static T TryFunc<T>(this ITryMethod source, Func<T> action, bool closeAfter = true, object tag = null, decimal loginTimeoutInSeconds = -1M)
+        public static T TryFunc<T>(this ITryMethod source, Func<T> action, object tag = null, decimal loginTimeoutInSeconds = -1M)
         {
             if (action == null)
                 throw new ArgumentNullException(nameof(action));
@@ -275,7 +274,7 @@ namespace Automa.IO
                 return default;
             if (source.EnsureAccess(AccessMethod.TryFunc, AccessMode.Request, ref tag, value))
             {
-                source.TryLoginAsync(closeAfter, tag, loginTimeoutInSeconds).Wait();
+                source.TryLoginAsync(tag, loginTimeoutInSeconds).Wait();
                 return action();
             }
             return value;
@@ -289,13 +288,12 @@ namespace Automa.IO
         /// <param name="source">The source.</param>
         /// <param name="action">The action.</param>
         /// <param name="t1">The t1.</param>
-        /// <param name="closeAfter">if set to <c>true</c> [close after].</param>
         /// <param name="tag">The tag.</param>
         /// <param name="loginTimeoutInSeconds">The login timeout in seconds.</param>
         /// <returns>T.</returns>
         /// <exception cref="ArgumentNullException">action</exception>
         /// <exception cref="System.ArgumentNullException">action</exception>
-        public static T TryFunc<T1, T>(this ITryMethod source, Func<T1, T> action, T1 t1, bool closeAfter = true, object tag = null, decimal loginTimeoutInSeconds = -1M)
+        public static T TryFunc<T1, T>(this ITryMethod source, Func<T1, T> action, T1 t1, object tag = null, decimal loginTimeoutInSeconds = -1M)
         {
             if (action == null)
                 throw new ArgumentNullException(nameof(action));
@@ -305,7 +303,7 @@ namespace Automa.IO
                 return default;
             if (source.EnsureAccess(AccessMethod.TryFunc, AccessMode.Request, ref tag, value))
             {
-                source.TryLoginAsync(closeAfter, tag, loginTimeoutInSeconds).Wait();
+                source.TryLoginAsync(tag, loginTimeoutInSeconds).Wait();
                 return action(t1);
             }
             return value;
@@ -318,13 +316,12 @@ namespace Automa.IO
         /// <param name="source">The source.</param>
         /// <param name="exceptionType">Type of the exception.</param>
         /// <param name="action">The action.</param>
-        /// <param name="closeAfter">if set to <c>true</c> [close after].</param>
         /// <param name="tag">The tag.</param>
         /// <param name="loginTimeoutInSeconds">The login timeout in seconds.</param>
         /// <returns>T.</returns>
         /// <exception cref="ArgumentNullException">action</exception>
         /// <exception cref="System.ArgumentNullException">action</exception>
-        public static T TryFunc<T>(this ITryMethod source, Type exceptionType, Func<T> action, bool closeAfter = true, object tag = null, decimal loginTimeoutInSeconds = -1M)
+        public static T TryFunc<T>(this ITryMethod source, Type exceptionType, Func<T> action, object tag = null, decimal loginTimeoutInSeconds = -1M)
         {
             if (exceptionType == null)
                 exceptionType = typeof(Exception);
@@ -336,7 +333,7 @@ namespace Automa.IO
             {
                 if (exceptionType.IsAssignableFrom(e.GetType()) && source.EnsureAccess(AccessMethod.TryFunc, AccessMode.Exception, ref tag, e.Message))
                 {
-                    source.TryLoginAsync(closeAfter, tag, loginTimeoutInSeconds).Wait();
+                    source.TryLoginAsync(tag, loginTimeoutInSeconds).Wait();
                     return action();
                 }
                 else throw e;
@@ -349,11 +346,10 @@ namespace Automa.IO
         /// <typeparam name="T"></typeparam>
         /// <param name="source">The source.</param>
         /// <param name="action">The action.</param>
-        /// <param name="closeAfter">if set to <c>true</c> [close after].</param>
         /// <param name="tag">The tag.</param>
         /// <param name="loginTimeoutInSeconds">The login timeout in seconds.</param>
         /// <returns>T.</returns>
-        public static T TryFunc<TException, T>(this ITryMethod source, Func<T> action, bool closeAfter = true, object tag = null, decimal loginTimeoutInSeconds = -1M) where TException : Exception => source.TryFunc(typeof(TException), action, closeAfter, tag, loginTimeoutInSeconds);
+        public static T TryFunc<TException, T>(this ITryMethod source, Func<T> action, object tag = null, decimal loginTimeoutInSeconds = -1M) where TException : Exception => source.TryFunc(typeof(TException), action, tag, loginTimeoutInSeconds);
 
         /// <summary>
         /// Tries the function.
@@ -370,7 +366,7 @@ namespace Automa.IO
         /// <returns>T.</returns>
         /// <exception cref="ArgumentNullException">action</exception>
         /// <exception cref="System.ArgumentNullException">action</exception>
-        public static T TryFunc<T1, T>(this ITryMethod source, Type exceptionType, Func<T1, T> action, T1 t1, bool closeAfter = true, object tag = null, decimal loginTimeoutInSeconds = -1M)
+        public static T TryFunc<T1, T>(this ITryMethod source, Type exceptionType, Func<T1, T> action, T1 t1, object tag = null, decimal loginTimeoutInSeconds = -1M)
         {
             if (exceptionType == null)
                 exceptionType = typeof(Exception);
@@ -382,7 +378,7 @@ namespace Automa.IO
             {
                 if (exceptionType.IsAssignableFrom(e.GetType()) && source.EnsureAccess(AccessMethod.TryFunc, AccessMode.Exception, ref tag, e.Message))
                 {
-                    source.TryLoginAsync(closeAfter, tag, loginTimeoutInSeconds).Wait();
+                    source.TryLoginAsync(tag, loginTimeoutInSeconds).Wait();
                     return action(t1);
                 }
                 else throw e;
@@ -401,7 +397,7 @@ namespace Automa.IO
         /// <param name="tag">The tag.</param>
         /// <param name="loginTimeoutInSeconds">The login timeout in seconds.</param>
         /// <returns>T.</returns>
-        public static T TryFunc<TException, T1, T>(this ITryMethod source, Func<T1, T> action, T1 t1, bool closeAfter = true, object tag = null, decimal loginTimeoutInSeconds = -1M) where TException : Exception => source.TryFunc(typeof(TException), action, t1, closeAfter, tag, loginTimeoutInSeconds);
+        public static T TryFunc<TException, T1, T>(this ITryMethod source, Func<T1, T> action, T1 t1, bool closeAfter = true, object tag = null, decimal loginTimeoutInSeconds = -1M) where TException : Exception => source.TryFunc(typeof(TException), action, t1, tag, loginTimeoutInSeconds);
 
         /// <summary>
         /// Tries the action.
@@ -409,12 +405,11 @@ namespace Automa.IO
         /// <param name="source">The source.</param>
         /// <param name="exceptionType">Type of the exception.</param>
         /// <param name="action">The action.</param>
-        /// <param name="closeAfter">if set to <c>true</c> [close after].</param>
         /// <param name="tag">The tag.</param>
         /// <param name="loginTimeoutInSeconds">The login timeout in seconds.</param>
         /// <exception cref="ArgumentNullException">action</exception>
         /// <exception cref="System.ArgumentNullException">action</exception>
-        public static void TryAction(this ITryMethod source, Type exceptionType, Action action, bool closeAfter = true, object tag = null, decimal loginTimeoutInSeconds = -1M)
+        public static void TryAction(this ITryMethod source, Type exceptionType, Action action, object tag = null, decimal loginTimeoutInSeconds = -1M)
         {
             if (exceptionType == null)
                 exceptionType = typeof(Exception);
@@ -426,7 +421,7 @@ namespace Automa.IO
             {
                 if (exceptionType.IsAssignableFrom(e.GetType()) && source.EnsureAccess(AccessMethod.TryAction, AccessMode.Exception, ref tag, e.Message))
                 {
-                    source.TryLoginAsync(closeAfter, tag, loginTimeoutInSeconds).Wait();
+                    source.TryLoginAsync(tag, loginTimeoutInSeconds).Wait();
                     action();
                 }
                 else throw e;
@@ -438,10 +433,9 @@ namespace Automa.IO
         /// <typeparam name="TException">The type of the t exception.</typeparam>
         /// <param name="source">The source.</param>
         /// <param name="action">The action.</param>
-        /// <param name="closeAfter">if set to <c>true</c> [close after].</param>
         /// <param name="tag">The tag.</param>
         /// <param name="loginTimeoutInSeconds">The login timeout in seconds.</param>
-        public static void TryAction<TException>(this ITryMethod source, Action action, bool closeAfter = true, object tag = null, decimal loginTimeoutInSeconds = -1M) where TException : Exception => source.TryAction(typeof(TException), action, closeAfter, tag, loginTimeoutInSeconds);
+        public static void TryAction<TException>(this ITryMethod source, Action action, object tag = null, decimal loginTimeoutInSeconds = -1M) where TException : Exception => source.TryAction(typeof(TException), action, tag, loginTimeoutInSeconds);
 
         /// <summary>
         /// Tries the action.
@@ -451,12 +445,11 @@ namespace Automa.IO
         /// <param name="exceptionType">Type of the exception.</param>
         /// <param name="action">The action.</param>
         /// <param name="t1">The t1.</param>
-        /// <param name="closeAfter">if set to <c>true</c> [close after].</param>
         /// <param name="tag">The tag.</param>
         /// <param name="loginTimeoutInSeconds">The login timeout in seconds.</param>
         /// <exception cref="ArgumentNullException">action</exception>
         /// <exception cref="System.ArgumentNullException">action</exception>
-        public static void TryAction<T1>(this ITryMethod source, Type exceptionType, Action<T1> action, T1 t1, bool closeAfter = true, object tag = null, decimal loginTimeoutInSeconds = -1M)
+        public static void TryAction<T1>(this ITryMethod source, Type exceptionType, Action<T1> action, T1 t1, object tag = null, decimal loginTimeoutInSeconds = -1M)
         {
             if (exceptionType == null)
                 exceptionType = typeof(Exception);
@@ -468,7 +461,7 @@ namespace Automa.IO
             {
                 if (exceptionType.IsAssignableFrom(e.GetType()) && source.EnsureAccess(AccessMethod.TryAction, AccessMode.Exception, ref tag, e.Message))
                 {
-                    source.TryLoginAsync(closeAfter, tag, loginTimeoutInSeconds).Wait();
+                    source.TryLoginAsync(tag, loginTimeoutInSeconds).Wait();
                     action(t1);
                 }
                 else throw e;
@@ -482,10 +475,9 @@ namespace Automa.IO
         /// <param name="source">The source.</param>
         /// <param name="action">The action.</param>
         /// <param name="t1">The t1.</param>
-        /// <param name="closeAfter">if set to <c>true</c> [close after].</param>
         /// <param name="tag">The tag.</param>
         /// <param name="loginTimeoutInSeconds">The login timeout in seconds.</param>
-        public static void TryAction<TException, T1>(this ITryMethod source, Action<T1> action, T1 t1, bool closeAfter = true, object tag = null, decimal loginTimeoutInSeconds = -1M) where TException : Exception => source.TryAction(typeof(TException), action, t1, closeAfter, tag, loginTimeoutInSeconds);
+        public static void TryAction<TException, T1>(this ITryMethod source, Action<T1> action, T1 t1, object tag = null, decimal loginTimeoutInSeconds = -1M) where TException : Exception => source.TryAction(typeof(TException), action, t1, tag, loginTimeoutInSeconds);
 
         /// <summary>
         /// Tries the pager function.
@@ -506,7 +498,7 @@ namespace Automa.IO
         /// <exception cref="System.ArgumentNullException">action
         /// or
         /// nextCursor</exception>
-        public static IEnumerable<T> TryPagerFunc<TCursor, T>(this ITryMethod source, Func<TCursor, T> action, TCursor cursor, Func<TCursor, T, TCursor> nextCursor, bool closeAfter = true, object tag = null, decimal loginTimeoutInSeconds = -1M)
+        public static IEnumerable<T> TryPagerFunc<TCursor, T>(this ITryMethod source, Func<TCursor, T> action, TCursor cursor, Func<TCursor, T, TCursor> nextCursor, object tag = null, decimal loginTimeoutInSeconds = -1M)
         {
             if (action == null)
                 throw new ArgumentNullException(nameof(action));
@@ -520,7 +512,7 @@ namespace Automa.IO
                     yield break;
                 if (source.EnsureAccess(AccessMethod.TryPager, AccessMode.Request, ref tag, values))
                 {
-                    source.TryLoginAsync(closeAfter, tag, loginTimeoutInSeconds).Wait();
+                    source.TryLoginAsync(tag, loginTimeoutInSeconds).Wait();
                     values = action(cursor);
                 }
                 cursor = nextCursor(cursor, values);
@@ -548,7 +540,7 @@ namespace Automa.IO
         /// <exception cref="System.ArgumentNullException">action
         /// or
         /// nextCursor</exception>
-        public static IEnumerable<T> TryPagerFunc<TCursor, T>(this ITryMethod source, Type exceptionType, Func<TCursor, T> action, TCursor cursor, Func<TCursor, T, TCursor> nextCursor, bool closeAfter = true, object tag = null, decimal loginTimeoutInSeconds = -1M)
+        public static IEnumerable<T> TryPagerFunc<TCursor, T>(this ITryMethod source, Type exceptionType, Func<TCursor, T> action, TCursor cursor, Func<TCursor, T, TCursor> nextCursor, object tag = null, decimal loginTimeoutInSeconds = -1M)
         {
             if (exceptionType == null)
                 exceptionType = typeof(Exception);
@@ -565,7 +557,7 @@ namespace Automa.IO
                 {
                     if (exceptionType.IsAssignableFrom(e.GetType()) && source.EnsureAccess(AccessMethod.TryPager, AccessMode.Exception, ref tag, e.Message))
                     {
-                        source.TryLoginAsync(closeAfter, tag, loginTimeoutInSeconds).Wait();
+                        source.TryLoginAsync(tag, loginTimeoutInSeconds).Wait();
                         values = action(cursor);
                     }
                     else throw e;
@@ -584,11 +576,10 @@ namespace Automa.IO
         /// <param name="action">The action.</param>
         /// <param name="cursor">The cursor.</param>
         /// <param name="nextCursor">The next cursor.</param>
-        /// <param name="closeAfter">if set to <c>true</c> [close after].</param>
         /// <param name="tag">The tag.</param>
         /// <param name="loginTimeoutInSeconds">The login timeout in seconds.</param>
         /// <returns>IEnumerable&lt;T&gt;.</returns>
-        public static IEnumerable<T> TryPagerFunc<TException, TCursor, T>(this ITryMethod source, Func<TCursor, T> action, TCursor cursor, Func<TCursor, T, TCursor> nextCursor, bool closeAfter = true, object tag = null, decimal loginTimeoutInSeconds = -1M) where TException : Exception => source.TryPagerFunc(typeof(TException), action, cursor, nextCursor, closeAfter, tag, loginTimeoutInSeconds);
+        public static IEnumerable<T> TryPagerFunc<TException, TCursor, T>(this ITryMethod source, Func<TCursor, T> action, TCursor cursor, Func<TCursor, T, TCursor> nextCursor, object tag = null, decimal loginTimeoutInSeconds = -1M) where TException : Exception => source.TryPagerFunc(typeof(TException), action, cursor, nextCursor, tag, loginTimeoutInSeconds);
 
         #endregion
 
@@ -600,13 +591,12 @@ namespace Automa.IO
         /// <typeparam name="T"></typeparam>
         /// <param name="source">The source.</param>
         /// <param name="action">The action.</param>
-        /// <param name="closeAfter">if set to <c>true</c> [close after].</param>
         /// <param name="tag">The tag.</param>
         /// <param name="loginTimeoutInSeconds">The login timeout in seconds.</param>
         /// <returns>T.</returns>
         /// <exception cref="ArgumentNullException">action</exception>
         /// <exception cref="System.ArgumentNullException">action</exception>
-        public static async Task<T> TryFuncAsync<T>(this ITryMethod source, Func<Task<T>> action, bool closeAfter = true, object tag = null, decimal loginTimeoutInSeconds = -1M)
+        public static async Task<T> TryFuncAsync<T>(this ITryMethod source, Func<Task<T>> action, object tag = null, decimal loginTimeoutInSeconds = -1M)
         {
             if (action == null)
                 throw new ArgumentNullException(nameof(action));
@@ -615,7 +605,7 @@ namespace Automa.IO
             if (value == null) return default;
             else if (source.EnsureAccess(AccessMethod.TryFunc, AccessMode.Request, ref tag, value))
             {
-                await source.TryLoginAsync(closeAfter, tag, loginTimeoutInSeconds).ConfigureAwait(false);
+                await source.TryLoginAsync(tag, loginTimeoutInSeconds).ConfigureAwait(false);
                 value = await action().ConfigureAwait(false);
                 if (value == null) return default;
                 else if (source.EnsureAccess(AccessMethod.TryFunc, AccessMode.Request, ref tag, value)) throw new SecondAttemptFailedException();
@@ -631,13 +621,12 @@ namespace Automa.IO
         /// <param name="source">The source.</param>
         /// <param name="action">The action.</param>
         /// <param name="t1">The t1.</param>
-        /// <param name="closeAfter">if set to <c>true</c> [close after].</param>
         /// <param name="tag">The tag.</param>
         /// <param name="loginTimeoutInSeconds">The login timeout in seconds.</param>
         /// <returns>T.</returns>
         /// <exception cref="ArgumentNullException">action</exception>
         /// <exception cref="System.ArgumentNullException">action</exception>
-        public static async Task<T> TryFuncAsync<T1, T>(this ITryMethod source, Func<T1, Task<T>> action, T1 t1, bool closeAfter = true, object tag = null, decimal loginTimeoutInSeconds = -1M)
+        public static async Task<T> TryFuncAsync<T1, T>(this ITryMethod source, Func<T1, Task<T>> action, T1 t1, object tag = null, decimal loginTimeoutInSeconds = -1M)
         {
             if (action == null)
                 throw new ArgumentNullException(nameof(action));
@@ -646,7 +635,7 @@ namespace Automa.IO
             if (value == null) return default;
             else if (source.EnsureAccess(AccessMethod.TryFunc, AccessMode.Request, ref tag, value))
             {
-                await source.TryLoginAsync(closeAfter, tag, loginTimeoutInSeconds).ConfigureAwait(false);
+                await source.TryLoginAsync(tag, loginTimeoutInSeconds).ConfigureAwait(false);
                 value = await action(t1).ConfigureAwait(false);
                 if (value == null) return default;
                 else if (source.EnsureAccess(AccessMethod.TryFunc, AccessMode.Request, ref tag, value)) throw new SecondAttemptFailedException();
@@ -661,13 +650,12 @@ namespace Automa.IO
         /// <param name="source">The source.</param>
         /// <param name="exceptionType">Type of the exception.</param>
         /// <param name="action">The action.</param>
-        /// <param name="closeAfter">if set to <c>true</c> [close after].</param>
         /// <param name="tag">The tag.</param>
         /// <param name="loginTimeoutInSeconds">The login timeout in seconds.</param>
         /// <returns>T.</returns>
         /// <exception cref="ArgumentNullException">action</exception>
         /// <exception cref="System.ArgumentNullException">action</exception>
-        public static async Task<T> TryFuncAsync<T>(this ITryMethod source, Type exceptionType, Func<Task<T>> action, bool closeAfter = true, object tag = null, decimal loginTimeoutInSeconds = -1M)
+        public static async Task<T> TryFuncAsync<T>(this ITryMethod source, Type exceptionType, Func<Task<T>> action, object tag = null, decimal loginTimeoutInSeconds = -1M)
         {
             if (exceptionType == null)
                 exceptionType = typeof(Exception);
@@ -679,7 +667,7 @@ namespace Automa.IO
             {
                 if (exceptionType.IsAssignableFrom(e.GetType()) && source.EnsureAccess(AccessMethod.TryFunc, AccessMode.Exception, ref tag, e.Message))
                 {
-                    await source.TryLoginAsync(closeAfter, tag, loginTimeoutInSeconds).ConfigureAwait(false);
+                    await source.TryLoginAsync(tag, loginTimeoutInSeconds).ConfigureAwait(false);
                     try { return await action().ConfigureAwait(false); }
                     catch (Exception e2)
                     {
@@ -697,11 +685,10 @@ namespace Automa.IO
         /// <typeparam name="T"></typeparam>
         /// <param name="source">The source.</param>
         /// <param name="action">The action.</param>
-        /// <param name="closeAfter">if set to <c>true</c> [close after].</param>
         /// <param name="tag">The tag.</param>
         /// <param name="loginTimeoutInSeconds">The login timeout in seconds.</param>
         /// <returns>T.</returns>
-        public static Task<T> TryFuncAsync<TException, T>(this ITryMethod source, Func<Task<T>> action, bool closeAfter = true, object tag = null, decimal loginTimeoutInSeconds = -1M) where TException : Exception => source.TryFuncAsync(typeof(TException), action, closeAfter, tag, loginTimeoutInSeconds);
+        public static Task<T> TryFuncAsync<TException, T>(this ITryMethod source, Func<Task<T>> action, object tag = null, decimal loginTimeoutInSeconds = -1M) where TException : Exception => source.TryFuncAsync(typeof(TException), action, tag, loginTimeoutInSeconds);
 
         /// <summary>
         /// Tries the function.
@@ -718,7 +705,7 @@ namespace Automa.IO
         /// <returns>T.</returns>
         /// <exception cref="ArgumentNullException">action</exception>
         /// <exception cref="System.ArgumentNullException">action</exception>
-        public static async Task<T> TryFuncAsync<T1, T>(this ITryMethod source, Type exceptionType, Func<T1, Task<T>> action, T1 t1, bool closeAfter = true, object tag = null, decimal loginTimeoutInSeconds = -1M)
+        public static async Task<T> TryFuncAsync<T1, T>(this ITryMethod source, Type exceptionType, Func<T1, Task<T>> action, T1 t1, object tag = null, decimal loginTimeoutInSeconds = -1M)
         {
             if (exceptionType == null)
                 exceptionType = typeof(Exception);
@@ -730,7 +717,7 @@ namespace Automa.IO
             {
                 if (exceptionType.IsAssignableFrom(e.GetType()) && source.EnsureAccess(AccessMethod.TryFunc, AccessMode.Exception, ref tag, e.Message))
                 {
-                    await source.TryLoginAsync(closeAfter, tag, loginTimeoutInSeconds).ConfigureAwait(false);
+                    await source.TryLoginAsync(tag, loginTimeoutInSeconds).ConfigureAwait(false);
                     try { return await action(t1).ConfigureAwait(false); }
                     catch (Exception e2)
                     {
@@ -750,11 +737,10 @@ namespace Automa.IO
         /// <param name="source">The source.</param>
         /// <param name="action">The action.</param>
         /// <param name="t1">The t1.</param>
-        /// <param name="closeAfter">if set to <c>true</c> [close after].</param>
         /// <param name="tag">The tag.</param>
         /// <param name="loginTimeoutInSeconds">The login timeout in seconds.</param>
         /// <returns>T.</returns>
-        public static Task<T> TryFuncAsync<TException, T1, T>(this ITryMethod source, Func<T1, Task<T>> action, T1 t1, bool closeAfter = true, object tag = null, decimal loginTimeoutInSeconds = -1M) where TException : Exception => source.TryFuncAsync(typeof(TException), action, t1, closeAfter, tag, loginTimeoutInSeconds);
+        public static Task<T> TryFuncAsync<TException, T1, T>(this ITryMethod source, Func<T1, Task<T>> action, T1 t1, object tag = null, decimal loginTimeoutInSeconds = -1M) where TException : Exception => source.TryFuncAsync(typeof(TException), action, t1, tag, loginTimeoutInSeconds);
 
         /// <summary>
         /// Tries the action.
@@ -762,12 +748,11 @@ namespace Automa.IO
         /// <param name="source">The source.</param>
         /// <param name="exceptionType">Type of the exception.</param>
         /// <param name="action">The action.</param>
-        /// <param name="closeAfter">if set to <c>true</c> [close after].</param>
         /// <param name="tag">The tag.</param>
         /// <param name="loginTimeoutInSeconds">The login timeout in seconds.</param>
         /// <exception cref="ArgumentNullException">action</exception>
         /// <exception cref="System.ArgumentNullException">action</exception>
-        public static async Task TryActionAsync(this ITryMethod source, Type exceptionType, Func<Task> action, bool closeAfter = true, object tag = null, decimal loginTimeoutInSeconds = -1M)
+        public static async Task TryActionAsync(this ITryMethod source, Type exceptionType, Func<Task> action, object tag = null, decimal loginTimeoutInSeconds = -1M)
         {
             if (exceptionType == null)
                 exceptionType = typeof(Exception);
@@ -779,7 +764,7 @@ namespace Automa.IO
             {
                 if (exceptionType.IsAssignableFrom(e.GetType()) && source.EnsureAccess(AccessMethod.TryAction, AccessMode.Exception, ref tag, e.Message))
                 {
-                    await source.TryLoginAsync(closeAfter, tag, loginTimeoutInSeconds).ConfigureAwait(false);
+                    await source.TryLoginAsync(tag, loginTimeoutInSeconds).ConfigureAwait(false);
                     try { await action().ConfigureAwait(false); }
                     catch (Exception e2)
                     {
@@ -796,10 +781,9 @@ namespace Automa.IO
         /// <typeparam name="TException">The type of the t exception.</typeparam>
         /// <param name="source">The source.</param>
         /// <param name="action">The action.</param>
-        /// <param name="closeAfter">if set to <c>true</c> [close after].</param>
         /// <param name="tag">The tag.</param>
         /// <param name="loginTimeoutInSeconds">The login timeout in seconds.</param>
-        public static Task TryActionAsync<TException>(this ITryMethod source, Func<Task> action, bool closeAfter = true, object tag = null, decimal loginTimeoutInSeconds = -1M) where TException : Exception => source.TryActionAsync(typeof(TException), action, closeAfter, tag, loginTimeoutInSeconds);
+        public static Task TryActionAsync<TException>(this ITryMethod source, Func<Task> action, object tag = null, decimal loginTimeoutInSeconds = -1M) where TException : Exception => source.TryActionAsync(typeof(TException), action, tag, loginTimeoutInSeconds);
 
         /// <summary>
         /// Tries the action.
@@ -814,7 +798,7 @@ namespace Automa.IO
         /// <param name="loginTimeoutInSeconds">The login timeout in seconds.</param>
         /// <exception cref="ArgumentNullException">action</exception>
         /// <exception cref="System.ArgumentNullException">action</exception>
-        public static async Task TryActionAsync<T1>(this ITryMethod source, Type exceptionType, Func<T1, Task> action, T1 t1, bool closeAfter = true, object tag = null, decimal loginTimeoutInSeconds = -1M)
+        public static async Task TryActionAsync<T1>(this ITryMethod source, Type exceptionType, Func<T1, Task> action, T1 t1, object tag = null, decimal loginTimeoutInSeconds = -1M)
         {
             if (exceptionType == null)
                 exceptionType = typeof(Exception);
@@ -826,7 +810,7 @@ namespace Automa.IO
             {
                 if (exceptionType.IsAssignableFrom(e.GetType()) && source.EnsureAccess(AccessMethod.TryAction, AccessMode.Exception, ref tag, e.Message))
                 {
-                    await source.TryLoginAsync(closeAfter, tag, loginTimeoutInSeconds).ConfigureAwait(false);
+                    await source.TryLoginAsync(tag, loginTimeoutInSeconds).ConfigureAwait(false);
                     try { await action(t1).ConfigureAwait(false); }
                     catch (Exception e2)
                     {
@@ -845,10 +829,9 @@ namespace Automa.IO
         /// <param name="source">The source.</param>
         /// <param name="action">The action.</param>
         /// <param name="t1">The t1.</param>
-        /// <param name="closeAfter">if set to <c>true</c> [close after].</param>
         /// <param name="tag">The tag.</param>
         /// <param name="loginTimeoutInSeconds">The login timeout in seconds.</param>
-        public static Task TryActionAsync<TException, T1>(this ITryMethod source, Func<T1, Task> action, T1 t1, bool closeAfter = true, object tag = null, decimal loginTimeoutInSeconds = -1M) where TException : Exception => source.TryActionAsync(typeof(TException), action, t1, closeAfter, tag, loginTimeoutInSeconds);
+        public static Task TryActionAsync<TException, T1>(this ITryMethod source, Func<T1, Task> action, T1 t1, bool closeAfter = true, object tag = null, decimal loginTimeoutInSeconds = -1M) where TException : Exception => source.TryActionAsync(typeof(TException), action, t1, tag, loginTimeoutInSeconds);
 
         /// <summary>
         /// Tries the pager function.
@@ -869,7 +852,7 @@ namespace Automa.IO
         /// <exception cref="System.ArgumentNullException">action
         /// or
         /// nextCursor</exception>
-        public static async Task<IEnumerable<T>> TryPagerFuncAsync<TCursor, T>(this ITryMethod source, Func<TCursor, Task<T>> action, TCursor cursor, Func<TCursor, T, TCursor> nextCursor, bool closeAfter = true, object tag = null, decimal loginTimeoutInSeconds = -1M)
+        public static async Task<IEnumerable<T>> TryPagerFuncAsync<TCursor, T>(this ITryMethod source, Func<TCursor, Task<T>> action, TCursor cursor, Func<TCursor, T, TCursor> nextCursor, object tag = null, decimal loginTimeoutInSeconds = -1M)
         {
             if (action == null)
                 throw new ArgumentNullException(nameof(action));
@@ -883,7 +866,7 @@ namespace Automa.IO
                 if (value == null) break;
                 else if (source.EnsureAccess(AccessMethod.TryPager, AccessMode.Request, ref tag, value))
                 {
-                    await source.TryLoginAsync(closeAfter, tag, loginTimeoutInSeconds).ConfigureAwait(false);
+                    await source.TryLoginAsync(tag, loginTimeoutInSeconds).ConfigureAwait(false);
                     value = await action(cursor).ConfigureAwait(false);
                     if (value == null) break;
                     else if (source.EnsureAccess(AccessMethod.TryPager, AccessMode.Request, ref tag, value)) throw new SecondAttemptFailedException();
@@ -904,7 +887,6 @@ namespace Automa.IO
         /// <param name="action">The action.</param>
         /// <param name="cursor">The cursor.</param>
         /// <param name="nextCursor">The next cursor.</param>
-        /// <param name="closeAfter">if set to <c>true</c> [close after].</param>
         /// <param name="tag">The tag.</param>
         /// <param name="loginTimeoutInSeconds">The login timeout in seconds.</param>
         /// <returns>IEnumerable&lt;T&gt;.</returns>
@@ -914,7 +896,7 @@ namespace Automa.IO
         /// <exception cref="System.ArgumentNullException">action
         /// or
         /// nextCursor</exception>
-        public static async Task<IEnumerable<T>> TryPagerFuncAsync<TCursor, T>(this ITryMethod source, Type exceptionType, Func<TCursor, Task<T>> action, TCursor cursor, Func<TCursor, T, TCursor> nextCursor, bool closeAfter = true, object tag = null, decimal loginTimeoutInSeconds = -1M)
+        public static async Task<IEnumerable<T>> TryPagerFuncAsync<TCursor, T>(this ITryMethod source, Type exceptionType, Func<TCursor, Task<T>> action, TCursor cursor, Func<TCursor, T, TCursor> nextCursor, object tag = null, decimal loginTimeoutInSeconds = -1M)
         {
             if (exceptionType == null)
                 exceptionType = typeof(Exception);
@@ -932,7 +914,7 @@ namespace Automa.IO
                 {
                     if (exceptionType.IsAssignableFrom(e.GetType()) && source.EnsureAccess(AccessMethod.TryPager, AccessMode.Exception, ref tag, e.Message))
                     {
-                        await source.TryLoginAsync(closeAfter, tag, loginTimeoutInSeconds).ConfigureAwait(false);
+                        await source.TryLoginAsync(tag, loginTimeoutInSeconds).ConfigureAwait(false);
                         try { value = await action(cursor).ConfigureAwait(false); }
                         catch (Exception e2)
                         {
@@ -957,11 +939,10 @@ namespace Automa.IO
         /// <param name="action">The action.</param>
         /// <param name="cursor">The cursor.</param>
         /// <param name="nextCursor">The next cursor.</param>
-        /// <param name="closeAfter">if set to <c>true</c> [close after].</param>
         /// <param name="tag">The tag.</param>
         /// <param name="loginTimeoutInSeconds">The login timeout in seconds.</param>
         /// <returns>IEnumerable&lt;T&gt;.</returns>
-        public static Task<IEnumerable<T>> TryPagerFuncAsync<TException, TCursor, T>(this ITryMethod source, Func<TCursor, Task<T>> action, TCursor cursor, Func<TCursor, T, TCursor> nextCursor, bool closeAfter = true, object tag = null, decimal loginTimeoutInSeconds = -1M) where TException : Exception => source.TryPagerFuncAsync(typeof(TException), action, cursor, nextCursor, closeAfter, tag, loginTimeoutInSeconds);
+        public static Task<IEnumerable<T>> TryPagerFuncAsync<TException, TCursor, T>(this ITryMethod source, Func<TCursor, Task<T>> action, TCursor cursor, Func<TCursor, T, TCursor> nextCursor, object tag = null, decimal loginTimeoutInSeconds = -1M) where TException : Exception => source.TryPagerFuncAsync(typeof(TException), action, cursor, nextCursor, tag, loginTimeoutInSeconds);
 
         #endregion
 

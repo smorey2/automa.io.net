@@ -6,7 +6,7 @@ using System.IO;
 using System.Linq;
 using System.Threading.Tasks;
 
-namespace Automa.IO
+namespace Automa.IO.Facebook
 {
     public class FacebookClientTest
     {

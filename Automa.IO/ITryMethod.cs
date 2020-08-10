@@ -8,6 +8,6 @@ namespace Automa.IO
     public interface ITryMethod
     {
         bool EnsureAccess(AccessMethod method, AccessMode mode, ref object tag, object value = null);
-        Task TryLoginAsync(bool closeAfter = true, object tag = null, decimal loginTimeoutInSeconds = -1M);
+        Task TryLoginAsync(object tag = null, decimal loginTimeoutInSeconds = -1M);
     }
 }

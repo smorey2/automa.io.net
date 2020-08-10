@@ -2,7 +2,7 @@ using System;
 using System.Collections.Generic;
 using System.Linq;
 
-namespace Automa.IO.Proxy
+namespace Automa.IO
 {
     public class WebSocketException : Exception
     {
