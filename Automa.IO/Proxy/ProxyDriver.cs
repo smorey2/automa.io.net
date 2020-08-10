@@ -20,15 +20,15 @@ namespace Automa.IO.Proxy
         readonly (WebSocket socket, JsonSerializerOptions jsonOptions) _ws;
 
         /// <summary>
-        /// Initializes a new instance of the <see cref="ProxyDriver"/> class.
+        /// Initializes a new instance of the <see cref="ProxyDriver" /> class.
         /// </summary>
         /// <param name="client">The client.</param>
-        /// <param name="driverOptions">The driver options.</param>
-        public ProxyDriver(AutomaClient client, Action<DriverOptions> driverOptions) : base(null)
+        /// <param name="bearerToken">The bearer token.</param>
+        public ProxyDriver(AutomaClient client, string bearerToken = null) : base(null)
         {
             _client = client;
             _socket = Default.Socket(_client.ProxyOptions);
-            _ws = OpenAsync().Result;
+            _ws = OpenAsync(bearerToken).Result;
         }
 
         /// <summary>
@@ -46,14 +46,16 @@ namespace Automa.IO.Proxy
         /// <summary>
         /// Opens the asynchronous.
         /// </summary>
+        /// <param name="token">The token.</param>
         /// <param name="cancellationToken">The cancellation token.</param>
         /// <returns></returns>
         /// <exception cref="System.Net.WebSockets.WebSocketException">Closed</exception>
-        public async Task<(WebSocket socket, JsonSerializerOptions jsonOptions)> OpenAsync(CancellationToken? cancellationToken = null)
+        public async Task<(WebSocket socket, JsonSerializerOptions jsonOptions)> OpenAsync(string bearerToken = null, CancellationToken? cancellationToken = null)
         {
             var ws = await _socket.ConnectAsync("Open", cancellationToken).ConfigureAwait(false);
             if (ws.socket.State != WebSocketState.Open)
                 throw new System.Net.WebSockets.WebSocketException("Closed");
+            await ws.SendAsync(bearerToken, cancellationToken).ConfigureAwait(false);
             await ws.SendAsync(ProxyMethod.Open, cancellationToken).ConfigureAwait(false);
             await ws.SendObjectAsync(_client.GetClientArgs(), cancellationToken).ConfigureAwait(false);
             await ws.ReceiveBarrier(true, cancellationToken).ConfigureAwait(false);

@@ -6,6 +6,6 @@
     public interface IProxyOptions
     {
         string ProxyUri { get; }
-        string Token { get; }
+        string ProxyToken { get; }
     }
 }

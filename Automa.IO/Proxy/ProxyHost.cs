@@ -1,8 +1,6 @@
 ﻿using Microsoft.AspNetCore.Http;
 using System;
 using System.Net;
-using System.Net.WebSockets;
-using System.Text.Json;
 using System.Threading;
 using System.Threading.Tasks;
 using Args = System.Collections.Generic.Dictionary<string, object>;
@@ -11,13 +9,22 @@ using Args = System.Collections.Generic.Dictionary<string, object>;
 namespace Automa.IO.Proxy
 {
     /// <summary>
-    /// WebHost
+    /// ProxyHost
     /// </summary>
     public class ProxyHost
     {
         readonly ISocket _socket = Default.Socket(null);
 
-        public async Task<int> OpenAsync(HttpContext context, CancellationToken? cancellationToken = null)
+        /// <summary>
+        /// Opens the asynchronous.
+        /// </summary>
+        /// <param name="context">The context.</param>
+        /// <param name="bearerTokenPredicate">The bearer token predicate.</param>
+        /// <param name="cancellationToken">The cancellation token.</param>
+        /// <returns></returns>
+        /// <exception cref="Exception">Invalid Bearer Token</exception>
+        /// <exception cref="ArgumentOutOfRangeException">method</exception>
+        public async Task<int> OpenAsync(HttpContext context, Func<string, bool> bearerTokenPredicate = null, CancellationToken? cancellationToken = null)
         {
             var webSockets = context.WebSockets;
             if (!webSockets.IsWebSocketRequest)
@@ -26,6 +33,9 @@ namespace Automa.IO.Proxy
             AutomaClient client = null;
             try
             {
+                var bearerToken = await ws.ReceiveAsync<string>(cancellationToken).ConfigureAwait(false);
+                if (!bearerTokenPredicate?.Invoke(bearerToken) ?? true)
+                    throw new Exception("Invalid Bearer Token");
                 var opened = true;
                 while (opened && !context.RequestAborted.IsCancellationRequested)
                 {

@@ -69,7 +69,7 @@ namespace Automa.IO
         /// <value>The automa.</value>
         public IAutoma Automa
         {
-            get => _automa ?? (_automa = ProxyOptions == null
+            get => _automa ?? (_automa = ProxyOptions == null || string.IsNullOrEmpty(ProxyOptions.ProxyUri)
                 ? _automaFactory?.Invoke(this) ?? EmptyAutoma
                 : new Automa(this, automa => new ProxyAutomation(this, automa)));
             set
