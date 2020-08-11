@@ -22,6 +22,6 @@ namespace Automa.IO.Controllers
         public string Default() => "OK";
 
         [HttpGet("[action]")]
-        public async Task<IActionResult> Open() => StatusCode(await _proxyHost.OpenAsync(HttpContext, x => x == Config.ProxyToken));
+        public async Task Open() => await _proxyHost.OpenAsync(HttpContext, _logger, x => x == Config.ProxyToken);
     }
 }

@@ -1,4 +1,5 @@
 ﻿using Microsoft.AspNetCore.Http;
+using Microsoft.Extensions.Logging;
 using System;
 using System.Net;
 using System.Threading;
@@ -24,11 +25,15 @@ namespace Automa.IO.Proxy
         /// <returns></returns>
         /// <exception cref="Exception">Invalid Bearer Token</exception>
         /// <exception cref="ArgumentOutOfRangeException">method</exception>
-        public async Task<int> OpenAsync(HttpContext context, Func<string, bool> bearerTokenPredicate = null, CancellationToken? cancellationToken = null)
+        public async Task OpenAsync(HttpContext context, ILogger logger, Func<string, bool> bearerTokenPredicate = null, CancellationToken? cancellationToken = null)
         {
             var webSockets = context.WebSockets;
             if (!webSockets.IsWebSocketRequest)
-                return 405;
+            {
+                context.Response.StatusCode = 405;
+                return;
+            }
+            context.Response.StatusCode = 101;
             var ws = await _socket.AcceptAsync(webSockets).ConfigureAwait(false);
             AutomaClient client = null;
             try
@@ -40,6 +45,7 @@ namespace Automa.IO.Proxy
                 while (opened && !context.RequestAborted.IsCancellationRequested)
                 {
                     var method = await ws.ReceiveAsync<ProxyMethod>(cancellationToken).ConfigureAwait(false);
+                    logger?.LogInformation($"Method: {method}");
                     switch (method)
                     {
                         case ProxyMethod.Open:
@@ -107,13 +113,14 @@ namespace Automa.IO.Proxy
             }
             catch (Exception e)
             {
+                logger?.LogCritical("Exception", e);
                 await ws.SendExceptionAsync(e, cancellationToken);
             }
             finally
             {
                 client?.Dispose();
             }
-            return 101;
+            logger?.LogInformation("Done");
         }
     }
 }

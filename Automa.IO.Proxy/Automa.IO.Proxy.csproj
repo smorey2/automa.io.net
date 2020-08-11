@@ -4,7 +4,22 @@
     <TargetFramework>netcoreapp3.1</TargetFramework>
   </PropertyGroup>
 
+  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|AnyCPU'">
+    <DefineConstants>TRACE</DefineConstants>
+  </PropertyGroup>
+
   <ItemGroup>
+    <Content Remove="nlog.config" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <None Include="nlog.config">
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+    </None>
+  </ItemGroup>
+
+  <ItemGroup>
+    <PackageReference Include="NLog.Extensions.Logging" Version="1.6.4" />
     <PackageReference Include="Selenium.WebDriver.ChromeDriver" Version="84.0.4147.3001" />
     <PackageReference Include="Selenium.WebDriver.MicrosoftDriver" Version="17.17134.0" />
   </ItemGroup>
@@ -14,6 +29,5 @@
     <ProjectReference Include="..\Automa.IO.Unanet\Automa.IO.Unanet.csproj" />
     <ProjectReference Include="..\Automa.IO\Automa.IO.csproj" />
   </ItemGroup>
-
 
 </Project>

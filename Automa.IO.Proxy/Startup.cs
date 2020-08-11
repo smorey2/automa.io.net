@@ -4,6 +4,8 @@ using Microsoft.AspNetCore.Hosting;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
+using Microsoft.Extensions.Logging;
+using NLog.Extensions.Logging;
 
 namespace Automa.IO
 {
@@ -21,6 +23,12 @@ namespace Automa.IO
         {
             services.AddTransient<ProxyHost>();
             services.AddControllers();
+
+            services.AddLogging(logging =>
+            {
+                logging.AddNLog("nlog.config");
+                logging.AddConsole();
+            });
         }
 
         // This method gets called by the runtime. Use this method to configure the HTTP request pipeline.

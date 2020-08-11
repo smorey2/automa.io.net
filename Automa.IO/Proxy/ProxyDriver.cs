@@ -37,9 +37,9 @@ namespace Automa.IO.Proxy
         /// <param name="disposing"><c>true</c> to release both managed and unmanaged resources; <c>false</c> to release only unmanaged resources.</param>
         protected override void Dispose(bool disposing)
         {
-            if (_ws.socket.State == WebSocketState.Open)
+            if (_ws.socket?.State == WebSocketState.Open)
                 _ws.SendAsync(ProxyMethod.Dispose).AsTask().Wait();
-            _ws.socket.Dispose();
+            _ws.socket?.Dispose();
             base.Dispose(disposing);
         }
 

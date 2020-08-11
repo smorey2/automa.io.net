@@ -140,7 +140,7 @@ namespace Automa.IO
         {
             if (!AutomaClient.CustomRegistry.TryGetValue(registration, out var custom))
                 throw new ArgumentOutOfRangeException(nameof(registration), registration.ToString());
-            //if (selectTimeoutInSeconds == -1M) selectTimeoutInSeconds = DefaultTimeoutInSeconds;
+            if (selectTimeoutInSeconds == -1M) selectTimeoutInSeconds = DefaultTimeoutInSeconds;
             Func<object> func = () => _automation.CustomAsync(registration, custom, param, tag).ConfigureAwait(false).GetAwaiter().GetResult();
             try
             {
