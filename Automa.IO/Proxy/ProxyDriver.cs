@@ -27,6 +27,7 @@ namespace Automa.IO.Proxy
         public ProxyDriver(AutomaClient client, string bearerToken = null) : base(null)
         {
             _client = client;
+            _client.Logger($"ProxyDriver @ {_client.ProxyOptions.ProxyUri}");
             _socket = Default.Socket(_client.ProxyOptions);
             _ws = OpenAsync(bearerToken).Result;
         }

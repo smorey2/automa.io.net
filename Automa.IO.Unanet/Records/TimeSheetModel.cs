@@ -1,4 +1,5 @@
-﻿using System;
+﻿using NPOI.SS.Formula.Atp;
+using System;
 using System.Collections.Generic;
 using System.Diagnostics;
 using System.Linq;
@@ -113,7 +114,42 @@ namespace Automa.IO.Unanet.Records
 
         #endregion
 
-        public (decimal Hours, string Body) GetChecksum()
+        #region Checksum
+
+        public class Checksum
+        {
+            public class Row
+            {
+                public string Project { get; set; }
+                public string Task { get; set; }
+                public string ProjectType { get; set; }
+                public string Paycode { get; set; }
+                public string Labcat { get; set; }
+                public string Loc { get; set; }
+                public decimal Hours { get; set; }
+            }
+
+            public decimal Hours { get; set; }
+            public string Body { get; set; }
+            public IList<Row> Rows { get; set; }
+
+            public string Compare(Checksum checksum, string errorPattern, Action<string, string, string> errorAction)
+            {
+                if (Hours != checksum.Hours)
+                {
+                    errorAction("HOURS", Body, checksum.Body);
+                    return string.Format(errorPattern, Hours, checksum.Hours);
+                }
+                if (Rows != checksum.Rows)
+                {
+                    errorAction("ROWS", Body, checksum.Body);
+                    return string.Format(errorPattern, Hours, checksum.Hours);
+                }
+                return null;
+            }
+        }
+
+        public Checksum GetChecksum()
         {
             var hours = 0M;
             var b = new StringBuilder();
@@ -133,8 +169,24 @@ namespace Automa.IO.Unanet.Records
                 b.AppendLine("|");
             }
             b.AppendLine($"Hours: {hours}");
-            return (hours, b.ToString());
+            return new Checksum
+            {
+                Hours = hours,
+                Body = b.ToString(),
+                Rows = Rows.Select(row => new Checksum.Row
+                {
+                    Project = row.Project?.Name,
+                    Task = row.Task.value,
+                    ProjectType = row.ProjectType.value,
+                    Paycode = row.Paycode.value,
+                    Labcat = row.Labcat.value,
+                    Loc = row.Loc.value,
+                    Hours = row.Slips.Sum(y => y.Value.Hours),
+                }).ToList()
+            };
         }
+
+        #endregion
 
         static Task<(string value, string last)> PreAdjustAsync(UnanetClient una, int keySheet) =>
            una.PostValueAsync(HttpMethod.Get, "people/time/preadjust", null, $"timesheetkey={keySheet}", useSafeRead: true);

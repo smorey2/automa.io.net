@@ -71,7 +71,7 @@ namespace Automa.IO
         {
             get => _automa ?? (_automa = ProxyOptions == null || string.IsNullOrEmpty(ProxyOptions.ProxyUri)
                 ? _automaFactory?.Invoke(this) ?? EmptyAutoma
-                : new Automa(this, automa => new ProxyAutomation(this, automa)));
+                : new Automa(this, automa => new ProxyAutomation(this, automa), 120M));
             set
             {
                 if (_automa != value)
