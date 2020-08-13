@@ -3,6 +3,7 @@ using System;
 using System.Collections.Generic;
 using System.IO;
 using System.Linq;
+using System.Text;
 using System.Threading.Tasks;
 using System.Xml.Linq;
 
@@ -36,6 +37,8 @@ namespace Automa.IO.Unanet.Records
         //
         public string key { get; set; }
         public string keySheet { get; set; }
+        public string pak => Convert.ToBase64String(Encoding.UTF8.GetBytes(
+            $"{username}|{work_date:d}|{project_code}|{task_name}|{project_type}|{labor_category}|{pay_code}"));
         public string enumSheet { get; set; }
         public decimal? labor_category_bill_rate { get; set; }
         public string keyInvoice { get; set; }
@@ -107,7 +110,7 @@ namespace Automa.IO.Unanet.Records
 
         public static string GetReadXml(UnanetClient una, string sourceFolder, string syncFileA = null, string tempPath = null)
         {
-            var xml = new XElement("r", Read(una, sourceFolder, tempPath).Select(x => new XElement("p", XAttribute("k", x.key), XAttribute("k2", x.keySheet), XAttribute("k3", x.keyInvoice),
+            var xml = new XElement("r", Read(una, sourceFolder, tempPath).Select(x => new XElement("p", XAttribute("k", x.key), XAttribute("k2", x.keySheet), XAttribute("k3", x.keyInvoice), XAttribute("p", x.pak),
                 XAttribute("u", x.username), new XAttribute("wd", x.work_date), XAttribute("poc", x.project_org_code), XAttribute("pc", x.project_code), XAttribute("tn", x.task_name), XAttribute("pt", x.project_type), XAttribute("pc2", x.pay_code),
                 XAttribute("h", x.hours), XAttribute("br", x.bill_rate), XAttribute("cr", x.cost_rate), XAttribute("poo", x.project_org_override), XAttribute("poo2", x.person_org_override), XAttribute("lc", x.labor_category), XAttribute("l", x.location), XAttribute("c", x.comments),
                 XAttribute("cr2", x.change_reason), XAttribute("cs", x.cost_structure), XAttribute("ce", x.cost_element), XAttribute("tpbd", x.time_period_begin_date), XAttribute("pd", x.post_date), XAttribute("apr", x.additional_pay_rate),

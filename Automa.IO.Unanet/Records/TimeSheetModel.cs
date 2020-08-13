@@ -1,5 +1,4 @@
-﻿using NPOI.SS.Formula.Atp;
-using System;
+﻿using System;
 using System.Collections.Generic;
 using System.Diagnostics;
 using System.Linq;
@@ -91,6 +90,10 @@ namespace Automa.IO.Unanet.Records
                 clone.Slips = new Dictionary<int, Slip>();
                 return clone;
             }
+
+            public bool ContainsDate(TimeSheetModel parent, DateTime date) => Slips.ContainsKey((date - parent.Week).Days);
+
+            public bool TryGetSlip(TimeSheetModel parent, DateTime date, out Slip slip) => Slips.TryGetValue((date - parent.Week).Days, out slip);
         }
 
         [DebuggerDisplay("{Key}: {Hours}")]
@@ -129,60 +132,76 @@ namespace Automa.IO.Unanet.Records
                 public decimal Hours { get; set; }
             }
 
+            public string Name { get; set; }
             public decimal Hours { get; set; }
             public string Body { get; set; }
             public IList<Row> Rows { get; set; }
 
-            public string Compare(Checksum checksum, string errorPattern, Action<string, string, string> errorAction)
+            public string Compare(Checksum checksum, string errorPattern, string last, bool rowCheck, Action<string, string, string> errorAction)
             {
                 if (Hours != checksum.Hours)
                 {
                     errorAction("HOURS", Body, checksum.Body);
                     return string.Format(errorPattern, Hours, checksum.Hours);
                 }
-                if (Rows != checksum.Rows)
+                if (rowCheck && !Enumerable.SequenceEqual(Rows, checksum.Rows))
                 {
                     errorAction("ROWS", Body, checksum.Body);
-                    return string.Format(errorPattern, Hours, checksum.Hours);
+                    //return string.Format(errorPattern, Hours, checksum.Hours);
                 }
-                return null;
+                return last;
             }
+
+            public static List<Row> ToRows(List<Entry> rows) => rows.Select(row => new Row
+            {
+                Project = row.Project?.Name,
+                Task = row.Task.value,
+                ProjectType = row.ProjectType.value,
+                Paycode = row.Paycode.value,
+                Labcat = row.Labcat.value,
+                Loc = row.Loc.value,
+                Hours = row.Slips.Sum(y => y.Value.Hours),
+            })
+                .OrderBy(x => x.Project)
+                .ThenBy(x => x.Task)
+                .ThenBy(x => x.ProjectType)
+                .ThenBy(x => x.Paycode)
+                .ThenBy(x => x.Labcat)
+                .ThenBy(x => x.Loc)
+                .ThenBy(x => x.Hours)
+                .ToList();
         }
 
-        public Checksum GetChecksum()
+        public Checksum GetChecksum(string name)
         {
+            string Trim(string source, int length, bool right = true) => source != null
+                ? source.Length < length ? right ? source.PadLeft(length) : source.PadRight(length) : source.Substring(0, length)
+                : null;
             var hours = 0M;
             var b = new StringBuilder();
+            b.AppendLine(name);
             b.AppendLine($"Key: {KeySheet}, Rows: {Rows.Count}");
-            b.AppendLine($"|{"PROJECT",40}|{"TASK",40}|{"LABCAT",15}|{"TYPE",8}|{"JURIS",8}| MON| TUE| WED| THU| FRI| SAT| SUN|");
+            b.AppendLine($"|{"PROJECT",40}|{"TASK",30}|{"LABCAT",20}|{"TYPE",8}|{"JURIS",8}|  MON|  TUE|  WED|  THU|  FRI|  SAT|  SUN|");
             foreach (var row in Rows)
             {
-                b.Append($"|{row.Project.Name,4}|{row.Task.value,30}|{row.Labcat.value,15}|{row.ProjectType.value,8}|{row.Paycode.value,8}");
+                b.Append($"|{Trim(row.Project.Name, 40, false)}|{Trim(row.Task.value, 30, false)}|{Trim(row.Labcat.value, 20)}|{Trim(row.ProjectType.value, 8)}|{Trim(row.Paycode.value, 8)}");
                 var slips = row.Slips;
                 for (var i = 0; i < 7; i++)
                     if (slips.TryGetValue(i, out var slip))
                     {
                         hours += slip.Hours;
-                        b.Append($"|{slip.Hours,4}");
+                        b.Append($"|{slip.Hours,5}");
                     }
-                    else b.Append($"|{"",4}");
+                    else b.Append($"|{"",5}");
                 b.AppendLine("|");
             }
             b.AppendLine($"Hours: {hours}");
             return new Checksum
             {
+                Name = name,
                 Hours = hours,
                 Body = b.ToString(),
-                Rows = Rows.Select(row => new Checksum.Row
-                {
-                    Project = row.Project?.Name,
-                    Task = row.Task.value,
-                    ProjectType = row.ProjectType.value,
-                    Paycode = row.Paycode.value,
-                    Labcat = row.Labcat.value,
-                    Loc = row.Loc.value,
-                    Hours = row.Slips.Sum(y => y.Value.Hours),
-                }).ToList()
+                Rows = Checksum.ToRows(Rows),
             };
         }
 
@@ -273,27 +292,23 @@ namespace Automa.IO.Unanet.Records
             return (true, last);
         }
 
-        public void KillTitoEntry(int keySheet, out string last)
-        {
-            last = null;
-        }
+        public string KillTitoEntry(int keySheet) => null;
 
-        public void MoveEntry(int key, int project_codeKey, int? task_nameKey, string role_name, string type_name, string paycode_name, out string last, Action<TimeSheetModel, Entry, KeyValuePair<int, Slip>> custom = null)
+        public string MoveEntry(string pak, int key, int project_codeKey, int? task_nameKey, string role_name, string type_name, string paycode_name, Action<TimeSheetModel, Entry, KeyValuePair<int, Slip>> custom = null)
         {
-            last = null;
             // find slip
             var keySlip = Rows.SelectMany(x => x.Slips, (r, s) => new { r, s }).FirstOrDefault(x => x.s.Value.Key == key);
-            if (keySlip == null) { last = Error_srcSlip; return; }
+            if (keySlip == null) return Error_srcSlip;
             if (!keySlip.r.Slips.Remove(keySlip.s.Key)) throw new InvalidOperationException();
             // clone row
             var clone = (Entry)keySlip.r.Clone();
             // clone : project
-            if (!Meta.Projects.TryGetValue(project_codeKey, out var project)) { last = Error_dstProject; return; }
+            if (!Meta.Projects.TryGetValue(project_codeKey, out var project)) return Error_dstProject;
             clone.Project = project;
             // clone : task
             if (task_nameKey != null)
             {
-                if (!project.Tasks.TryGetValue(task_nameKey.Value, out var task)) { last = Error_dstTask; return; }
+                if (!project.Tasks.TryGetValue(task_nameKey.Value, out var task)) return Error_dstTask;
                 clone.Task = task;
             }
             // clone : labcat
@@ -321,19 +336,20 @@ namespace Automa.IO.Unanet.Records
             custom?.Invoke(this, clone, slip);
             // find or insert row
             var match0 = Rows.Where(x => x.Project.Key == clone.Project.Key && x.Task.key == clone.Task.key && x.Labcat.key == clone.Labcat.key).ToList();
-            if (match0.Count == 0) { Rows.Add(clone); return; }
+            if (match0.Count == 0) { Rows.Add(clone); return null; }
             var match1 = match0.Where(x => x.ProjectType.key == clone.ProjectType.key).ToList();
-            if (match1.Count == 0) { Rows.Add(clone); return; }
+            if (match1.Count == 0) { Rows.Add(clone); return null; }
             var match2 = match1.Where(x => x.Paycode.key == clone.Paycode.key).ToList();
-            if (match2.Count == 0) { Rows.Add(clone); return; }
+            if (match2.Count == 0) { Rows.Add(clone); return null; }
             // add slip, exit
             var firstSlips = match2.First().Slips;
-            if (!firstSlips.TryGetValue(slip.Key, out var existingSlip)) { firstSlips.Add(slip.Key, slip.Value); return; }
+            if (!firstSlips.TryGetValue(slip.Key, out var existingSlip)) { firstSlips.Add(slip.Key, slip.Value); return null; }
             // merge slip in, error if tito
-            if (existingSlip.Titos.Length != 0 || slip.Value.Titos.Length != 0) { last = Error_tito; return; }
+            if (existingSlip.Titos.Length != 0 || slip.Value.Titos.Length != 0) return Error_tito;
             // merge slip in
             existingSlip.Hours += slip.Value.Hours;
             existingSlip.Comments += "\n" + slip.Value.Comments;
+            return null;
         }
 
         public void TrimAll()
