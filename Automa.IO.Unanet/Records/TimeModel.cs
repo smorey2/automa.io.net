@@ -1,4 +1,6 @@
 ﻿using ExcelTrans.Services;
+using NPOI.OpenXmlFormats.Wordprocessing;
+using Org.BouncyCastle.Asn1.X509;
 using System;
 using System.Collections.Generic;
 using System.IO;
@@ -37,12 +39,22 @@ namespace Automa.IO.Unanet.Records
         //
         public string key { get; set; }
         public string keySheet { get; set; }
-        public string pak => Convert.ToBase64String(Encoding.UTF8.GetBytes(
-            $"{username}|{work_date:d}|{project_code}|{task_name}|{project_type}|{labor_category}|{pay_code}"));
+        public string pak => GetPak(username, work_date, project_code, task_name, project_type, labor_category, pay_code);
         public string enumSheet { get; set; }
         public decimal? labor_category_bill_rate { get; set; }
         public string keyInvoice { get; set; }
         public string invoice_number { get; set; }
+
+        public static string GetPak(string username, DateTime work_date, string project_code, string task_name, string project_type, string labor_category, string pay_code) => Convert.ToBase64String(Encoding.UTF8.GetBytes(
+            $"{username}|{work_date:d}|{project_code}|{task_name}|{project_type}|{labor_category}|{pay_code}"));
+
+        public static (string username, DateTime work_date, string project_code, string task_name, string project_type, string labor_category, string pay_code) Unpak(string pak)
+        {
+            if (string.IsNullOrEmpty(pak))
+                return default;
+            var parts = Encoding.UTF8.GetString(Convert.FromBase64String(pak)).Split('|');
+            return (parts[0], DateTime.Parse(parts[1]), parts[2], parts[3], parts[4], parts[5], parts[6]);
+        }
 
         public static Task<(bool success, string message, bool hasFile, object tag)> ExportFileAsync(UnanetClient una, string windowEntity, string sourceFolder, int window, DateTime? begin = null, DateTime? end = null, string legalEntity = null, Action<HtmlFormPost> func = null, string tempPath = null)
         {

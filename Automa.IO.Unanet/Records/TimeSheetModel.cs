@@ -64,6 +64,7 @@ namespace Automa.IO.Unanet.Records
         {
             public int Key { get; set; }
             public string Name { get; set; }
+            public string ProjectCode => Name.Remove(Name.IndexOf(' '));
             public Dictionary<int, (int? key, string value)> Labcats { get; set; }
             public Dictionary<string, (int? key, string value)> LabcatsByName { get; set; }
             public Dictionary<int, (int? key, string value)> Tasks { get; set; }
@@ -83,6 +84,9 @@ namespace Automa.IO.Unanet.Records
             public (int? key, string value) Labcat { get; set; }
             public (int? key, string value) Loc { get; set; }
             public Dictionary<int, Slip> Slips { get; set; }
+
+            public string GetPak(TimeSheetModel parent, string username, int slip) =>
+                TimeModel.GetPak(username, parent.Week.AddDays(slip), Project.ProjectCode, Task.value, ProjectType.value, Labcat.value, Paycode.value);
 
             public object Clone()
             {
@@ -132,10 +136,73 @@ namespace Automa.IO.Unanet.Records
                 public decimal Hours { get; set; }
             }
 
-            public string Name { get; set; }
+            public ILookup<string, string> CommandByPak { get; set; }
             public decimal Hours { get; set; }
             public string Body { get; set; }
             public IList<Row> Rows { get; set; }
+
+            public Checksum(IList<(int key, string pak, string func)> command, TimeSheetModel sheet)
+            {
+                CommandByPak = command.ToLookup(x => x.pak, x => x.func);
+                Update(sheet);
+            }
+
+            public void Update(TimeSheetModel sheet)
+            {
+                (Body, Hours) = GetBody(sheet);
+                Rows = GetRows(sheet);
+            }
+
+            (string, decimal) GetBody(TimeSheetModel sheet)
+            {
+                string Trim(string source, int length, bool right = true) => source != null
+                    ? source.Length < length ? right ? source.PadLeft(length) : source.PadRight(length) : source.Substring(0, length)
+                    : null;
+                var hours = 0M;
+                var b = new StringBuilder();
+                b.AppendLine($"Key: {sheet.KeySheet}, Rows: {sheet.Rows.Count}");
+                b.AppendLine($"|{"PROJECT",40}|{"TASK",30}|{"LABCAT",20}|{"TYPE",8}|{"JURIS",8}|  MON|  TUE|  WED|  THU|  FRI|  SAT|  SUN|");
+                var firstCommand = TimeModel.Unpak(CommandByPak.FirstOrDefault()?.Key);
+                var foundPaks = new HashSet<string>();
+                foreach (var row in sheet.Rows)
+                {
+                    b.Append($"|{Trim(row.Project.Name, 40, false)}|{Trim(row.Task.value, 30, false)}|{Trim(row.Labcat.value, 20)}|{Trim(row.ProjectType.value, 8)}|{Trim(row.Paycode.value, 8)}");
+                    var slips = row.Slips;
+                    for (var i = 0; i < 7; i++)
+                        if (slips.TryGetValue(i, out var slip))
+                        {
+                            var pak = row.GetPak(sheet, firstCommand.username, i);
+                            hours += slip.Hours;
+                            b.Append($"|{slip.Hours,5}");
+                            if (CommandByPak.Contains(pak))
+                            {
+                                foundPaks.Add(pak);
+                                b.Append($"[{string.Join(", ", CommandByPak[pak])}]");
+                            }
+                        }
+                        else b.Append($"|{"",5}");
+                    b.AppendLine("|");
+                }
+                b.AppendLine($"Hours: {hours}");
+                if (CommandByPak.Count != foundPaks.Count)
+                {
+                    b.AppendLine($"Missed Commands:");
+                    foreach (var pak in CommandByPak.Where(x => !foundPaks.Contains(x.Key)))
+                        b.AppendLine($"{TimeModel.Unpak(pak.Key)}[{string.Join(", ", pak)}]");
+                }
+                return (b.ToString(), hours);
+            }
+
+            static List<Row> GetRows(TimeSheetModel sheet) => sheet.Rows.Select(row => new Row
+            {
+                Project = row.Project?.Name,
+                Task = row.Task.value,
+                ProjectType = row.ProjectType.value,
+                Paycode = row.Paycode.value,
+                Labcat = row.Labcat.value,
+                Loc = row.Loc.value,
+                Hours = row.Slips.Sum(y => y.Value.Hours),
+            }).OrderBy(x => x.Project).ThenBy(x => x.Task).ThenBy(x => x.ProjectType).ThenBy(x => x.Paycode).ThenBy(x => x.Labcat).ThenBy(x => x.Loc).ThenBy(x => x.Hours).ToList();
 
             public string Compare(Checksum checksum, string errorPattern, string last, bool rowCheck, Action<string, string, string> errorAction)
             {
@@ -151,59 +218,9 @@ namespace Automa.IO.Unanet.Records
                 }
                 return last;
             }
-
-            public static List<Row> ToRows(List<Entry> rows) => rows.Select(row => new Row
-            {
-                Project = row.Project?.Name,
-                Task = row.Task.value,
-                ProjectType = row.ProjectType.value,
-                Paycode = row.Paycode.value,
-                Labcat = row.Labcat.value,
-                Loc = row.Loc.value,
-                Hours = row.Slips.Sum(y => y.Value.Hours),
-            })
-                .OrderBy(x => x.Project)
-                .ThenBy(x => x.Task)
-                .ThenBy(x => x.ProjectType)
-                .ThenBy(x => x.Paycode)
-                .ThenBy(x => x.Labcat)
-                .ThenBy(x => x.Loc)
-                .ThenBy(x => x.Hours)
-                .ToList();
         }
 
-        public Checksum GetChecksum(string name)
-        {
-            string Trim(string source, int length, bool right = true) => source != null
-                ? source.Length < length ? right ? source.PadLeft(length) : source.PadRight(length) : source.Substring(0, length)
-                : null;
-            var hours = 0M;
-            var b = new StringBuilder();
-            b.AppendLine(name);
-            b.AppendLine($"Key: {KeySheet}, Rows: {Rows.Count}");
-            b.AppendLine($"|{"PROJECT",40}|{"TASK",30}|{"LABCAT",20}|{"TYPE",8}|{"JURIS",8}|  MON|  TUE|  WED|  THU|  FRI|  SAT|  SUN|");
-            foreach (var row in Rows)
-            {
-                b.Append($"|{Trim(row.Project.Name, 40, false)}|{Trim(row.Task.value, 30, false)}|{Trim(row.Labcat.value, 20)}|{Trim(row.ProjectType.value, 8)}|{Trim(row.Paycode.value, 8)}");
-                var slips = row.Slips;
-                for (var i = 0; i < 7; i++)
-                    if (slips.TryGetValue(i, out var slip))
-                    {
-                        hours += slip.Hours;
-                        b.Append($"|{slip.Hours,5}");
-                    }
-                    else b.Append($"|{"",5}");
-                b.AppendLine("|");
-            }
-            b.AppendLine($"Hours: {hours}");
-            return new Checksum
-            {
-                Name = name,
-                Hours = hours,
-                Body = b.ToString(),
-                Rows = Checksum.ToRows(Rows),
-            };
-        }
+        public Checksum GetChecksum(IList<(int key, string pak, string func)> command) => new Checksum(command, this);
 
         #endregion
 
@@ -294,10 +311,11 @@ namespace Automa.IO.Unanet.Records
 
         public string KillTitoEntry(int keySheet) => null;
 
-        public string MoveEntry(string pak, int key, int project_codeKey, int? task_nameKey, string role_name, string type_name, string paycode_name, Action<TimeSheetModel, Entry, KeyValuePair<int, Slip>> custom = null)
+        public string MoveEntry(string username, string pak, int key, int project_codeKey, int? task_nameKey, string role_name, string type_name, string paycode_name, Action<TimeSheetModel, Entry, KeyValuePair<int, Slip>> custom = null)
         {
             // find slip
-            var keySlip = Rows.SelectMany(x => x.Slips, (r, s) => new { r, s }).FirstOrDefault(x => x.s.Value.Key == key);
+            //var unpak = TimeModel.Unpak(pak);
+            var keySlip = Rows.SelectMany(x => x.Slips, (r, s) => new { r, s, m = s.Value.Key == key ? 1 : r.GetPak(this, username, s.Key) == pak ? 2 : 0 }).OrderBy(x => x.m).SingleOrDefault(x => x.m > 0);
             if (keySlip == null) return Error_srcSlip;
             if (!keySlip.r.Slips.Remove(keySlip.s.Key)) throw new InvalidOperationException();
             // clone row

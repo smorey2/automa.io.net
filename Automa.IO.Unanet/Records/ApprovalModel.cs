@@ -237,7 +237,7 @@ namespace Automa.IO.Unanet.Records
                 var f = found.form;
                 if (found.grid.Rows != null)
                     foreach (var group in found.grid.Rows.Keys.GroupBy(x => x.keyType))
-                        f.Add($"keys_{found.grid.Label}_{group.Key}", "text", $"{string.Join(";", group.Select(x => x.key).ToArray())};");
+                        f.Add($"keys_{found.grid.Label}_{group.Key}", "text", $"{string.Join(";", group.Select(x => x.key))};");
                 f.Remove("displaySet");
                 f.Values["approvalType"] = approvalType;
                 f.Values["fromQueue"] = "true";

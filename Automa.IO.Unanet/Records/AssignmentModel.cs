@@ -168,7 +168,7 @@ namespace Automa.IO.Unanet.Records
                                             x => x.Descendants("td").ToArray());
                                     var row = rows.SingleOrDefault(x => x.Value[3].InnerText.Contains($"({s.assign.ToLowerInvariant()})"));
                                     var key = row.Key ?? throw new ArgumentNullException(nameof(row.Key));
-                                    var keysListed = string.Join(",", rows.Keys.ToArray());
+                                    var keysListed = string.Join(",", rows.Keys);
                                     return $"projectkey={s.project_codeKey}&restore=true&key={key}&keysListed={keysListed}";
                                 }
                                 return null;
