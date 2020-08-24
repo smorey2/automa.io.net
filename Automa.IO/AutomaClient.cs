@@ -335,9 +335,9 @@ namespace Automa.IO
             _logger("AutomaClient::TrySelectApplication");
             using (var automa = Automa)
             {
-                var r = await AutomaSelectApplicationAsync(application, tag, loginTimeoutInSeconds);
+                var value = await AutomaSelectApplicationAsync(application, tag, loginTimeoutInSeconds);
                 _logger("AutomaClient::Done");
-                return r;
+                return value;
             }
         }
 
@@ -356,9 +356,9 @@ namespace Automa.IO
             using (var automa = Automa)
             {
                 await AutomaLoginAsync(tag, loginTimeoutInSeconds);
-                var obj = await AutomaCustomAsync<T>(registration, param, tag, loginTimeoutInSeconds);
+                var (value, custom) = await AutomaCustomAsync<T>(registration, param, tag, loginTimeoutInSeconds);
                 _logger("AutomaClient::Done");
-                return obj.value;
+                return value;
             }
         }
 

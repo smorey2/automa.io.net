@@ -283,18 +283,19 @@ namespace Automa.IO.Unanet
             }
             // download
             {
-                for (var attempt = 1; attempt <= 5; attempt++)
+                for (var attempt = 1; attempt <= 8; attempt++)
                     try
                     {
-                        Thread.Sleep(attempt * 1000);
+                        Thread.Sleep((int)(Math.Pow(1.5, attempt) * 1500));
                         await this.TryFuncAsync(() => this.DownloadFileAsync(executeFolder, HttpMethod.Get, $"{UnanetUri}/admin/export/downloadFile", body, interceptFilename: interceptFilename)).ConfigureAwait(false);
                         return (true, null, true, tag);
                     }
                     catch (WebException e)
                     {
+                        Logger($"Retry{attempt}: {e.Message}");
                         if (e.Message.Contains("500"))
                             continue;
-                        throw;
+                        break; // throw;
                     }
                 return (false, $"An error has occurred while attemping downloading file {5} times.", false, tag);
             }

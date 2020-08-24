@@ -213,7 +213,7 @@ namespace Automa.IO.Unanet.Records
                 }
                 if (rowCheck && !Enumerable.SequenceEqual(Rows, checksum.Rows))
                 {
-                    errorAction("ROWS", Body, checksum.Body);
+                    //errorAction("ROWS", Body, checksum.Body);
                     //return string.Format(errorPattern, Hours, checksum.Hours);
                 }
                 return last;

@@ -1,9 +1,7 @@
 using Automa.IO.Drivers;
-using OpenQA.Selenium;
 using System;
 using System.Net;
 using System.Net.WebSockets;
-using System.Runtime.CompilerServices;
 using System.Text.Json;
 using System.Threading;
 using System.Threading.Tasks;

@@ -271,7 +271,7 @@ namespace Automa.IO
             source.EnsureAccess(AccessMethod.TryFunc, AccessMode.Preamble, ref tag);
             var value = action();
             if (value == null) return default;
-            if (source.EnsureAccess(AccessMethod.TryFunc, AccessMode.Request, ref tag, value))
+            else if (source.EnsureAccess(AccessMethod.TryFunc, AccessMode.Request, ref tag, value))
             {
                 source.TryLoginAsync(tag, loginTimeoutInSeconds).Wait();
                 value = action();
@@ -301,7 +301,7 @@ namespace Automa.IO
             source.EnsureAccess(AccessMethod.TryFunc, AccessMode.Preamble, ref tag);
             var value = action(t1);
             if (value == null) return default;
-            if (source.EnsureAccess(AccessMethod.TryFunc, AccessMode.Request, ref tag, value))
+            else if (source.EnsureAccess(AccessMethod.TryFunc, AccessMode.Request, ref tag, value))
             {
                 source.TryLoginAsync(tag, loginTimeoutInSeconds).Wait();
                 value = action(t1);

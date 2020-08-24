@@ -9,6 +9,7 @@ namespace Automa.IO
         {
             Configuration = new ConfigurationBuilder()
                 .AddJsonFile("appsettings.json", true, true)
+                .AddEnvironmentVariables()
                 .Build();
         }
 

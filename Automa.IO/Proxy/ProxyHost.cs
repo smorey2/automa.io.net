@@ -2,6 +2,7 @@
 using Microsoft.Extensions.Logging;
 using System;
 using System.Net;
+using System.Text.Json;
 using System.Threading;
 using System.Threading.Tasks;
 using Args = System.Collections.Generic.Dictionary<string, object>;
@@ -27,6 +28,7 @@ namespace Automa.IO.Proxy
         /// <exception cref="ArgumentOutOfRangeException">method</exception>
         public async Task OpenAsync(HttpContext context, ILogger logger, Func<string, bool> bearerTokenPredicate = null, CancellationToken? cancellationToken = null)
         {
+            var correlation = Guid.NewGuid();
             var webSockets = context.WebSockets;
             if (!webSockets.IsWebSocketRequest)
             {
@@ -45,12 +47,12 @@ namespace Automa.IO.Proxy
                 while (opened && !context.RequestAborted.IsCancellationRequested)
                 {
                     var method = await ws.ReceiveAsync<ProxyMethod>(cancellationToken).ConfigureAwait(false);
-                    logger?.LogInformation($"Method: {method}");
                     switch (method)
                     {
                         case ProxyMethod.Open:
                             {
                                 var args = await ws.ReceiveObjectAsync<Args>(cancellationToken).ConfigureAwait(false);
+                                logger?.LogInformation($"[{correlation}] Open: {((JsonElement)args["_base"]).GetProperty("Type").GetString()}");
                                 client = AutomaClient.Parse(args);
                                 break;
                             }
@@ -59,6 +61,7 @@ namespace Automa.IO.Proxy
                                 var registration = await ws.ReceiveAsync<Type>(cancellationToken).ConfigureAwait(false);
                                 var param = await ws.ReceiveTypedAsync(cancellationToken).ConfigureAwait(false);
                                 var tag = await ws.ReceiveTypedAsync(cancellationToken).ConfigureAwait(false);
+                                logger?.LogInformation($"[{correlation}] Custom: {registration?.Name}");
                                 var (obj, custom) = await client.Automa.CustomAsync(registration, param, tag).ConfigureAwait(false);
                                 await ws.SendBarrier(false, cancellationToken).ConfigureAwait(false);
                                 if (custom is ICustomWithTransfer customWithTransfer)
@@ -75,6 +78,7 @@ namespace Automa.IO.Proxy
                                 client.ServiceLogin = credential.UserName;
                                 client.ServicePassword = credential.Password;
                                 var tag = await ws.ReceiveTypedAsync(cancellationToken).ConfigureAwait(false);
+                                logger?.LogInformation($"[{correlation}] Login: {client.ServiceLogin}");
                                 await client.Automa.LoginAsync(tag).ConfigureAwait(false);
                                 break;
                             }
@@ -82,6 +86,7 @@ namespace Automa.IO.Proxy
                             {
                                 var application = await ws.ReceiveAsync<string>(cancellationToken).ConfigureAwait(false);
                                 var tag = await ws.ReceiveTypedAsync(cancellationToken).ConfigureAwait(false);
+                                logger?.LogInformation($"[{correlation}] SelectApplication: {application}");
                                 var obj = await client.Automa.SelectApplicationAsync(application, tag).ConfigureAwait(false);
                                 await ws.SendBarrier(false, cancellationToken).ConfigureAwait(false);
                                 await ws.SendTypedAsync(obj, cancellationToken).ConfigureAwait(false);
@@ -92,17 +97,20 @@ namespace Automa.IO.Proxy
                                 var url = await ws.ReceiveAsync<string>(cancellationToken).ConfigureAwait(false);
                                 var code = await ws.ReceiveAsync<string>(cancellationToken).ConfigureAwait(false);
                                 var tag = await ws.ReceiveTypedAsync(cancellationToken).ConfigureAwait(false);
+                                logger?.LogInformation($"[{correlation}] SetDeviceAccessTokenAsync: {url}, {code}");
                                 await client.Automa.SetDeviceAccessTokenAsync(url, code, tag).ConfigureAwait(false);
                                 break;
                             }
                         case ProxyMethod.GetCookies:
                             {
+                                logger?.LogInformation($"[{correlation}] GetCookies");
                                 await ws.SendBarrier(false, cancellationToken).ConfigureAwait(false);
                                 await ws.SendObjectAsync(client.Automa.Cookies, cancellationToken).ConfigureAwait(false);
                                 break;
                             }
                         case ProxyMethod.Dispose:
                             {
+                                logger?.LogInformation($"[{correlation}] Dispose");
                                 opened = false;
                                 break;
                             }
@@ -113,14 +121,14 @@ namespace Automa.IO.Proxy
             }
             catch (Exception e)
             {
-                logger?.LogCritical("Exception", e);
+                logger?.LogCritical(e, $"{correlation}>Exception");
                 await ws.SendExceptionAsync(e, cancellationToken);
             }
             finally
             {
                 client?.Dispose();
             }
-            logger?.LogInformation("Done");
+            logger?.LogInformation($"[{correlation}] Done");
         }
     }
 }
