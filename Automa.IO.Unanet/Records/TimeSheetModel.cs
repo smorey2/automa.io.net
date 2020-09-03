@@ -227,10 +227,12 @@ namespace Automa.IO.Unanet.Records
         static Task<(string value, string last)> PreAdjustAsync(UnanetClient una, int keySheet) =>
            una.PostValueAsync(HttpMethod.Get, "people/time/preadjust", null, $"timesheetkey={keySheet}", useSafeRead: true);
 
-        public static async Task<(TimeSheetModel value, string last)> GetAsync(UnanetClient una, int keySheet, bool preAdjust = false, bool useView = false)
+        public static async Task<(TimeSheetModel value, string last)> GetAsync(UnanetClient una, int keySheet, bool preAdjust = false, bool useView = false, bool forceEdit = false)
         {
             var (d0, last) = await una.PostValueAsync(HttpMethod.Get, useView ? "people/time/view" : "people/time/edit", null, $"timesheetkey={keySheet}", useSafeRead: true).ConfigureAwait(false);
             var time = Parse(d0, keySheet);
+            if (forceEdit && time.Meta == null)
+                preAdjust = true;
             if (preAdjust && (time.Status != SheetStatus.Inuse || time.Status != SheetStatus.InuseAdjustment))
             {
                 (d0, last) = await PreAdjustAsync(una, keySheet).ConfigureAwait(false);
@@ -241,6 +243,8 @@ namespace Automa.IO.Unanet.Records
 
         public static async Task<(bool approvals, string last)> SaveAsync(UnanetClient una, TimeSheetModel s, string submitComments, string approvalComments)
         {
+            if (s.Meta == null)
+                throw new ArgumentNullException(nameof(s.Meta));
             var f = new HtmlFormPost { Action = "/roundarch/action/people/time/save" };
             if (s.Status == SheetStatus.Inuse)
             {

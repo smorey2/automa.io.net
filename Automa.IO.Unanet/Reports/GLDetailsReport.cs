@@ -21,7 +21,7 @@ namespace Automa.IO.Unanet.Reports
         public string DocumentType { get; set; }
         public string DocumentNumber { get; set; }
         public DateTime? DocumentDate { get; set; }
-        public string FiscalPeriod { get; set; }
+        public DateTime? FiscalPeriod { get; set; }
         public string Description { get; set; }
         //
         public string CustomerCode { get; set; }
@@ -85,7 +85,7 @@ namespace Automa.IO.Unanet.Reports
                     DocumentType = x[7],
                     DocumentNumber = x[8],
                     DocumentDate = x[9].ToDateTime(),
-                    FiscalPeriod = x[10],
+                    FiscalPeriod = x[10].ToDateTime(),
                     Description = x[11],
                     //
                     CustomerCode = x[12],

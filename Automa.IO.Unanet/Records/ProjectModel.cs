@@ -326,7 +326,7 @@ namespace Automa.IO.Unanet.Records
                 $"projectkey={s.key}",
                 (z, f) =>
             {
-                if (add || cf.Contains("poc")) f.Values["projectOrg"] = _._(s.project_org_codeKey, nameof(s.project_org_codeKey));
+                if (add || cf.Contains("poc")) f.Values["projectOrg"] = s.project_org_codeKey;
                 if (add || cf.Contains("pc")) f.Values["pjtCode"] = _._(s.project_code, nameof(s.project_code));
                 if (add || cf.Contains("pt")) f.FromSelect("pjtType", _._(s.project_type, nameof(s.project_type)));
                 if (add || cf.Contains("ps")) f.FromSelect("pjtStatus", $"{_._(s.project_status, nameof(s.project_status))} ({s.project_status})");
