@@ -231,6 +231,12 @@ namespace Automa.IO.Unanet
                 htmlForm.Add("account_acctCode_fltr", "value", value);
                 htmlForm.Add("account_acctDesc_fltr", "value", string.Empty);
             }
+            else if (menuName == "orgs")
+            {
+                htmlForm.Add("orgs_mod", "value", "true");
+                htmlForm.Add("orgs_orgCode_fltr", "value", value);
+                htmlForm.Add("orgs_orgName_fltr", "value", string.Empty);
+            }
             var body = htmlForm.ToString();
             var d0 = await this.TryFuncAsync(() => this.DownloadDataAsync(HttpMethod.Post, $"{UnanetUri}/options", body)).ConfigureAwait(false);
             var htmlSelect = d0.ToHtmlDocument();

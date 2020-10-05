@@ -362,6 +362,48 @@ namespace Automa.IO
             FromSelectByPredicate(name, value, x => x.Value.StartsWith(value ?? string.Empty, comparisonType));
 
         /// <summary>
+        /// Froms the multi select.
+        /// </summary>
+        /// <param name="name">The name.</param>
+        /// <param name="values">The values.</param>
+        /// <param name="ignoreCase">if set to <c>true</c> [ignore case].</param>
+        /// <param name="merge">The merge.</param>
+        /// <returns></returns>
+        public bool FromMultiSelect(string name, string values, bool ignoreCase = true, Merge merge = Merge.Replace) => FromMultiSelect(name, values?.Split(','), ignoreCase, merge);
+        /// <summary>
+        /// Froms the multi select.
+        /// </summary>
+        /// <param name="name">The name.</param>
+        /// <param name="values">The values.</param>
+        /// <param name="ignoreCase">if set to <c>true</c> [ignore case].</param>
+        /// <param name="merge">The merge.</param>
+        /// <returns></returns>
+        public bool FromMultiSelect(string name, IEnumerable<string> values, bool ignoreCase = true, Merge merge = Merge.Replace)
+        {
+            foreach (var v in Values.ToList())
+            {
+                // multi-key
+                var key = v.Key;
+                var keyIdx = key.IndexOf(">");
+                if (keyIdx > 0)
+                    key = key.Substring(0, keyIdx);
+                // check
+                if (string.Compare(key, name, ignoreCase) == 0)
+                    switch (merge)
+                    {
+                        case Merge.Replace:
+                            Values.Remove(v.Key);
+                            Types.Remove(v.Key);
+                            break;
+                    }
+            }
+            if (values != null && merge == Merge.Replace)
+                foreach (var v in values)
+                    Add(name, "selectMultiple", v);
+            return true;
+        }
+
+        /// <summary>
         /// Froms the multi checkbox.
         /// </summary>
         /// <param name="name">The name.</param>

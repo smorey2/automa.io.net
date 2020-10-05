@@ -35,34 +35,60 @@ namespace Automa.IO.Unanet.Records
             Vendor = 0x0040,
         }
 
+        [Flags]
+        public enum AccessOrgs
+        {
+            All = 0x0001,
+            None = 0x0002,
+            SelectedLegalEntities = 0x0004,
+            SelectedOrganizations = 0x0008,
+        }
+
         const int TimeoutInSeconds = 1200; // 20 minutes
 
-        public static Task<(bool success, string message, bool hasFile, object tag)> ExportFileAsync(UnanetClient una, string sourceFolder, AccessTypes accessTypes = AccessTypes.All, string[] roles = null)
+        public static Task<(bool success, string message, bool hasFile, object tag)> ExportFileAsync(UnanetClient una, string sourceFolder, AccessOrgs accessOrgs = AccessOrgs.All, string[] orgs = null, AccessTypes accessTypes = AccessTypes.All, string[] roles = null)
         {
             var filePath = Path.Combine(sourceFolder, una.Options.organization_access.file);
             if (File.Exists(filePath))
                 File.Delete(filePath);
+            var orgKeys = new List<string>();
+            if (orgs == null) orgKeys.Add("-1");
+            else Task.Run(async () =>
+            {
+                foreach (var org in orgs)
+                {
+                    var options = await una.GetOptionsAsync("AccessOrganizationMenu", "orgs", org).ConfigureAwait(false);
+                    if (options.Count != 1)
+                        throw new InvalidOperationException($"Can not find: {org}");
+                    orgKeys.Add(options.First().Key);
+                }
+            }).Wait();
             return Task.Run(() => una.GetEntitiesByExportAsync(una.Options.organization_access.key, (z, f) =>
             {
-                f.Checked["suppressOutput"] = true;
-                // access type
-                f.Checked["access_person"] = (accessTypes & AccessTypes.Person) == AccessTypes.Person;
-                f.Checked["access_project"] = (accessTypes & AccessTypes.Project) == AccessTypes.Project;
-                f.Checked["access_financial"] = (accessTypes & AccessTypes.Financial) == AccessTypes.Financial;
-                f.Checked["access_contact"] = (accessTypes & AccessTypes.Contact) == AccessTypes.Contact;
-                f.Checked["access_owning"] = (accessTypes & AccessTypes.Owning) == AccessTypes.Owning;
-                f.Checked["access_document"] = (accessTypes & AccessTypes.Document) == AccessTypes.Document;
-                f.Checked["access_vendor"] = (accessTypes & AccessTypes.Vendor) == AccessTypes.Vendor;
-                // roles
-                var idx = z.IndexOf("<td class=\"label\">Roles:</td>");
-                var source = z.ExtractSpan("<table class=\"control-group\"", "</table>", idx);
-                var doc = source.ToHtmlDocument();
-                var elems = doc.DocumentNode.SelectNodes($"//td").ToArray();
-                var elemsByName = elems.Where(x => !string.IsNullOrEmpty(x.InnerText)).ToDictionary(x => x.InnerText, x => x.SelectSingleNode("input").Attributes["value"].Value);
-                var roleKeys = roles.Select(x => elemsByName[x]).ToArray();
-                f.FromMultiCheckbox("rolekeys", roleKeys);
-                return null;
-            }, sourceFolder, timeoutInSeconds: TimeoutInSeconds));
+               // access organizations
+               f.Checked["includeALL"] = (accessOrgs & AccessOrgs.All) == AccessOrgs.All;
+               f.Checked["includeNONE"] = (accessOrgs & AccessOrgs.None) == AccessOrgs.None;
+               f.Checked["includeLEGAL_ENTITY"] = (accessOrgs & AccessOrgs.SelectedLegalEntities) == AccessOrgs.SelectedLegalEntities;
+               f.Checked["includeSELECTED"] = (accessOrgs & AccessOrgs.SelectedOrganizations) == AccessOrgs.SelectedOrganizations;
+               f.FromMultiSelect("orgs", orgKeys);
+               // access type
+               f.Checked["access_person"] = (accessTypes & AccessTypes.Person) == AccessTypes.Person;
+               f.Checked["access_project"] = (accessTypes & AccessTypes.Project) == AccessTypes.Project;
+               f.Checked["access_financial"] = (accessTypes & AccessTypes.Financial) == AccessTypes.Financial;
+               f.Checked["access_contact"] = (accessTypes & AccessTypes.Contact) == AccessTypes.Contact;
+               f.Checked["access_owning"] = (accessTypes & AccessTypes.Owning) == AccessTypes.Owning;
+               f.Checked["access_document"] = (accessTypes & AccessTypes.Document) == AccessTypes.Document;
+               f.Checked["access_vendor"] = (accessTypes & AccessTypes.Vendor) == AccessTypes.Vendor;
+               // roles
+               var idx = z.IndexOf("<td class=\"label\">Roles:</td>");
+               var source = z.ExtractSpan("<table class=\"control-group\"", "</table>", idx);
+               var doc = source.ToHtmlDocument();
+               var elems = doc.DocumentNode.SelectNodes($"//td").ToArray();
+               var elemsByName = elems.Where(x => !string.IsNullOrEmpty(x.InnerText)).ToDictionary(x => x.InnerText, x => x.SelectSingleNode("input").Attributes["value"].Value);
+               var roleKeys = roles.Select(x => elemsByName[x]).ToArray();
+               f.FromMultiCheckbox("rolekeys", roleKeys);
+               return null;
+           }, sourceFolder, timeoutInSeconds: TimeoutInSeconds));
         }
 
         public static IEnumerable<PersonAccessModel> Read(UnanetClient una, string sourceFolder)

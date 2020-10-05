@@ -173,6 +173,14 @@ namespace Automa.IO
         public Dictionary<string, string> ConnectionParams { get; set; }
 
         /// <summary>
+        /// Gets the server.
+        /// </summary>
+        /// <value>
+        /// The server.
+        /// </value>
+        public string ConnectionServer { get; set; }
+
+        /// <summary>
         /// Ensures the service login and password.
         /// </summary>
         /// <exception cref="InvalidOperationException">ServiceCredential or ServiceLogin and ServicePassword are required for this operation.</exception>
@@ -206,16 +214,19 @@ namespace Automa.IO
         /// </summary>
         public virtual void ParseConnectionString()
         {
+            ConnectionParams = new Dictionary<string, string>(StringComparer.OrdinalIgnoreCase);
             if (string.IsNullOrEmpty(ConnectionString))
                 return;
             foreach (var param in ConnectionString.Split(';'))
             {
                 if (string.IsNullOrEmpty(param)) continue;
                 var kv = param.Split(new[] { '=' }, 2);
-                if (kv.Length > 1 && string.Equals(kv[0], "Credential", StringComparison.OrdinalIgnoreCase)) ServiceCredential = kv[1];
-                else if (kv.Length > 1 && string.Equals(kv[0], "User Id", StringComparison.OrdinalIgnoreCase)) ServiceLogin = kv[1];
-                else if (kv.Length > 1 && string.Equals(kv[0], "Password", StringComparison.OrdinalIgnoreCase)) ServicePassword = kv[1];
-                else (ConnectionParams = ConnectionParams ?? new Dictionary<string, string>(StringComparer.OrdinalIgnoreCase)).Add(kv[0].ToLowerInvariant(), kv.Length > 1 ? kv[1] : null);
+                var key = kv[0]?.Replace(" ", "").ToLowerInvariant();
+                if (kv.Length > 1 && key == "credential") ServiceCredential = kv[1];
+                else if (kv.Length > 1 && (key == "userid" || key == "uid")) ServiceLogin = kv[1];
+                else if (kv.Length > 1 && (key == "password" || key == "pwd")) ServicePassword = kv[1];
+                else if (kv.Length > 1 && (key == "server" || key == "datasource")) ConnectionServer = kv[1];
+                else ConnectionParams.Add(key, kv.Length > 1 ? kv[1] : null);
             }
             ConnectionString = null;
         }
