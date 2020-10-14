@@ -1,25 +1,28 @@
-﻿using Automa.IO.Umb;
-using Automa.IO.Umb.Reports;
+﻿using Automa.IO.Umb.Reports;
 using NFluent;
 using NUnit.Framework;
 using System;
 using System.IO;
+using System.Threading.Tasks;
 
-namespace Automa.IO
+namespace Automa.IO.Umb
 {
     public class UmbClientTest
     {
+        const string SourcePath = "secret";
         UmbClient _client;
 
-        [SetUp] public void Configure() => _client = GetGoogleAdwordsClient();
+        [SetUp] public void Configure() => _client = GetUmbClient();
         [TearDown] public void TearDown() { _client?.Dispose(); _client = null; }
 
-        UmbClient GetGoogleAdwordsClient()
+        UmbClient GetUmbClient(bool deleteFile = false, bool proxy = false)
         {
-            if (!Directory.Exists("secret"))
-                Directory.CreateDirectory("secret");
-            var cookieFile = Path.Combine("secret", "umb.cookies.json");
-            return new UmbClient
+            if (!Directory.Exists(SourcePath))
+                Directory.CreateDirectory(SourcePath);
+            var cookieFile = Path.Combine(SourcePath, "umb.cookies.json");
+            if (deleteFile && File.Exists(cookieFile))
+                File.Delete(cookieFile);
+            return new UmbClient(proxy ? new Config() : null)
             {
                 Logger = Console.WriteLine,
                 CookiesBytes = File.Exists(cookieFile) ? File.ReadAllBytes(cookieFile) : null,
@@ -29,12 +32,25 @@ namespace Automa.IO
         }
 
         [Test]
-        public void Should_extport_tansactionreport()
+        public async Task Should_export_transactionreport()
         {
-            var sourcePath = "secret";
+            var sourcePath = SourcePath;
             var beginDate = DateTime.Today.AddDays(-10);
             var endDate = DateTime.Today.AddDays(-1);
-            var task1 = TransactionReport.ExportFileAsync(_client, sourcePath, beginDate, endDate).Result;
+            var task1 = await TransactionReport.ExportFileAsync(_client, sourcePath, beginDate, endDate).ConfigureAwait(false);
+            Check.That(task1).IsTrue();
+            var task2 = TransactionReport.GetReadXml(_client, sourcePath);
+            Check.That(task2).IsNotEmpty();
+        }
+
+        [Test]
+        public async Task Should_export_transactionreport_proxy()
+        {
+            _client = GetUmbClient(true, proxy: true);
+            var sourcePath = SourcePath;
+            var beginDate = DateTime.Today.AddDays(-10);
+            var endDate = DateTime.Today.AddDays(-1);
+            var task1 = await TransactionReport.ExportFileAsync(_client, sourcePath, beginDate, endDate).ConfigureAwait(false);
             Check.That(task1).IsTrue();
             var task2 = TransactionReport.GetReadXml(_client, sourcePath);
             Check.That(task2).IsNotEmpty();

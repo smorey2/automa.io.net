@@ -1,25 +1,32 @@
 ﻿using Automa.IO.Facebook;
 using NUnit.Framework;
 using System;
-using System.Linq;
+using System.Collections.Generic;
 using System.IO;
+using System.Linq;
+using System.Threading.Tasks;
 
-namespace Automa.IO
+namespace Automa.IO.Facebook
 {
     public class FacebookClientTest
     {
+        const string SourcePath = "secret";
         FacebookClient _client;
 
         [SetUp] public void Configure() => _client = GetFacebookClient();
         [TearDown] public void TearDown() { _client?.Dispose(); _client = null; }
 
-        FacebookClient GetFacebookClient()
+        FacebookClient GetFacebookClient(bool deleteFile = false, bool proxy = false)
         {
-            if (!Directory.Exists("secret"))
-                Directory.CreateDirectory("secret");
-            var accessTokenFile = Path.Combine("secret", "facebook.token.json");
-            var cookieFile = Path.Combine("secret", "facebook.cookies.json");
-            return new FacebookClient
+            if (!Directory.Exists(SourcePath))
+                Directory.CreateDirectory(SourcePath);
+            var accessTokenFile = Path.Combine(SourcePath, "facebook.token.json");
+            var cookieFile = Path.Combine(SourcePath, "facebook.cookies.json");
+            if (deleteFile && File.Exists(accessTokenFile))
+                File.Delete(accessTokenFile);
+            if (deleteFile && File.Exists(cookieFile))
+                File.Delete(cookieFile);
+            return new FacebookClient(proxy ? new Config() : null)
             {
                 Logger = Console.WriteLine,
                 AccessToken = File.Exists(accessTokenFile) ? File.ReadAllText(accessTokenFile) : null,
@@ -27,17 +34,17 @@ namespace Automa.IO
                 CookiesBytes = File.Exists(cookieFile) ? File.ReadAllBytes(cookieFile) : null,
                 CookiesWriter = x => File.WriteAllBytes(cookieFile, x),
                 ServiceCredential = "DEGSVC.Facebook.local",
+                RequestedScope = "manage_pages,ads_management",
                 AppId = "",
                 AppSecret = "",
                 ClientToken = "",
-                RequestedScope = "manage_pages,ads_management",
             };
         }
 
         [Test]
-        public void Should_read_getme_normally()
+        public async Task Should_read_getme_normally()
         {
-            var me = _client.GetMe();
+            var me = await _client.GetMeAsync().ConfigureAwait(false);
             Console.WriteLine(me);
         }
 
@@ -49,12 +56,11 @@ namespace Automa.IO
         }
 
         [Test]
-        public void Should_pull_csv_from_page()
+        public async Task Should_pull_csv_from_page()
         {
             var pageId = 573293769395845L;
-            var files = _client.DownloadLeadFormCsvByPage("secret", pageId, DateTime.Now.AddDays(-5), null, FacebookSkipEmptyFile.TextHasSecondLine)
-                .ToArray();
-            Console.WriteLine(files.Length);
+            var files = (await _client.DownloadLeadFormCsvByPageAsync("secret", pageId, DateTime.Now.AddDays(-5), null, FacebookSkipEmptyFile.TextHasSecondLine).ConfigureAwait(false)).ToList();
+            Console.WriteLine(files.Count);
         }
 
         [Test]

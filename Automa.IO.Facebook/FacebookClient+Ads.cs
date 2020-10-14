@@ -1,4 +1,5 @@
 ﻿using System.Net.Http;
+using System.Threading.Tasks;
 
 namespace Automa.IO.Facebook
 {
@@ -9,14 +10,14 @@ namespace Automa.IO.Facebook
         /// </summary>
         /// <param name="accountId">The account identifier.</param>
         /// <returns>System.String.</returns>
-        public string CreateCustomAudience(long accountId)
+        public async Task<string> CreateCustomAudience(long accountId)
         {
             EnsureAppIdAndSecret();
-            return this.TryFunc<string>(() =>
-            {
-                var r = this.DownloadJson(HttpMethod.Post, $"{BASEv}/act_{accountId}/customaudiences".ExpandPathAndQuery(new { subtype = "CUSTOM" }));
-                return null;
-            });
+            return await this.TryFuncAsync(async () =>
+           {
+               var r = await this.DownloadJsonAsync(HttpMethod.Post, $"{BASEv}/act_{accountId}/customaudiences".ExpandPathAndQuery(new { subtype = "CUSTOM" })).ConfigureAwait(false);
+               return (string)null;
+           });
         }
     }
 }

@@ -1,6 +1,8 @@
 ﻿using OpenQA.Selenium;
 using System;
 using System.Net;
+using System.Threading;
+using System.Threading.Tasks;
 
 namespace Automa.IO.Okta
 {
@@ -19,24 +21,27 @@ namespace Automa.IO.Okta
         /// </summary>
         /// <param name="client">The client.</param>
         /// <param name="automa">The automa.</param>
-        /// <param name="driver">The driver.</param>
         /// <param name="oktaUri">The okta URI.</param>
-        public OktaAutomation(AutomaClient client, IAutoma automa, IWebDriver driver, Uri oktaUri) : base(client, automa, driver) => _oktaUri = oktaUri;
+        public OktaAutomation(AutomaClient client, IAutoma automa, Uri oktaUri) : base(client, automa) => _oktaUri = oktaUri;
 
         /// <summary>
         /// Goes to URL.
         /// </summary>
         /// <param name="url">The URL.</param>
-        /// <returns>System.String.</returns>
-        public override string GoToUrl(string url)
+        /// <param name="cancellationToken">The cancellation token.</param>
+        /// <returns>
+        /// System.String.
+        /// </returns>
+        /// <exception cref="LoginRequiredException"></exception>
+        public override Task<string> GoToUrlAsync(string url, CancellationToken? cancellationToken = null)
         {
             _driver.Navigate().GoToUrl(url);
             var newUrl = _driver.Url;
-            if (url.StartsWith($"{_oktaUri}/login/login.htm"))
+            if (newUrl.StartsWith($"{_oktaUri}/login/login.htm"))
                 throw new LoginRequiredException();
-            //if (url != WorkdayUri + "/public/index.htm")
+            //if (newUrl != WorkdayUri + "/public/index.htm")
             //    throw new LoginRequiredException();
-            return newUrl;
+            return Task.FromResult(newUrl);
         }
 
         /// <summary>
@@ -45,7 +50,9 @@ namespace Automa.IO.Okta
         /// <param name="cookies">The cookies.</param>
         /// <param name="credential">The credential.</param>
         /// <param name="tag">The tag.</param>
-        /// <exception cref="InvalidOperationException">
+        /// <param name="cancellationToken">The cancellation token.</param>
+        /// <returns></returns>
+        /// <exception cref="System.InvalidOperationException">
         /// expected login url
         /// or
         /// expected different url3
@@ -54,7 +61,7 @@ namespace Automa.IO.Okta
         /// or
         /// Not on homepage
         /// </exception>
-        public override void Login(Func<CookieCollection, CookieCollection> cookies, NetworkCredential credential, object tag = null)
+        public override Task LoginAsync(Func<CookieCollection, Task<CookieCollection>> cookies, NetworkCredential credential, object tag = null, CancellationToken? cancellationToken = null)
         {
             // okta
             _driver.Navigate().GoToUrl($"{_oktaUri}/login/login.htm");
@@ -94,6 +101,7 @@ namespace Automa.IO.Okta
             //if (!_driver.WaitForUrl(500, appUrl))
             //    throw new InvalidOperationException("Not on app page");
             //cookies(_automa.Cookies);
+            return Task.CompletedTask;
         }
 
         /// <summary>
@@ -101,14 +109,18 @@ namespace Automa.IO.Okta
         /// </summary>
         /// <param name="application">The application.</param>
         /// <param name="tag">The tag.</param>
-        /// <returns>System.Object.</returns>
-        /// <exception cref="NotSupportedException"></exception>
-        public override object SelectApplication(string application, object tag = null)
+        /// <param name="cancellationToken">The cancellation token.</param>
+        /// <returns>
+        /// System.Object.
+        /// </returns>
+        /// <exception cref="System.InvalidOperationException">more than one application found</exception>
+        /// <exception cref="System.ArgumentOutOfRangeException">application</exception>
+        public override async Task<object> SelectApplicationAsync(string application, object tag = null, CancellationToken? cancellationToken = null)
         {
             // okta
-            var url = GoToUrl($"{_oktaUri}/app/UserHome");
+            var url = await GoToUrlAsync($"{_oktaUri}/app/UserHome", cancellationToken).ConfigureAwait(false);
             if (!url.StartsWith($"{_oktaUri}/login/login.htm"))
-                _client.TryLogin(false);
+                await _client.TryLoginAsync(false).ConfigureAwait(false);
             var apps = _driver.FindElements(By.ClassName("app-button"));
             if (apps.Count != 1)
                 throw new InvalidOperationException("more than one application found");

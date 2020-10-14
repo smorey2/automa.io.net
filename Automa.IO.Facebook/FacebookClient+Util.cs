@@ -2,6 +2,7 @@
 using System.IO;
 using System.Net;
 using System.Net.Http;
+using System.Threading.Tasks;
 
 namespace Automa.IO.Facebook
 {
@@ -14,11 +15,11 @@ namespace Automa.IO.Facebook
         /// <param name="attributes">The attributes.</param>
         /// <param name="postData">The post data.</param>
         /// <returns>System.String.</returns>
-        public string GetFacebookUrl(string pathAndQuery, object attributes = null, string postData = null)
+        public Task<string> GetFacebookUrlAsync(string pathAndQuery, object attributes = null, string postData = null)
         {
             var url = pathAndQuery.ExpandPathAndQuery(attributes);
             _logger("GetFacebookUrl: " + url);
-            return this.TryFunc(typeof(WebException), () => this.DownloadData(HttpMethod.Get, url, postData));
+            return this.TryFuncAsync(typeof(WebException), () => this.DownloadDataAsync(HttpMethod.Get, url, postData));
         }
 
         /// <summary>
@@ -33,11 +34,11 @@ namespace Automa.IO.Facebook
         /// <returns>System.String.</returns>
         /// <exception cref="System.ArgumentOutOfRangeException">skipEmptyFile</exception>
         /// <exception cref="ArgumentOutOfRangeException">skipEmptyFile</exception>
-        public string DownloadFacebookUrl(string filePath, string pathAndQuery, object attributes = null, string postData = null, FacebookSkipEmptyFile skipEmptyFile = FacebookSkipEmptyFile.None, Action<Stream, Stream> interceptResponse = null)
+        public async Task<string> DownloadFacebookUrlAsync(string filePath, string pathAndQuery, object attributes = null, string postData = null, FacebookSkipEmptyFile skipEmptyFile = FacebookSkipEmptyFile.None, Action<Stream, Stream> interceptResponse = null)
         {
             var url = pathAndQuery.ExpandPathAndQuery(attributes);
             _logger("DownloadFacebookUrl: " + url);
-            var file = this.TryFunc(typeof(WebException), () => this.DownloadFile(filePath, HttpMethod.Get, url, postData, interceptResponse: interceptResponse));
+            var file = await this.TryFuncAsync(typeof(WebException), () => this.DownloadFileAsync(filePath, HttpMethod.Get, url, postData, interceptResponse: interceptResponse)).ConfigureAwait(false);
             switch (skipEmptyFile)
             {
                 case FacebookSkipEmptyFile.None: return file;

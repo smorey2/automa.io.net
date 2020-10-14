@@ -21,7 +21,7 @@ namespace Automa.IO.Unanet.Reports
         public string DocumentType { get; set; }
         public string DocumentNumber { get; set; }
         public DateTime? DocumentDate { get; set; }
-        public string FiscalPeriod { get; set; }
+        public DateTime? FiscalPeriod { get; set; }
         public string Description { get; set; }
         //
         public string CustomerCode { get; set; }
@@ -41,19 +41,34 @@ namespace Automa.IO.Unanet.Reports
         public string AccountTypeOrderBy { get; set; }
         public string ArrangeBy { get; set; }
 
-        public static Task<bool> ExportFileAsync(UnanetClient una, string sourceFolder, DateTime? beginDate = null, DateTime? endDate = null, string legalEntity = "75-00-DEG-00 - Digital Evolution Group, LLC") =>
-            Task.Run(() => una.RunReport("financials/detail/general_ledger", f =>
+        public static async Task<bool> ExportFileAsync(UnanetClient una, string accountType, string sourceFolder, DateTime? beginDate = null, DateTime? endDate = null, string legalEntity = null, string wipAcct = null)
+        {
+            string account = null;
+            if (accountType == "Wip")
             {
-                f.FromSelect("legalEntity", legalEntity);
-                f.FromSelect("accountType", "Revenue");
+                var options = await una.GetOptionsAsync("AccountMenu", "account", wipAcct ?? una.Options.WipAcct).ConfigureAwait(false);
+                if (options.Count != 1)
+                    throw new InvalidOperationException($"Can not find: {wipAcct ?? una.Options.WipAcct}");
+                account = options.First().Key;
+            }
+            var filePath = Path.Combine(sourceFolder, "report.csv");
+            if (File.Exists(filePath))
+                File.Delete(filePath);
+            return await Task.Run(async () => await una.RunReportAsync("financials/detail/general_ledger", (z, f) =>
+            {
+                f.FromSelect("legalEntity", legalEntity ?? una.Options.LegalEntity);
+                if (accountType == "Wip") f.Values["account"] = account;
+                else f.FromSelect("accountType", accountType); // "Revenue"
                 string fpBegin = (beginDate ?? BeginFinanceDate).ToString("yyyy-MM"), fpEnd = (endDate ?? DateTime.Today).ToString("yyyy-MM");
                 f.Values["fpRange_fpBegin"] = f.Selects["fpRange_fpBegin"].Single(x => x.Value == fpBegin).Key;
                 f.Values["fpRange_fpEnd"] = f.Selects["fpRange_fpEnd"].Single(x => x.Value == fpEnd).Key;
                 f.FromSelect("fpRange", "custom");
                 f.FromSelect("orgHierarchy", "Organization");
-            }, sourceFolder));
+                return f.ToString();
+            }, sourceFolder).ConfigureAwait(false) != null);
+        }
 
-        public static IEnumerable<GLDetailsReport> Read(UnanetClient una, string sourceFolder)
+        public static IEnumerable<GLDetailsReport> Read(UnanetClient una, string accountType, string sourceFolder)
         {
             var filePath = Path.Combine(sourceFolder, "report.csv");
             using (var s1 = File.OpenRead(filePath))
@@ -70,7 +85,7 @@ namespace Automa.IO.Unanet.Reports
                     DocumentType = x[7],
                     DocumentNumber = x[8],
                     DocumentDate = x[9].ToDateTime(),
-                    FiscalPeriod = x[10],
+                    FiscalPeriod = x[10].ToDateTime(),
                     Description = x[11],
                     //
                     CustomerCode = x[12],
@@ -78,23 +93,23 @@ namespace Automa.IO.Unanet.Reports
                     PersonName = x[14],
                     Reference = x[15],
                     ProjectOrg = x[16].ToProjectToOrg(),
-                    ProjectCode = x[16],
-                    ProjectTitle = x[17],
+                    ProjectCode = x[17],
+                    ProjectTitle = x[18],
                     //
-                    Quantity = x[18].ToDecimal(),
-                    BeginningBalance = x[19].ToDecimal(),
-                    Debit = x[20].ToDecimal(),
-                    Credit = x[21].ToDecimal(),
-                    EndingBalance = x[22].ToDecimal(),
+                    Quantity = x[19].ToDecimal(),
+                    BeginningBalance = x[20].ToDecimal(),
+                    Debit = x[21].ToDecimal(),
+                    Credit = x[22].ToDecimal(),
+                    EndingBalance = x[23].ToDecimal(),
                     //
-                    AccountTypeOrderBy = x[23],
-                    ArrangeBy = x[24],
+                    AccountTypeOrderBy = x[24],
+                    ArrangeBy = x[25],
                 }, 1).ToList();
         }
 
-        public static string GetReadXml(UnanetClient una, string sourceFolder, string syncFileA = null)
+        public static string GetReadXml(UnanetClient una, string accountType, string sourceFolder, string syncFileA = null)
         {
-            var xml = new XElement("r", Read(una, sourceFolder).Select(x => new XElement("p",
+            var xml = new XElement("r", Read(una, accountType, sourceFolder).Select(x => new XElement("p",
                 XAttribute("oc", x.OrgCode), XAttribute("on", x.OrgName), XAttribute("at", x.AccountType), new XAttribute("ac", x.AccountCode), XAttribute("ad", x.AccountDesc),
                 XAttribute("pd", x.PostedDate), XAttribute("s", x.Source), XAttribute("dt", x.DocumentType), XAttribute("dn", x.DocumentNumber), XAttribute("dd", x.DocumentDate), XAttribute("fp", x.FiscalPeriod), XAttribute("d", x.Description),
                 XAttribute("cc", x.CustomerCode), XAttribute("cn", x.CustomerName), XAttribute("pn", x.PersonName), XAttribute("r", x.Reference), XAttribute("po", x.ProjectOrg), XAttribute("pc", x.ProjectCode), XAttribute("pt", x.ProjectTitle),
@@ -103,9 +118,9 @@ namespace Automa.IO.Unanet.Reports
             )).ToArray()).ToString();
             if (syncFileA == null)
                 return xml;
-            var syncFile = string.Format(syncFileA, ".r_g.xml");
-            if (!Directory.Exists(Path.GetDirectoryName(syncFileA)))
-                Directory.CreateDirectory(Path.GetDirectoryName(syncFileA));
+            var syncFile = string.Format(syncFileA, $".r_g{accountType[0]}.xml");
+            if (!Directory.Exists(Path.GetDirectoryName(syncFile)))
+                Directory.CreateDirectory(Path.GetDirectoryName(syncFile));
             File.WriteAllText(syncFile, xml);
             return xml;
         }

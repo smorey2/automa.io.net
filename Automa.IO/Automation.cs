@@ -1,6 +1,8 @@
 ﻿using OpenQA.Selenium;
 using System;
 using System.Net;
+using System.Threading;
+using System.Threading.Tasks;
 
 namespace Automa.IO
 {
@@ -10,11 +12,25 @@ namespace Automa.IO
     public interface IAutomation
     {
         /// <summary>
+        /// Customs the asynchronous.
+        /// </summary>
+        /// <param name="registration">The registration.</param>
+        /// <param name="custom">The custom.</param>
+        /// <param name="param">The parameter.</param>
+        /// <param name="tag">The tag.</param>
+        /// <param name="cancellationToken">The cancellation token.</param>
+        /// <returns></returns>
+        Task<object> CustomAsync(Type registration, ICustom custom, object param = null, object tag = null, CancellationToken? cancellationToken = null);
+
+        /// <summary>
         /// Goes to URL.
         /// </summary>
         /// <param name="url">The URL.</param>
-        /// <returns>System.String.</returns>
-        string GoToUrl(string url);
+        /// <param name="cancellationToken">The cancellation token.</param>
+        /// <returns>
+        /// System.String.
+        /// </returns>
+        Task<string> GoToUrlAsync(string url, CancellationToken? cancellationToken = null);
 
         /// <summary>
         /// Logins the specified cookies.
@@ -22,7 +38,20 @@ namespace Automa.IO
         /// <param name="cookies">The cookies.</param>
         /// <param name="credential">The credential.</param>
         /// <param name="tag">The tag.</param>
-        void Login(Func<CookieCollection, CookieCollection> cookies, NetworkCredential credential, object tag = null);
+        /// <param name="cancellationToken">The cancellation token.</param>
+        /// <returns></returns>
+        Task LoginAsync(Func<CookieCollection, Task<CookieCollection>> cookies, NetworkCredential credential, object tag = null, CancellationToken? cancellationToken = null);
+
+        /// <summary>
+        /// Selects the application.
+        /// </summary>
+        /// <param name="application">The application.</param>
+        /// <param name="tag">The tag.</param>
+        /// <param name="cancellationToken">The cancellation token.</param>
+        /// <returns>
+        /// System.Object.
+        /// </returns>
+        Task<object> SelectApplicationAsync(string application, object tag = null, CancellationToken? cancellationToken = null);
 
         /// <summary>
         /// Sets the device access token.
@@ -30,15 +59,9 @@ namespace Automa.IO
         /// <param name="url">The URL.</param>
         /// <param name="userCode">The user code.</param>
         /// <param name="tag">The tag.</param>
-        void SetDeviceAccessToken(string url, string userCode, object tag = null);
-
-        /// <summary>
-        /// Selects the application.
-        /// </summary>
-        /// <param name="application">The application.</param>
-        /// <param name="tag">The tag.</param>
-        /// <returns>System.Object.</returns>
-        object SelectApplication(string application, object tag = null);
+        /// <param name="cancellationToken">The cancellation token.</param>
+        /// <returns></returns>
+        Task SetDeviceAccessTokenAsync(string url, string userCode, object tag = null, CancellationToken? cancellationToken = null);
     }
 
     /// <summary>
@@ -56,20 +79,35 @@ namespace Automa.IO
         /// </summary>
         /// <param name="client">The client.</param>
         /// <param name="automa">The automa.</param>
-        /// <param name="driver">The driver.</param>
-        public Automation(AutomaClient client, IAutoma automa, IWebDriver driver)
+        public Automation(AutomaClient client, IAutoma automa)
         {
             _client = client;
             _automa = automa;
-            _driver = driver;
+            _driver = automa.Driver?.Driver;
         }
+
+        /// <summary>
+        /// Customs the asynchronous.
+        /// </summary>
+        /// <param name="registration">The registration.</param>
+        /// <param name="custom">The custom.</param>
+        /// <param name="param">The parameter.</param>
+        /// <param name="tag">The tag.</param>
+        /// <param name="cancellationToken">The cancellation token.</param>
+        /// <returns></returns>
+        /// <exception cref="NotSupportedException"></exception>
+        public virtual async Task<object> CustomAsync(Type registration, ICustom custom, object param = null, object tag = null, CancellationToken? cancellationToken = null) =>
+            await custom.ExecuteAsync(_client, param, tag, cancellationToken);
 
         /// <summary>
         /// Goes to URL.
         /// </summary>
         /// <param name="url">The URL.</param>
+        /// <param name="cancellationToken">The cancellation token.</param>
+        /// <returns></returns>
+        /// <exception cref="System.NotSupportedException"></exception>
         /// <exception cref="LoginRequiredException"></exception>
-        public virtual string GoToUrl(string url) => throw new NotSupportedException();
+        public virtual Task<string> GoToUrlAsync(string url, CancellationToken? cancellationToken = null) => throw new NotSupportedException();
 
         /// <summary>
         /// Logins the specified cookies.
@@ -77,17 +115,24 @@ namespace Automa.IO
         /// <param name="cookies">The cookies.</param>
         /// <param name="credential">The credential.</param>
         /// <param name="tag">The tag.</param>
+        /// <param name="cancellationToken">The cancellation token.</param>
+        /// <returns></returns>
+        /// <exception cref="System.NotSupportedException"></exception>
         /// <exception cref="NotSupportedException"></exception>
-        public virtual void Login(Func<CookieCollection, CookieCollection> cookies, NetworkCredential credential, object tag = null) => throw new NotSupportedException();
+        public virtual Task LoginAsync(Func<CookieCollection, Task<CookieCollection>> cookies, NetworkCredential credential, object tag = null, CancellationToken? cancellationToken = null) => throw new NotSupportedException();
 
         /// <summary>
         /// Selects the application.
         /// </summary>
         /// <param name="application">The application.</param>
         /// <param name="tag">The tag.</param>
-        /// <returns>System.Object.</returns>
+        /// <param name="cancellationToken">The cancellation token.</param>
+        /// <returns>
+        /// System.Object.
+        /// </returns>
+        /// <exception cref="System.NotSupportedException"></exception>
         /// <exception cref="NotSupportedException"></exception>
-        public virtual object SelectApplication(string application, object tag = null) => throw new NotSupportedException();
+        public virtual Task<object> SelectApplicationAsync(string application, object tag = null, CancellationToken? cancellationToken = null) => throw new NotSupportedException();
 
         /// <summary>
         /// Sets the device access token.
@@ -95,7 +140,10 @@ namespace Automa.IO
         /// <param name="url">The URL.</param>
         /// <param name="userCode">The user code.</param>
         /// <param name="tag">The tag.</param>
+        /// <param name="cancellationToken">The cancellation token.</param>
+        /// <returns></returns>
+        /// <exception cref="System.NotSupportedException"></exception>
         /// <exception cref="NotSupportedException"></exception>
-        public virtual void SetDeviceAccessToken(string url, string userCode, object tag = null) => throw new NotSupportedException();
+        public virtual Task SetDeviceAccessTokenAsync(string url, string userCode, object tag = null, CancellationToken? cancellationToken = null) => throw new NotSupportedException();
     }
 }

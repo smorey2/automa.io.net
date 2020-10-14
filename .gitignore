@@ -3,7 +3,8 @@
 *.opendb
 *.csproj.user
 .vscode
-_*
+.config/
+PublishProfiles/
 
 # Makefiles
 Makefile

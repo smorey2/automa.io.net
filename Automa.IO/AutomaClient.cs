@@ -1,7 +1,15 @@
+using Automa.IO.Drivers;
+using Automa.IO.Proxy;
+using OpenQA.Selenium;
 using System;
+using System.Collections.Generic;
 using System.Net;
+using System.Reflection;
 using System.Security;
 using System.Security.Cryptography.X509Certificates;
+using System.Text.Json;
+using System.Threading.Tasks;
+using Args = System.Collections.Generic.Dictionary<string, object>;
 
 namespace Automa.IO
 {
@@ -11,7 +19,8 @@ namespace Automa.IO
     /// <seealso cref="System.IDisposable" />
     public abstract class AutomaClient : ITryMethod, IHasCookies, IDisposable
     {
-        public static readonly IAutoma EmptyAutoma = new EmptyAutoma();
+        public static readonly IAutoma EmptyAutoma = new InternalEmptyAutoma();
+        public static readonly IDictionary<Type, ICustom> CustomRegistry = new Dictionary<Type, ICustom>();
         readonly Func<AutomaClient, IAutoma> _automaFactory;
         IAutoma _automa;
 
@@ -24,12 +33,24 @@ namespace Automa.IO
         /// Initializes a new instance of the <see cref="AutomaClient" /> class.
         /// </summary>
         /// <param name="automaFactory">The client factory.</param>
-        public AutomaClient(Func<AutomaClient, IAutoma> automaFactory = null) => _automaFactory = automaFactory;
+        public AutomaClient(Func<AutomaClient, IAutoma> automaFactory = null, IProxyOptions proxyOptions = null)
+        {
+            _automaFactory = automaFactory;
+            ProxyOptions = proxyOptions;
+        }
 
         /// <summary>
         /// Performs application-defined tasks associated with freeing, releasing, or resetting unmanaged resources.
         /// </summary>
         public void Dispose() => Automa = null;
+
+        /// <summary>
+        /// Gets the proxy options.
+        /// </summary>
+        /// <value>
+        /// The proxy options.
+        /// </value>
+        public IProxyOptions ProxyOptions { get; }
 
         /// <summary>
         /// Gets or sets the logger.
@@ -48,7 +69,9 @@ namespace Automa.IO
         /// <value>The automa.</value>
         public IAutoma Automa
         {
-            get => _automa ?? (_automa = _automaFactory?.Invoke(this) ?? EmptyAutoma);
+            get => _automa ?? (_automa = ProxyOptions == null || string.IsNullOrEmpty(ProxyOptions.ProxyUri)
+                ? _automaFactory?.Invoke(this) ?? EmptyAutoma
+                : new Automa(this, automa => new ProxyAutomation(this, automa), 120M));
             set
             {
                 if (_automa != value)
@@ -59,6 +82,59 @@ namespace Automa.IO
                 }
             }
         }
+
+        /// <summary>
+        /// Gets the web driver.
+        /// </summary>
+        /// <returns></returns>
+        /// <exception cref="InvalidOperationException">Must be called in a Automa using block</exception>
+        public IWebDriver GetWebDriver()
+        {
+            if (_automa == null)
+                throw new InvalidOperationException("Must be called in a Automa using block");
+            return Automa.Driver.Driver;
+        }
+
+        /// <summary>
+        /// Gets or sets the type of the driver.
+        /// </summary>
+        /// <value>
+        /// The type of the driver.
+        /// </value>
+        public Type DriverType { get; set; } = typeof(ChromeDriver);
+
+        #region Parse/Get
+
+        public static AutomaClient Parse(Args args)
+        {
+            if (!args.TryGetValue("_base", out var z))
+                throw new ArgumentOutOfRangeException(nameof(args));
+            var _base = ((JsonElement)z).GetObject<Dictionary<string, JsonElement>>();
+            var type = _base["Type"].GetAsType();
+            var parseClientArgsMethod = type.GetMethod("ParseClientArgs", BindingFlags.Static | BindingFlags.NonPublic);
+            var client = (AutomaClient)parseClientArgsMethod.Invoke(null, new object[] { args });
+            client.DriverType = _base["DriverType"].GetAsType();
+            //client.ServiceLogin = _base["ServiceLogin"].GetString();
+            //client.ServicePassword = _base["ServicePassword"].GetString();
+            //client.ServiceCredential = _base["ServiceCredential"].GetString();
+            //client.ConnectionString = _base["ConnectionString"].GetString();
+            //client.ConnectionParams = _base["ConnectionParams"].GetObject<Dictionary<string, string>>();
+            return client;
+        }
+
+        public virtual Args GetClientArgs() =>
+            new Args
+            {
+                { "Type", GetType().AssemblyQualifiedName },
+                { "DriverType", DriverType.AssemblyQualifiedName },
+                //{ "ServiceLogin", ServiceLogin },
+                //{ "ServicePassword", ServicePassword },
+                //{ "ServiceCredential", ServiceCredential },
+                //{ "ConnectionString", ConnectionString },
+                //{ "ConnectionParams", ConnectionParams },
+            };
+
+        #endregion
 
         #region Credentials
 
@@ -81,15 +157,43 @@ namespace Automa.IO
         public string ServiceCredential { get; set; }
 
         /// <summary>
+        /// Gets or sets the connection string.
+        /// </summary>
+        /// <value>
+        /// The connection string.
+        /// </value>
+        public string ConnectionString { get; set; }
+
+        /// <summary>
+        /// Gets or sets the connection parameters.
+        /// </summary>
+        /// <value>
+        /// The connection parameters.
+        /// </value>
+        public Dictionary<string, string> ConnectionParams { get; set; }
+
+        /// <summary>
+        /// Gets the server.
+        /// </summary>
+        /// <value>
+        /// The server.
+        /// </value>
+        public string ConnectionServer { get; set; }
+
+        /// <summary>
         /// Ensures the service login and password.
         /// </summary>
         /// <exception cref="InvalidOperationException">ServiceCredential or ServiceLogin and ServicePassword are required for this operation.</exception>
         /// <exception cref="System.InvalidOperationException">ServiceCredential or, ServiceLogin and ServicePassword are required for this operation.</exception>
-        protected void EnsureServiceLoginAndPassword()
-        {
-            if (string.IsNullOrEmpty(ServiceCredential) && (string.IsNullOrEmpty(ServiceLogin) || string.IsNullOrEmpty(ServicePassword)))
-                throw new InvalidOperationException("ServiceCredential or ServiceLogin and ServicePassword are required for this operation.");
-        }
+        //protected void EnsureServiceLoginAndPassword()
+        //{
+        //    if (string.IsNullOrEmpty(ServiceCredential))
+        //        throw new ArgumentNullException(nameof(ServiceCredential), "Argument required for this operation.");
+        //    if (string.IsNullOrEmpty(ServiceLogin))
+        //        throw new ArgumentNullException(nameof(ServiceLogin), "Argument required for this operation.");
+        //    if (string.IsNullOrEmpty(ServicePassword))
+        //        throw new ArgumentNullException(nameof(ServicePassword), "Argument required for this operation.");
+        //}
 
         /// <summary>
         /// Gets the network credential.
@@ -100,9 +204,31 @@ namespace Automa.IO
         {
             if (string.IsNullOrEmpty(ServiceCredential))
                 return new NetworkCredential { UserName = ServiceLogin, Password = ServicePassword };
-            if (CredentialManagerEx.Read(ServiceCredential, CredentialManagerEx.CredentialType.GENERIC, out var credential) != 0)
+            if (CredentialManager.TryRead(ServiceCredential, CredentialManager.CredentialType.GENERIC, out var credential) != 0)
                 throw new InvalidOperationException("Unable to read credential store");
             return new NetworkCredential { UserName = credential.UserName, Password = credential.CredentialBlob };
+        }
+
+        /// <summary>
+        /// Parses the connection string.
+        /// </summary>
+        public virtual void ParseConnectionString()
+        {
+            ConnectionParams = new Dictionary<string, string>(StringComparer.OrdinalIgnoreCase);
+            if (string.IsNullOrEmpty(ConnectionString))
+                return;
+            foreach (var param in ConnectionString.Split(';'))
+            {
+                if (string.IsNullOrEmpty(param)) continue;
+                var kv = param.Split(new[] { '=' }, 2);
+                var key = kv[0]?.Replace(" ", "").ToLowerInvariant();
+                if (kv.Length > 1 && key == "credential") ServiceCredential = kv[1];
+                else if (kv.Length > 1 && (key == "userid" || key == "uid")) ServiceLogin = kv[1];
+                else if (kv.Length > 1 && (key == "password" || key == "pwd")) ServicePassword = kv[1];
+                else if (kv.Length > 1 && (key == "server" || key == "datasource")) ConnectionServer = kv[1];
+                else ConnectionParams.Add(key, kv.Length > 1 ? kv[1] : null);
+            }
+            ConnectionString = null;
         }
 
         /// <summary>
@@ -140,7 +266,7 @@ namespace Automa.IO
         /// <summary>
         /// Accesses the token flush.
         /// </summary>
-        public void AccessTokenFlush() => AccessTokenWriter?.Invoke(AccessToken);
+        public Task AccessTokenFlushAsync() { AccessTokenWriter?.Invoke(AccessToken); return Task.CompletedTask; }
 
         #endregion
 
@@ -167,7 +293,7 @@ namespace Automa.IO
         /// <summary>
         /// Cookieses the flush.
         /// </summary>
-        public void CookiesFlush() => CookiesWriter?.Invoke(CookiesBytes);
+        public Task CookiesFlushAsync() { CookiesWriter?.Invoke(CookiesBytes); return Task.CompletedTask; }
 
         /// <summary>
         /// Gets or sets the cookies value.
@@ -175,13 +301,13 @@ namespace Automa.IO
         /// <value>The cookies value.</value>
         public byte[] CookiesBytes
         {
-            get => this.GetCookies(CookieStorageType);
-            set => this.SetCookies(value, CookieStorageType);
+            get => this.GetCookiesAsync(CookieStorageType).GetAwaiter().GetResult();
+            set => this.SetCookiesAsync(value, CookieStorageType).Wait();
         }
 
         #endregion
 
-        #region TryMethods
+        #region Automa
 
         /// <summary>
         /// Ensures the access.
@@ -196,56 +322,110 @@ namespace Automa.IO
         /// <summary>
         /// Tries the login.
         /// </summary>
-        /// <param name="closeAfter">if set to <c>true</c> [close after].</param>
         /// <param name="tag">The tag.</param>
         /// <param name="loginTimeoutInSeconds">The login timeout in seconds.</param>
-        public virtual void TryLogin(bool closeAfter = true, object tag = null, decimal loginTimeoutInSeconds = -1M) => AutomaLogin(closeAfter, tag, loginTimeoutInSeconds);
+        public virtual async Task TryLoginAsync(object tag = null, decimal loginTimeoutInSeconds = -1M)
+        {
+            _logger("AutomaClient::TryLogin");
+            using (var automa = Automa)
+            {
+                await AutomaLoginAsync(tag, loginTimeoutInSeconds);
+                _logger("AutomaClient::Done");
+            }
+        }
+
+        /// <summary>
+        /// Tries the select application asynchronous.
+        /// </summary>
+        /// <param name="application">The application.</param>
+        /// <param name="tag">The tag.</param>
+        /// <param name="loginTimeoutInSeconds">The login timeout in seconds.</param>
+        /// <returns></returns>
+        public virtual async Task<object> TrySelectApplicationAsync(string application, object tag = null, decimal loginTimeoutInSeconds = -1M)
+        {
+            _logger("AutomaClient::TrySelectApplication");
+            using (var automa = Automa)
+            {
+                var value = await AutomaSelectApplicationAsync(application, tag, loginTimeoutInSeconds);
+                _logger("AutomaClient::Done");
+                return value;
+            }
+        }
+
+        /// <summary>
+        /// Tries the custom asynchronous.
+        /// </summary>
+        /// <typeparam name="T"></typeparam>
+        /// <param name="registration">The registration.</param>
+        /// <param name="param">The parameter.</param>
+        /// <param name="tag">The tag.</param>
+        /// <param name="loginTimeoutInSeconds">The login timeout in seconds.</param>
+        /// <returns></returns>
+        public virtual async Task<T> TryCustomAsync<T>(Type registration, object param = null, object tag = null, decimal loginTimeoutInSeconds = -1M)
+        {
+            _logger("AutomaClient::TryCustom");
+            using (var automa = Automa)
+            {
+                await AutomaLoginAsync(tag, loginTimeoutInSeconds);
+                var (value, custom) = await AutomaCustomAsync<T>(registration, param, tag, loginTimeoutInSeconds);
+                _logger("AutomaClient::Done");
+                return value;
+            }
+        }
 
         /// <summary>
         /// Automas the login.
         /// </summary>
-        /// <param name="closeAfter">if set to <c>true</c> [close after].</param>
         /// <param name="tag">The tag.</param>
         /// <param name="loginTimeoutInSeconds">The login timeout in seconds.</param>
-        protected virtual void AutomaLogin(bool closeAfter = true, object tag = null, decimal loginTimeoutInSeconds = -1M)
+        /// <returns><c>true</c> if XXXX, <c>false</c> otherwise.</returns>
+        /// <exception cref="WebDriverException"></exception>
+        protected virtual async Task AutomaLoginAsync(object tag = null, decimal loginTimeoutInSeconds = -1M)
         {
             _logger("AutomaClient::Login");
             try
             {
-                Automa.Login(tag, loginTimeoutInSeconds);
+                await Automa.LoginAsync(tag, loginTimeoutInSeconds).ConfigureAwait(false);
                 Cookies = Automa.Cookies;
-                CookiesFlush();
+                await CookiesFlushAsync().ConfigureAwait(false);
             }
-            finally
+            catch (Exception e)
             {
-                if (closeAfter)
-                    Automa.Dispose();
+                _logger(e.Message);
+                if (e.Message.StartsWith("session not created:")) throw new WebDriverException(e.Message, e);
+                else throw;
             }
-            _logger("AutomaClient::Done");
         }
 
         /// <summary>
-        /// Tries the select application.
+        /// Selects the application.
         /// </summary>
         /// <param name="application">The application.</param>
         /// <param name="tag">The tag.</param>
         /// <param name="selectTimeoutInSeconds">The select timeout in seconds.</param>
         /// <returns>System.Object.</returns>
-        public virtual object TrySelectApplication(string application, object tag = null, decimal selectTimeoutInSeconds = -1M)
+        protected virtual async Task<object> AutomaSelectApplicationAsync(string application, object tag = null, decimal selectTimeoutInSeconds = -1M)
         {
-            _logger("AutomaClient::TrySelectApp");
-            Automa.SelectApplication(application, tag, selectTimeoutInSeconds);
-            return null;
+            _logger("AutomaClient::SelectApplication");
+            return await Automa.SelectApplicationAsync(application, tag, selectTimeoutInSeconds).ConfigureAwait(false);
         }
 
-        protected virtual object AutomaSelectApplication(string application, object tag = null, decimal selectTimeoutInSeconds = -1M)
+        /// <summary>
+        /// Automas the custom asynchronous.
+        /// </summary>
+        /// <typeparam name="T"></typeparam>
+        /// <param name="registration">The registration.</param>
+        /// <param name="param">The parameter.</param>
+        /// <param name="tag">The tag.</param>
+        /// <param name="selectTimeoutInSeconds">The select timeout in seconds.</param>
+        /// <returns></returns>
+        protected virtual async Task<(T value, ICustom custom)> AutomaCustomAsync<T>(Type registration, object param = null, object tag = null, decimal selectTimeoutInSeconds = -1M)
         {
-            _logger("AutomaClient::TrySelectApp");
-            Automa.SelectApplication(application, tag, selectTimeoutInSeconds);
-            return null;
+            _logger("AutomaClient::Custom");
+            var (value, custom) = await Automa.CustomAsync(registration, param, tag, selectTimeoutInSeconds).ConfigureAwait(false);
+            return ((T)value, custom);
         }
 
         #endregion
-
     }
 }

@@ -1,6 +1,9 @@
-﻿using Google.Api.Ads.AdWords.Lib;
+﻿using Automa.IO.Proxy;
+using Google.Api.Ads.AdWords.Lib;
 using Google.Api.Ads.AdWords.v201809;
 using System;
+using System.Text.Json;
+using Args = System.Collections.Generic.Dictionary<string, object>;
 
 namespace Automa.IO.GoogleAdwords
 {
@@ -12,11 +15,12 @@ namespace Automa.IO.GoogleAdwords
         /// <summary>
         /// Initializes a new instance of the <see cref="GoogleAdwordsClient" /> class.
         /// </summary>
+        /// <param name="proxyOptions">The proxy options.</param>
         /// <exception cref="System.ArgumentNullException">f</exception>
-        public GoogleAdwordsClient()
-            : base(x => new Automa(x, (ctx, driver) => new GoogleAdwordsAutomation(x, ctx, driver)))
+        public GoogleAdwordsClient(IProxyOptions proxyOptions = null)
+            : base(client => new Automa(client, automa => new GoogleAdwordsAutomation(client, automa)), proxyOptions)
         {
-            Logger = (x) => Console.WriteLine(x);
+            Logger = Console.WriteLine;
             AdWordsUser = new AdWordsUser();
             AdWordsUser.Config.EnableGzipCompression = true;
         }
@@ -77,11 +81,46 @@ namespace Automa.IO.GoogleAdwords
         /// </value>
         public AdWordsUser AdWordsUser { get; private set; }
 
+        #region Parse/Get
+
+        /// <summary>
+        /// Parses the client arguments.
+        /// </summary>
+        /// <param name="args">The arguments.</param>
+        /// <returns></returns>
+        protected static GoogleAdwordsClient ParseClientArgs(Args args) => new GoogleAdwordsClient
+        {
+            AppId = args.TryGetValue("AppId", out var z) ? ((JsonElement)z).GetString() : null,
+            AppSecret = args.TryGetValue("AppSecret", out z) ? ((JsonElement)z).GetString() : null,
+            DeveloperToken = args.TryGetValue("DeveloperToken", out z) ? ((JsonElement)z).GetString() : null,
+        };
+
+        /// <summary>
+        /// Gets the client arguments.
+        /// </summary>
+        /// <returns></returns>
+        public override Args GetClientArgs() =>
+            new Args
+            {
+                { "_base", base.GetClientArgs() },
+                { "AppId", AppId },
+                { "AppSecret", AppSecret },
+                { "DeveloperToken", DeveloperToken },
+            };
+
+        #endregion
+
+        #region Ensure
+
         void EnsureAppIdAndSecret()
         {
             if (string.IsNullOrEmpty(AppId) || string.IsNullOrEmpty(AppSecret) || string.IsNullOrEmpty(DeveloperToken))
                 throw new InvalidOperationException("AppId, AppSecret, and DeveloperToken are required for this operation.");
         }
+
+        #endregion
+
+        #region CampaignPage
 
         /// <summary>
         /// Tests the specified account identifier.
@@ -97,7 +136,7 @@ namespace Automa.IO.GoogleAdwords
                 fields = new string[] { Campaign.Fields.Id, Campaign.Fields.Name, Campaign.Fields.Status },
                 paging = Paging.Default,
             };
-            var page = new CampaignPage();
+            CampaignPage page;
             do
             {
                 // Get the campaigns.
@@ -109,13 +148,15 @@ namespace Automa.IO.GoogleAdwords
                     var i = selector.paging.startIndex;
                     foreach (var campaign in page.entries)
                     {
-                        Console.WriteLine("{0}) Campaign with id = '{1}', name = '{2}' and status = '{3}'  was found.", i + 1, campaign.id, campaign.name, campaign.status);
+                        Console.WriteLine($"{i + 1}) Campaign with id = '{campaign.id}', name = '{campaign.name}' and status = '{campaign.status}'  was found.");
                         i++;
                     }
                 }
                 selector.paging.IncreaseOffset();
             } while (selector.paging.startIndex < page.totalNumEntries);
-            Console.WriteLine("Number of campaigns found: {0}", page.totalNumEntries);
+            Console.WriteLine($"Number of campaigns found: {page.totalNumEntries}");
         }
+
+        #endregion
     }
 }

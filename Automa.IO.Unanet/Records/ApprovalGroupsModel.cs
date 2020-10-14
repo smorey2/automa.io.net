@@ -11,10 +11,11 @@ namespace Automa.IO.Unanet.Records
         //
         public string key { get; set; }
 
-        public static Task<bool> ExportFileAsync(UnanetClient una, string sourceFolder) =>
-            Task.Run(() => una.GetEntitiesByExport(una.Exports["approval group"].Item1, f =>
+        public static Task<(bool success, string message, bool hasFile, object tag)> ExportFileAsync(UnanetClient una, string sourceFolder) =>
+            Task.Run(() => una.GetEntitiesByExportAsync(una.Options.approval_group.key, (z, f) =>
               {
                   f.Checked["suppressOutput"] = true;
+                  return null;
               }, sourceFolder));
 
         //public static Dictionary<string, Tuple<string, string>> GetList(UnanetClient una) =>
@@ -28,7 +29,7 @@ namespace Automa.IO.Unanet.Records
         //public static IEnumerable<ApprovalGroupsModel> Read(UnanetClient una, string sourceFolder)
         //{
         //    var list = GetList(una);
-        //    var filePath = Path.Combine(sourceFolder, $"{una.Exports["approval group"].Item2}.csv");
+        //    var filePath = Path.Combine(sourceFolder, una.Settings.approval_group.file);
         //    return new CsvReader().Execute(sr, x => new ApprovalGroupsModel
         //        return cr.Execute(sr, x => new ApprovalGroupsModel
         //        {
@@ -43,7 +44,7 @@ namespace Automa.IO.Unanet.Records
 
         //public static IEnumerable<ApprovalGroupsModel> EnsureAndRead(UnanetClient una, string sourceFolder)
         //{
-        //    var filePath = Path.Combine(sourceFolder, $"{una.Exports["approval group"].Item2}.csv");
+        //    var filePath = Path.Combine(sourceFolder, una.Settings.approval_group.file);
         //    if (!File.Exists(filePath))
         //        ExportFileAsync(una, sourceFolder);
         //    return Read(una, sourceFolder);
@@ -55,9 +56,8 @@ namespace Automa.IO.Unanet.Records
         //        XAttribute("agn", x.approval_group_name), XAttribute("a", x.approvers), XAttribute("d", x.description)
         //    )).ToArray()).ToString();
         //    var syncFile = string.Format(syncFileA, ".p_ag.xml");
-        //    Directory.CreateDirectory(Path.GetDirectoryName(syncFileA));
-        //    if (!Directory.Exists(Path.GetDirectoryName(syncFileA)))
-        //        Directory.CreateDirectory(Path.GetDirectoryName(syncFileA));
+        //    if (!Directory.Exists(Path.GetDirectoryName(syncFile)))
+        //        Directory.CreateDirectory(Path.GetDirectoryName(syncFile));
         //    File.WriteAllText(syncFile, xml);
         //    return xml;
         //}

@@ -1,8 +1,11 @@
 ﻿using ExcelTrans.Services;
+using NPOI.OpenXmlFormats.Wordprocessing;
+using Org.BouncyCastle.Asn1.X509;
 using System;
 using System.Collections.Generic;
 using System.IO;
 using System.Linq;
+using System.Text;
 using System.Threading.Tasks;
 using System.Xml.Linq;
 
@@ -32,30 +35,55 @@ namespace Automa.IO.Unanet.Records
         public string cost_element { get; set; }
         public string time_period_begin_date { get; set; }
         public string post_date { get; set; }
-        public string additional_pay_rate { get; set; }
+        public decimal? additional_pay_rate { get; set; }
         //
         public string key { get; set; }
         public string keySheet { get; set; }
+        public string pak => GetPak(username, work_date, project_code, task_name, project_type, labor_category, pay_code);
+        public string enumSheet { get; set; }
+        public decimal? labor_category_bill_rate { get; set; }
+        public string keyInvoice { get; set; }
+        public string invoice_number { get; set; }
 
-        public static Task<bool> ExportFileAsync(UnanetClient una, string sourceFolder, int window, string legalEntity = "75-00-DEG-00 - Digital Evolution Group, LLC") =>
-            Task.Run(() => una.GetEntitiesByExport(una.Exports["time"].Item1, f =>
+        public static string GetPak(string username, DateTime work_date, string project_code, string task_name, string project_type, string labor_category, string pay_code) => Convert.ToBase64String(Encoding.UTF8.GetBytes(
+            $"{username}|{work_date:d}|{project_code}|{task_name}|{project_type}|{labor_category}|{pay_code}"));
+
+        public static (string username, DateTime work_date, string project_code, string task_name, string project_type, string labor_category, string pay_code) Unpak(string pak)
+        {
+            if (string.IsNullOrEmpty(pak))
+                return default;
+            var parts = Encoding.UTF8.GetString(Convert.FromBase64String(pak)).Split('|');
+            return (parts[0], DateTime.Parse(parts[1]), parts[2], parts[3], parts[4], parts[5], parts[6]);
+        }
+
+        public static Task<(bool success, string message, bool hasFile, object tag)> ExportFileAsync(UnanetClient una, string windowEntity, string sourceFolder, int window, DateTime? begin = null, DateTime? end = null, string legalEntity = null, Action<HtmlFormPost> func = null, string tempPath = null)
+        {
+            var filePath = tempPath ?? Path.Combine(sourceFolder, una.Options.time.file);
+            if (File.Exists(filePath))
+                File.Delete(filePath);
+            return Task.Run(() => una.GetEntitiesByExportAsync(una.Options.time.key, (z, f) =>
             {
-                GetWindowDates(nameof(TimeModel), window, out var beginDate, out var endDate);
+                GetWindowDates(windowEntity ?? nameof(TimeModel), window, out var beginDate, out var endDate);
                 f.Checked["suppressOutput"] = true;
                 f.Values["dateType"] = "range";
-                f.Values["beginDate"] = beginDate.FromDateTime("BOT"); f.Values["endDate"] = endDate.FromDateTime("EOT");
-                f.FromSelect("legalEntity", legalEntity);
+                f.Values["beginDate"] = begin != null ? begin.FromDateTime("BOT") : beginDate.FromDateTime("BOT"); f.Values["endDate"] = end != null ? end.FromDateTime("EOT") : endDate.FromDateTime("EOT");
+                f.FromSelect("legalEntity", legalEntity ?? una.Options.LegalEntity);
                 f.Checked["exempt"] = true; f.Checked["nonExempt"] = true; f.Checked["nonEmployee"] = true; f.Checked["subcontractor"] = true;
                 f.Checked["INUSE"] = true; f.Checked["SUBMITTED"] = true; f.Checked["APPROVING"] = true;
                 f.Checked["DISAPPROVED"] = true; f.Checked["COMPLETED"] = true; f.Checked["LOCKED"] = true;
                 f.Checked["EXTRACTED"] = true;
                 f.Checked["inclReg"] = true;
-                f.FromSelectByKey("adjustmentStatus", "NO");
-            }, sourceFolder));
+                f.FromSelectByKey("adjustmentStatus", "ENTERED");
+                f.Checked["incPrevExt"] = true;
+                f.Checked["suppIntAdj"] = true;
+                func?.Invoke(f);
+                return (begin ?? beginDate, end ?? endDate);
+            }, sourceFolder, interceptFilename: x => filePath));
+        }
 
-        public static IEnumerable<TimeModel> Read(UnanetClient una, string sourceFolder)
+        public static IEnumerable<TimeModel> Read(UnanetClient una, string sourceFolder, string tempPath = null)
         {
-            var filePath = Path.Combine(sourceFolder, $"{una.Exports["time"].Item2}.csv");
+            var filePath = tempPath ?? Path.Combine(sourceFolder, una.Options.time.file);
             using (var sr = File.OpenRead(filePath))
                 return CsvReader.Read(sr, x => new TimeModel
                 {
@@ -63,7 +91,7 @@ namespace Automa.IO.Unanet.Records
                     work_date = x[1].ToDateTime().Value,
                     project_org_code = x[2],
                     project_code = x[3],
-                    task_name = x[4],
+                    task_name = x[4].DecodeString(),
                     project_type = x[5],
                     pay_code = x[6],
                     //
@@ -81,25 +109,30 @@ namespace Automa.IO.Unanet.Records
                     cost_element = x[17],
                     time_period_begin_date = x[18],
                     post_date = x[19],
-                    additional_pay_rate = x[20],
+                    additional_pay_rate = x[20].ToDecimal(),
                     //
-                    key = x.Count > 21 ? x[21] : null,
-                    keySheet = x.Count > 22 ? x[22] : null,
+                    key = x[21],
+                    keySheet = x[22],
+                    enumSheet = x[23],
+                    keyInvoice = x[24],
+                    labor_category_bill_rate = x[25].ToDecimal(),
+                    invoice_number = x[26],
                 }, 1).ToList();
         }
 
-        public static string GetReadXml(UnanetClient una, string sourceFolder, string syncFileA = null)
+        public static string GetReadXml(UnanetClient una, string sourceFolder, string syncFileA = null, string tempPath = null)
         {
-            var xml = new XElement("r", Read(una, sourceFolder).Select(x => new XElement("p", XAttribute("k", x.key), XAttribute("k2", x.keySheet),
+            var xml = new XElement("r", Read(una, sourceFolder, tempPath).Select(x => new XElement("p", XAttribute("k", x.key), XAttribute("k2", x.keySheet), XAttribute("k3", x.keyInvoice), XAttribute("p", x.pak),
                 XAttribute("u", x.username), new XAttribute("wd", x.work_date), XAttribute("poc", x.project_org_code), XAttribute("pc", x.project_code), XAttribute("tn", x.task_name), XAttribute("pt", x.project_type), XAttribute("pc2", x.pay_code),
                 XAttribute("h", x.hours), XAttribute("br", x.bill_rate), XAttribute("cr", x.cost_rate), XAttribute("poo", x.project_org_override), XAttribute("poo2", x.person_org_override), XAttribute("lc", x.labor_category), XAttribute("l", x.location), XAttribute("c", x.comments),
-                XAttribute("cr2", x.change_reason), XAttribute("cs", x.cost_structure), XAttribute("ce", x.cost_element), XAttribute("tpbd", x.time_period_begin_date), XAttribute("pd", x.post_date), XAttribute("apr", x.additional_pay_rate)
+                XAttribute("cr2", x.change_reason), XAttribute("cs", x.cost_structure), XAttribute("ce", x.cost_element), XAttribute("tpbd", x.time_period_begin_date), XAttribute("pd", x.post_date), XAttribute("apr", x.additional_pay_rate),
+                XAttribute("es", x.enumSheet), XAttribute("lcbr", x.labor_category_bill_rate), XAttribute("in", x.invoice_number)
             )).ToArray()).ToString();
             if (syncFileA == null)
                 return xml;
             var syncFile = string.Format(syncFileA, ".t.xml");
-            if (!Directory.Exists(Path.GetDirectoryName(syncFileA)))
-                Directory.CreateDirectory(Path.GetDirectoryName(syncFileA));
+            if (!Directory.Exists(Path.GetDirectoryName(syncFile)))
+                Directory.CreateDirectory(Path.GetDirectoryName(syncFile));
             File.WriteAllText(syncFile, xml);
             return xml;
         }

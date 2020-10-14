@@ -1,5 +1,6 @@
 ﻿using Google.Api.Ads.Common.Lib;
 using System;
+using System.Threading.Tasks;
 
 namespace Automa.IO.GoogleAdwords
 {
@@ -49,7 +50,7 @@ namespace Automa.IO.GoogleAdwords
         /// <param name="tag">The tag.</param>
         /// <param name="timeoutInSeconds">The timeout in seconds.</param>
         /// <returns><c>true</c> if XXXX, <c>false</c> otherwise.</returns>
-        public bool SetDeviceAccessToken(Func<string, object, decimal, string> func, object tag = null, decimal timeoutInSeconds = 30M)
+        public Task<bool> SetDeviceAccessTokenAsync(Func<string, object, decimal, string> func, object tag = null, decimal timeoutInSeconds = 30M)
         {
             EnsureAppIdAndSecret();
             AdWordsUser.Config.OAuth2RedirectUri = null;
@@ -57,7 +58,7 @@ namespace Automa.IO.GoogleAdwords
             var authorizationUrl = oauth2Provider.GetAuthorizationUrl();
             var authorizationCode = func(authorizationUrl, tag, timeoutInSeconds);
             oauth2Provider.FetchAccessAndRefreshTokens(authorizationCode);
-            return false;
+            return Task.FromResult(false);
         }
     }
 }

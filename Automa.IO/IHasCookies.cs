@@ -1,4 +1,5 @@
 ﻿using System.Net;
+using System.Threading.Tasks;
 
 namespace Automa.IO
 {
@@ -8,6 +9,6 @@ namespace Automa.IO
     public interface IHasCookies
     {
         CookieCollection Cookies { get; set; }
-        void CookiesFlush();
+        Task CookiesFlushAsync();
     }
 }

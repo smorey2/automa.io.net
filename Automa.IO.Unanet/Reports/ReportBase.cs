@@ -1,10 +1,11 @@
 ﻿using System;
 using System.Xml.Linq;
 
-namespace Automa.IO.Unanet
+namespace Automa.IO.Unanet.Reports
 {
     public class ReportBase
     {
+        public static DateTime EnsureBeginOfWeek(DateTime date) => date.AddDays(-(int)date.DayOfWeek + 1);
         public readonly static DateTime BeginFinanceDate = new DateTime(2018, 01, 01);
         public readonly static DateTime BeginDate = new DateTime(2019, 01, 01);
 

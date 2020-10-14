@@ -1,6 +1,8 @@
 ﻿using OpenQA.Selenium;
 using System;
 using System.Net;
+using System.Threading;
+using System.Threading.Tasks;
 
 namespace Automa.IO.Umb
 {
@@ -18,8 +20,7 @@ namespace Automa.IO.Umb
         /// </summary>
         /// <param name="client">The client.</param>
         /// <param name="automa">The automa.</param>
-        /// <param name="driver">The driver.</param>
-        public UmbAutomation(AutomaClient client, IAutoma automa, IWebDriver driver) : base(client, automa, driver) { }
+        public UmbAutomation(AutomaClient client, IAutoma automa) : base(client, automa) { }
 
         /// <summary>
         /// Logins the specified cookies.
@@ -27,14 +28,15 @@ namespace Automa.IO.Umb
         /// <param name="cookies">The cookies.</param>
         /// <param name="credential">The credential.</param>
         /// <param name="tag">The tag.</param>
+        /// <param name="cancellationToken">The cancellation token.</param>
+        /// <returns></returns>
         /// <exception cref="LoginRequiredException">
         /// </exception>
-        /// <exception cref="AutomaEx.LoginRequiredException"></exception>
-        public override void Login(Func<CookieCollection, CookieCollection> cookies, NetworkCredential credential, object tag = null)
+        public override Task LoginAsync(Func<CookieCollection, Task<CookieCollection>> cookies, NetworkCredential credential, object tag = null, CancellationToken? cancellationToken = null)
         {
-            _driver.Navigate().GoToUrl(UmbIdentityUri + "/login");
+            _driver.Navigate().GoToUrl($"{UmbIdentityUri}/login");
             var url = _driver.Url;
-            if (!url.StartsWith(UmbIdentityUri + "/login"))
+            if (!url.StartsWith($"{UmbIdentityUri}/login"))
                 throw new LoginRequiredException();
             // username
             var loginElement = _driver.FindElement(By.Name("username"));
@@ -44,10 +46,18 @@ namespace Automa.IO.Umb
             passwordElement.SendKeys(credential.Password);
             // done
             passwordElement.SendKeys(Keys.Return);
+            // login successful?
             url = _driver.Url;
-            if (!url.StartsWith(UmbUri + "/Site/#/home"))
+            if (!url.StartsWith($"{UmbUri}/Site/#/home"))
                 throw new LoginRequiredException();
+            // password maintenance - password expired 
+            //var rpElement = _driver.FindElement(By.Id("RP"));
+            //if (rpElement != null)
+            //{
+            //    throw new LoginRequiredException("password expired");
+            //}
             //cookies(_automa.Cookies);
+            return Task.CompletedTask;
         }
     }
 }

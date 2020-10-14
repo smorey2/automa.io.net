@@ -30,12 +30,18 @@ namespace Automa.IO.Unanet.Reports
         public decimal? PastDue61 { get; set; } // PastDue(61-90)
         public decimal? PastDue90 { get; set; } // PastDue(Over90)
 
-        public static Task<bool> ExportFileAsync(UnanetClient una, string sourceFolder, DateTime? beginDate = null, DateTime? endDate = null, string legalEntity = "75-00-DEG-00 - Digital Evolution Group, LLC") =>
-            Task.Run(() => una.RunReport("financials/detail/accounts_receivable", f =>
+        public static async Task<bool> ExportFileAsync(UnanetClient una, string sourceFolder, DateTime? beginDate = null, DateTime? endDate = null, string legalEntity = null)
+        {
+            var filePath = Path.Combine(sourceFolder, "report.csv");
+            if (File.Exists(filePath))
+                File.Delete(filePath);
+            return await Task.Run(async () => await una.RunReportAsync("financials/detail/accounts_receivable", (z, f) =>
             {
-                f.FromSelect("legalEntity", legalEntity);
+                f.FromSelect("legalEntity", legalEntity ?? una.Options.LegalEntity);
                 f.FromSelect("arrangeBy", "Customer");
-            }, sourceFolder));
+                return f.ToString();
+            }, sourceFolder).ConfigureAwait(false) != null);
+        }
 
         public static IEnumerable<ARAgingReport> Read(UnanetClient una, string sourceFolder)
         {
@@ -75,8 +81,8 @@ namespace Automa.IO.Unanet.Reports
             if (syncFileA == null)
                 return xml;
             var syncFile = string.Format(syncFileA, ".r_a.xml");
-            if (!Directory.Exists(Path.GetDirectoryName(syncFileA)))
-                Directory.CreateDirectory(Path.GetDirectoryName(syncFileA));
+            if (!Directory.Exists(Path.GetDirectoryName(syncFile)))
+                Directory.CreateDirectory(Path.GetDirectoryName(syncFile));
             File.WriteAllText(syncFile, xml);
             return xml;
         }

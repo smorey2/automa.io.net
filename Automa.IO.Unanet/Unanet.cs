@@ -1,4 +1,3 @@
-using Automa.IO.Unanet.Exports;
 using Automa.IO.Unanet.Records;
 using System;
 using System.Collections.Generic;
@@ -19,39 +18,31 @@ namespace Automa.IO.Unanet
                 LookupPath = lookupPath;
         }
 
-        #region Lookup
-
-        public static class OrganizationLookup
+        public static class Lookups
         {
-            public readonly static Dictionary<string, string> CostCenters = OrganizationModel.GetList(Una, "COST CENTER").ToDictionary(x => x.Key, x => x.Value.Item1);
-            public readonly static Dictionary<string, string> Vendors = OrganizationModel.GetList(Una, "VENDOR").ToDictionary(x => x.Key, x => x.Value.Item1);
+            // ORGANIZATION
+            public static bool TryGetCostCentersAndDefault(string name, out string key)
+            {
+                if (name == Una.Options.DefaultOrg.name) { key = Una.Options.DefaultOrg.key; return true; }
+                return CostCenters.Value.TryGetValue(name, out key);
+            }
+            public readonly static Lazy<Dictionary<string, string>> CostCenters = new Lazy<Dictionary<string, string>>(() => OrganizationModel.GetListAsync(Una, "COST CENTER").GetAwaiter().GetResult().ToDictionary(x => x.Key, x => x.Value.Item1));
+            public readonly static Lazy<Dictionary<string, string>> Vendors = new Lazy<Dictionary<string, string>>(() => OrganizationModel.GetListAsync(Una, "VENDOR").GetAwaiter().GetResult().ToDictionary(x => x.Key, x => x.Value.Item1));
+
+            // LOCATION
+            public readonly static Lazy<Dictionary<string, string>> Locations = new Lazy<Dictionary<string, string>>(() => LocationModel.EnsureAndReadAsync(Una, LookupPath).GetAwaiter().GetResult().ToDictionary(x => x.location, x => x.key));
+
+            // APPROVALGROUP
+            public readonly static Lazy<Dictionary<string, string>> TimeExpense = new Lazy<Dictionary<string, string>>(() => Una.GetAutoCompleteAsync("PERSON_PROFILE_TIME_EXPENSE_APP_GROUP").GetAwaiter().GetResult().ToDictionary(x => x.Value, x => x.Key));
+
+            // LABORCATEGORY
+            public readonly static Lazy<Dictionary<string, string>> LaborCategories = new Lazy<Dictionary<string, string>>(() => LaborCategoryModel.EnsureAndReadAsync(Una, LookupPath).GetAwaiter().GetResult().ToDictionary(x => x.labor_category, x => x.key));
+
+            // RECEIVABLE
+            public readonly static Lazy<Dictionary<string, string>> BankAccount = new Lazy<Dictionary<string, string>>(() => Una.GetAutoCompleteAsync("CP_BANK_ACCOUNT", legalEntityKey: Una.Options.DefaultOrg.key).GetAwaiter().GetResult().ToDictionary(x => x.Value, x => x.Key));
+
+            // VENDORPROFILE
+            //public readonly static Lazy<ILookup<string, string>> VendorProfiles = new Lazy<ILookup<string, string>>(() => VendorProfileModel.EnsureAndReadAsync(Ctx, LookupPath).GetAwaiter().GetResult().ToLookup(x => x.organization_code, x => x.key));
         }
-
-        public static class LocationLookup
-        {
-            public readonly static Dictionary<string, string> Locations = LocationModel.EnsureAndRead(Una, LookupPath).ToDictionary(x => x.location, x => x.key);
-        }
-
-        public static class ApprovalGroupLookup
-        {
-            public readonly static Dictionary<string, string> TimeExpense = Una.GetAutoComplete("PERSON_PROFILE_TIME_EXPENSE_APP_GROUP").ToDictionary(x => x.Value, x => x.Key);
-        }
-
-        public static class LaborCategoryLookup
-        {
-            public readonly static Dictionary<string, string> LaborCategories = LaborCategoryModel.EnsureAndRead(Una, LookupPath).ToDictionary(x => x.labor_category, x => x.key);
-        }
-
-        public static class ReceivableLookup
-        {
-            public readonly static Dictionary<string, string> BankAccount = Una.GetAutoComplete("CP_BANK_ACCOUNT", legalEntityKey: "2845").ToDictionary(x => x.Value, x => x.Key);
-        }
-
-        //public static class VendorProfileLookup
-        //{
-        //    public readonly static ILookup<string, string> VendorProfiles = VendorProfileModel.EnsureAndRead(Ctx, LookupPath).ToLookup(x => x.organization_code, x => x.key);
-        //}
-
-        #endregion
     }
 }
