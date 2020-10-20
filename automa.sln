@@ -19,6 +19,10 @@ Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "Automa.IO.Tests", "Automa.I
 EndProject
 Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "Automa.IO.Proxy", "Automa.IO.Proxy\Automa.IO.Proxy.csproj", "{08ED6D46-0ED5-4BD5-974C-DF96D8D052E0}"
 EndProject
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "Automa.IO.Adp", "Automa.IO.Adp\Automa.IO.Adp.csproj", "{92B5D0C1-8C76-4991-8D7F-A65A242F0A13}"
+EndProject
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "Automa.IO.Workday", "Automa.IO.Workday\Automa.IO.Workday.csproj", "{38FBD158-F1D1-489F-BD84-6DA08DA4B86B}"
+EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
 		Debug|Any CPU = Debug|Any CPU
@@ -57,6 +61,14 @@ Global
 		{08ED6D46-0ED5-4BD5-974C-DF96D8D052E0}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{08ED6D46-0ED5-4BD5-974C-DF96D8D052E0}.Release|Any CPU.ActiveCfg = Release|Any CPU
 		{08ED6D46-0ED5-4BD5-974C-DF96D8D052E0}.Release|Any CPU.Build.0 = Release|Any CPU
+		{92B5D0C1-8C76-4991-8D7F-A65A242F0A13}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{92B5D0C1-8C76-4991-8D7F-A65A242F0A13}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{92B5D0C1-8C76-4991-8D7F-A65A242F0A13}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{92B5D0C1-8C76-4991-8D7F-A65A242F0A13}.Release|Any CPU.Build.0 = Release|Any CPU
+		{38FBD158-F1D1-489F-BD84-6DA08DA4B86B}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{38FBD158-F1D1-489F-BD84-6DA08DA4B86B}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{38FBD158-F1D1-489F-BD84-6DA08DA4B86B}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{38FBD158-F1D1-489F-BD84-6DA08DA4B86B}.Release|Any CPU.Build.0 = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE
