@@ -6,7 +6,7 @@ namespace Automa.IO.Unanet
     public enum ManageFlags
     {
         None = 0x0,
-        //Default = PersonAccess | Export | Sync | Sync2,
+        //Default = Alternate | Export,
         Default = AllEntity | Export | Sync | Sync2,
         AllEntity = OrganizationAll | ProjectAll | PersonAll | TimeInvoiceAll,
 
@@ -15,16 +15,18 @@ namespace Automa.IO.Unanet
 
         // GROUPS
         // 0x01 - Organization
-        OrganizationMask = 0x010000F0, OrganizationAll = Organization | CustomerProfile | OrganizationAddress | OrganizationContact,
+        OrganizationMask = 0x010000F0, OrganizationAll = Organization | CustomerProfile | OrganizationAddress | OrganizationContact | VendorProfile,
         Organization = 0x01000010,
         CustomerProfile = 0x01000020,
         OrganizationAddress = 0x01000040,
         OrganizationContact = 0x01000080,
+        VendorProfile = 0x01000100,
         // changed
         OrganizationChanged = Organization | Export,
         CustomerProfileChanged = CustomerProfile | Export,
         OrganizationAddressChanged = OrganizationAddress | Export,
         OrganizationContactChanged = OrganizationContact | Export,
+        VendorProfileChanged = VendorProfile | Export,
 
         // 0x06 - Project
         ProjectMask = 0x06000F00, ProjectAll = Project | ProjectLaborCategory | Task | FixedPrice | Assignment | ProjectAdministrator | ProjectInvoiceSetup,

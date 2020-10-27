@@ -326,13 +326,26 @@ namespace Automa.IO
         /// <param name="value">The value.</param>
         /// <param name="pred">The pred.</param>
         /// <returns><c>true</c> if XXXX, <c>false</c> otherwise.</returns>
-        public bool FromSelectByPredicate(string name, string value, Func<KeyValuePair<string, string>, bool> pred)
+        public bool FromSelectByPredicate(string name, string value, Func<KeyValuePair<string, string>, string, bool> pred)
         {
+            if (pred == null)
+            {
+                Values[name] = value;
+                return true;
+            }
             if (!Selects.TryGetValue(name, out var select))
                 return false;
-            Values[name] = select.FirstOrDefault(pred).Key;
+            Values[name] = select.FirstOrDefault(x => pred(x, value)).Key;
             return true;
         }
+        /// <summary>
+        /// Froms the select as value.
+        /// </summary>
+        /// <param name="name">The name.</param>
+        /// <param name="value">The value.</param>
+        /// <returns></returns>
+        public bool FromSelectAsValue(string name, string value) =>
+            FromSelectByPredicate(name, value, null);
         /// <summary>
         /// Froms the select by key.
         /// </summary>
@@ -341,7 +354,7 @@ namespace Automa.IO
         /// <param name="ignoreCase">if set to <c>true</c> [ignore case].</param>
         /// <returns><c>true</c> if XXXX, <c>false</c> otherwise.</returns>
         public bool FromSelectByKey(string name, string key, bool ignoreCase = true) =>
-            FromSelectByPredicate(name, key, x => string.Compare(x.Key, key, ignoreCase) == 0);
+            FromSelectByPredicate(name, key, (x, v) => string.Compare(x.Key, v, ignoreCase) == 0);
         /// <summary>
         /// Froms the select.
         /// </summary>
@@ -350,7 +363,7 @@ namespace Automa.IO
         /// <param name="comparisonType">Type of the comparison.</param>
         /// <returns><c>true</c> if XXXX, <c>false</c> otherwise.</returns>
         public bool FromSelect(string name, string value, StringComparison comparisonType = StringComparison.OrdinalIgnoreCase) =>
-            FromSelectByPredicate(name, value, x => x.Value.Equals(value ?? string.Empty, comparisonType));
+            FromSelectByPredicate(name, value, (x, v) => x.Value.Equals(v ?? string.Empty, comparisonType));
         /// <summary>
         /// Froms the select.
         /// </summary>
@@ -359,26 +372,17 @@ namespace Automa.IO
         /// <param name="comparisonType">Type of the comparison.</param>
         /// <returns><c>true</c> if XXXX, <c>false</c> otherwise.</returns>
         public bool FromSelectStartsWith(string name, string value, StringComparison comparisonType = StringComparison.OrdinalIgnoreCase) =>
-            FromSelectByPredicate(name, value, x => x.Value.StartsWith(value ?? string.Empty, comparisonType));
+            FromSelectByPredicate(name, value, (x, v) => x.Value.StartsWith(v ?? string.Empty, comparisonType));
+
 
         /// <summary>
         /// Froms the multi select.
         /// </summary>
         /// <param name="name">The name.</param>
         /// <param name="values">The values.</param>
-        /// <param name="ignoreCase">if set to <c>true</c> [ignore case].</param>
-        /// <param name="merge">The merge.</param>
+        /// <param name="pred">The pred.</param>
         /// <returns></returns>
-        public bool FromMultiSelect(string name, string values, bool ignoreCase = true, Merge merge = Merge.Replace) => FromMultiSelect(name, values?.Split(','), ignoreCase, merge);
-        /// <summary>
-        /// Froms the multi select.
-        /// </summary>
-        /// <param name="name">The name.</param>
-        /// <param name="values">The values.</param>
-        /// <param name="ignoreCase">if set to <c>true</c> [ignore case].</param>
-        /// <param name="merge">The merge.</param>
-        /// <returns></returns>
-        public bool FromMultiSelect(string name, IEnumerable<string> values, bool ignoreCase = true, Merge merge = Merge.Replace)
+        public bool FromMultiSelectByPredicate(string name, IEnumerable<string> values, Func<KeyValuePair<string, string>, string, bool> pred)
         {
             foreach (var v in Values.ToList())
             {
@@ -388,20 +392,62 @@ namespace Automa.IO
                 if (keyIdx > 0)
                     key = key.Substring(0, keyIdx);
                 // check
-                if (string.Compare(key, name, ignoreCase) == 0)
-                    switch (merge)
-                    {
-                        case Merge.Replace:
-                            Values.Remove(v.Key);
-                            Types.Remove(v.Key);
-                            break;
-                    }
+                if (key == name)
+                {
+                    Values.Remove(v.Key);
+                    Types.Remove(v.Key);
+                }
             }
-            if (values != null && merge == Merge.Replace)
+            if (values == null)
+                return true;
+            if (pred == null)
+            {
                 foreach (var v in values)
                     Add(name, "selectMultiple", v);
+                return false;
+            }
+            if (!Selects.TryGetValue(name, out var select))
+                return false;
+            foreach (var v in values)
+                Add(name, "selectMultiple", select.FirstOrDefault(x => pred(x, v)).Key);
             return true;
         }
+        /// <summary>
+        /// Froms the multi select as values.
+        /// </summary>
+        /// <param name="name">The name.</param>
+        /// <param name="values">The values.</param>
+        /// <returns></returns>
+        public bool FromMultiSelectAsValues(string name, IEnumerable<string> values) =>
+            FromMultiSelectByPredicate(name, values, null);
+        /// <summary>
+        /// Froms the select by key.
+        /// </summary>
+        /// <param name="name">The name.</param>
+        /// <param name="key">The key.</param>
+        /// <param name="ignoreCase">if set to <c>true</c> [ignore case].</param>
+        /// <returns><c>true</c> if XXXX, <c>false</c> otherwise.</returns>
+        public bool FromMultiSelectByKey(string name, IEnumerable<string> keys, bool ignoreCase = true) =>
+            FromMultiSelectByPredicate(name, keys, (x, v) => string.Compare(x.Key, v, ignoreCase) == 0);
+        /// <summary>
+        /// Froms the select.
+        /// </summary>
+        /// <param name="name">Name of the select.</param>
+        /// <param name="value">The value.</param>
+        /// <param name="comparisonType">Type of the comparison.</param>
+        /// <returns><c>true</c> if XXXX, <c>false</c> otherwise.</returns>
+        public bool FromMultiSelect(string name, IEnumerable<string> values, StringComparison comparisonType = StringComparison.OrdinalIgnoreCase) =>
+            FromMultiSelectByPredicate(name, values, (x, v) => x.Value.Equals(v ?? string.Empty, comparisonType));
+        /// <summary>
+        /// Froms the select.
+        /// </summary>
+        /// <param name="name">Name of the select.</param>
+        /// <param name="value">The value.</param>
+        /// <param name="comparisonType">Type of the comparison.</param>
+        /// <returns><c>true</c> if XXXX, <c>false</c> otherwise.</returns>
+        public bool FromMultiSelectStartsWith(string name, IEnumerable<string> values, StringComparison comparisonType = StringComparison.OrdinalIgnoreCase) =>
+            FromMultiSelectByPredicate(name, values, (x, v) => x.Value.StartsWith(v ?? string.Empty, comparisonType));
+
 
         /// <summary>
         /// Froms the multi checkbox.

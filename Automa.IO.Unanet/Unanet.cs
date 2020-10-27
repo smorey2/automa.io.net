@@ -26,8 +26,8 @@ namespace Automa.IO.Unanet
                 if (name == Una.Options.DefaultOrg.name) { key = Una.Options.DefaultOrg.key; return true; }
                 return CostCenters.Value.TryGetValue(name, out key);
             }
-            public readonly static Lazy<Dictionary<string, string>> CostCenters = new Lazy<Dictionary<string, string>>(() => OrganizationModel.GetListAsync(Una, "COST CENTER").GetAwaiter().GetResult().ToDictionary(x => x.Key, x => x.Value.Item1));
-            public readonly static Lazy<Dictionary<string, string>> Vendors = new Lazy<Dictionary<string, string>>(() => OrganizationModel.GetListAsync(Una, "VENDOR").GetAwaiter().GetResult().ToDictionary(x => x.Key, x => x.Value.Item1));
+            public readonly static Lazy<Dictionary<string, string>> CostCenters = new Lazy<Dictionary<string, string>>(() => OrganizationModel.GetListAsync(Una, new HashSet<string> { "COST CENTER" }).GetAwaiter().GetResult().ToDictionary(x => x.Key, x => x.Value.Item1));
+            public readonly static Lazy<Dictionary<string, string>> Vendors = new Lazy<Dictionary<string, string>>(() => OrganizationModel.GetListAsync(Una, new HashSet<string> { "VENDOR" }).GetAwaiter().GetResult().ToDictionary(x => x.Key, x => x.Value.Item1));
 
             // LOCATION
             public readonly static Lazy<Dictionary<string, string>> Locations = new Lazy<Dictionary<string, string>>(() => LocationModel.EnsureAndReadAsync(Una, LookupPath).GetAwaiter().GetResult().ToDictionary(x => x.location, x => x.key));

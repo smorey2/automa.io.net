@@ -68,7 +68,7 @@ namespace Automa.IO.Unanet.Records
         //
         public string key { get; set; }
 
-        public static Task<(bool success, string message, bool hasFile, object tag)> ExportFileAsync(UnanetClient una, string sourceFolder, string type = "CUSTOMER")
+        public static Task<(bool success, string message, bool hasFile, object tag)> ExportFileAsync(UnanetClient una, string sourceFolder, IEnumerable<string> types)
         {
             var filePath = Path.Combine(sourceFolder, una.Options.organization.file);
             if (File.Exists(filePath))
@@ -76,22 +76,22 @@ namespace Automa.IO.Unanet.Records
             return Task.Run(() => una.GetEntitiesByExportAsync(una.Options.organization.key, (z, f) =>
             {
                 f.Checked["suppressOutput"] = true;
-                f.FromSelect("organizationtype", type);
+                f.FromMultiSelect("organizationtype", types);
                 return null;
             }, sourceFolder));
         }
 
-        public static async Task<Dictionary<string, Tuple<string, string>>> GetListAsync(UnanetClient una, string type) =>
+        public static async Task<Dictionary<string, Tuple<string, string>>> GetListAsync(UnanetClient una, IEnumerable<string> types) =>
             (await una.GetEntitiesByListAsync("organizations", null, (z, f) =>
             {
-                f.FromSelect("organizationtype", type);
+                f.FromMultiSelect("organizationtype", types);
                 f.Values["list"] = "true";
             }).ConfigureAwait(false)).Single()
             .ToDictionary(x => x.Value[4].Item1, x => new Tuple<string, string>(x.Key, x.Value[5].Item1));
 
-        public static IEnumerable<OrganizationModel> Read(UnanetClient una, string sourceFolder, string type = "CUSTOMER")
+        public static IEnumerable<OrganizationModel> Read(UnanetClient una, string sourceFolder, IEnumerable<string> types)
         {
-            var list = GetListAsync(una, type).GetAwaiter().GetResult();
+            var list = GetListAsync(una, types).GetAwaiter().GetResult();
             var filePath = Path.Combine(sourceFolder, una.Options.organization.file);
             using (var sr = File.OpenRead(filePath))
                 return CsvReader.Read(sr, x => new OrganizationModel
@@ -152,20 +152,20 @@ namespace Automa.IO.Unanet.Records
                     user20 = x[48],
                     //
                     key = list.TryGetValue(x[0], out var item) ? item.Item1 : null,
-                }, 1).Where(x => x.org_type == type).ToList();
+                }, 1).ToList();
         }
 
-        public static IEnumerable<OrganizationModel> EnsureAndRead(UnanetClient una, string sourceFolder, string type)
-        {
-            var filePath = Path.Combine(sourceFolder, una.Options.organization.file);
-            if (!File.Exists(filePath))
-                ExportFileAsync(una, sourceFolder);
-            return Read(una, sourceFolder, type);
-        }
+        //public static IEnumerable<OrganizationModel> EnsureAndRead(UnanetClient una, string sourceFolder, string type)
+        //{
+        //    var filePath = Path.Combine(sourceFolder, una.Options.organization.file);
+        //    if (!File.Exists(filePath))
+        //        ExportFileAsync(una, sourceFolder, type);
+        //    return Read(una, sourceFolder, type);
+        //}
 
-        public static string GetReadXml(UnanetClient una, string sourceFolder, string syncFileA = null)
+        public static string GetReadXml(UnanetClient una, string sourceFolder, IEnumerable<string> types, string syncFileA = null)
         {
-            var xml = new XElement("r", Read(una, sourceFolder).Select(x => new XElement("p", XAttribute("k", x.key),
+            var xml = new XElement("r", Read(una, sourceFolder, types).Select(x => new XElement("p", XAttribute("k", x.key),
                 XAttribute("oc", x.organization_code), XAttribute("on", x.organization_name), XAttribute("poc", x.parent_org_code), XAttribute("ot", x.org_type),
                 XAttribute("s", x.size), XAttribute("esc", x.external_system_code), XAttribute("sc", x.sic_code), XAttribute("c", x.classification), XAttribute("i", x.industry), XAttribute("s2", x.sector), XAttribute("ss", x.stock_symbol), XAttribute("u", x.url),
                 XAttribute("u1", x.user01), XAttribute("u2", x.user02), XAttribute("u3", x.user03), XAttribute("u4", x.user04), XAttribute("u5", x.user05), XAttribute("u6", x.user06), XAttribute("u7", x.user07), XAttribute("u8", x.user08), XAttribute("u9", x.user09), XAttribute("u10", x.user10),
@@ -189,6 +189,7 @@ namespace Automa.IO.Unanet.Records
 
         public static async Task<(ChangedFields changed, string last)> ManageRecordAsync(UnanetClient una, p_Organization1 s, Action<p_Organization1> bespoke = null)
         {
+            if (s.org_type != "CUSTOMER") throw new NotSupportedException();
             var _ = new ChangedFields(ManageFlags.OrganizationChanged);
             bespoke?.Invoke(s);
             if (ManageRecordBase(s.key, s.XCF, 0, out var cf, out var add, out var last2))

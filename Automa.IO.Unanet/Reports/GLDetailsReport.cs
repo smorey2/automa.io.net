@@ -41,24 +41,45 @@ namespace Automa.IO.Unanet.Reports
         public string AccountTypeOrderBy { get; set; }
         public string ArrangeBy { get; set; }
 
-        public static async Task<bool> ExportFileAsync(UnanetClient una, string accountType, string sourceFolder, DateTime? beginDate = null, DateTime? endDate = null, string legalEntity = null, string wipAcct = null)
+        public static async Task<bool> ExportFileAsync(UnanetClient una, string accountType, string sourceFolder, DateTime? beginDate = null, DateTime? endDate = null, string legalEntity = null)
         {
-            string account = null;
-            if (accountType == "Wip")
-            {
-                var options = await una.GetOptionsAsync("AccountMenu", "account", wipAcct ?? una.Options.WipAcct).ConfigureAwait(false);
-                if (options.Count != 1)
-                    throw new InvalidOperationException($"Can not find: {wipAcct ?? una.Options.WipAcct}");
-                account = options.First().Key;
-            }
             var filePath = Path.Combine(sourceFolder, "report.csv");
             if (File.Exists(filePath))
                 File.Delete(filePath);
+            Action<HtmlFormPost> action;
+            switch (accountType)
+            {
+                case "Wip":
+                    {
+                        var options = await una.GetOptionsAsync("AccountMenu", "account", una.Options.WipAcct).ConfigureAwait(false);
+                        if (options.Count != 1)
+                            throw new InvalidOperationException($"Can not find: {una.Options.WipAcct}");
+                        var accountKey = options.First().Key;
+                        action = f => f.Values["account"] = accountKey;
+                    }
+                    break;
+                case "Labor":
+                    {
+                        var tasks = una.Options.LaborAccts.Select(async acct =>
+                        {
+                            var options = await una.GetOptionsAsync("AccountMenu", "account", acct).ConfigureAwait(false);
+                            if (options.Count != 1)
+                                throw new InvalidOperationException($"Can not find: {acct}");
+                            return options.First().Key;
+                        }).ToArray();
+                        await Task.WhenAll(tasks);
+                        var accountKeys = tasks.Select(x => x.Result).ToArray();
+                        action = f => f.FromMultiSelectAsValues("account", accountKeys);
+                    }
+                    break;
+                default:
+                    action = f => f.FromSelect("accountType", accountType); // "Revenue"
+                    break;
+            }
             return await Task.Run(async () => await una.RunReportAsync("financials/detail/general_ledger", (z, f) =>
             {
                 f.FromSelect("legalEntity", legalEntity ?? una.Options.LegalEntity);
-                if (accountType == "Wip") f.Values["account"] = account;
-                else f.FromSelect("accountType", accountType); // "Revenue"
+                action(f);
                 string fpBegin = (beginDate ?? BeginFinanceDate).ToString("yyyy-MM"), fpEnd = (endDate ?? DateTime.Today).ToString("yyyy-MM");
                 f.Values["fpRange_fpBegin"] = f.Selects["fpRange_fpBegin"].Single(x => x.Value == fpBegin).Key;
                 f.Values["fpRange_fpEnd"] = f.Selects["fpRange_fpEnd"].Single(x => x.Value == fpEnd).Key;

@@ -375,8 +375,8 @@ namespace Automa.IO.Unanet.Records
                 if (add || cf.Contains("u10")) f.Values["udf_9"] = _._(s.user10, nameof(s.user10));
                 //
                 if (add || cf.Contains("hd")) f.Values["hire_date"] = _._(s.hire_date, nameof(s.hire_date))?.ToString("M/d/yyyy");
-                if (add || cf.Contains("pc3")) f.FromSelectByPredicate("paymentCurrency", _._(s.payment_currency, nameof(s.payment_currency)), x => x.Value.StartsWith(s.payment_currency));
-                if (add || cf.Contains("cs")) f.FromSelectByPredicate("costStructLabor", _._(s.cost_structure, nameof(s.cost_structure)), x => x.Value.StartsWith(s.cost_structure));
+                if (add || cf.Contains("pc3")) f.FromSelectStartsWith("paymentCurrency", _._(s.payment_currency, nameof(s.payment_currency)));
+                if (add || cf.Contains("cs")) f.FromSelectStartsWith("costStructLabor", _._(s.cost_structure, nameof(s.cost_structure)));
                 //if (add || cf.Contains("ce")) f.Values["xxxx"] = _._(s.cost_element, nameof(s.cost_element));
                 //if (add || cf.Contains("ul")) f.Values["xxxx"] = _._(s.unlock, nameof(s.unlock));
                 if (add || cf.Contains("l")) f.Values["location"] = GetLookupValue(FormLookups.locations, _._(s.location, nameof(s.location)), true);

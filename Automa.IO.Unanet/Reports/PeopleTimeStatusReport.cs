@@ -27,7 +27,7 @@ namespace Automa.IO.Unanet.Reports
                 foreach (var x in f.Checked.Keys.ToArray())
                     if (x.StartsWith("tsStatus") && !f.Checked[x])
                         f.Checked[x] = true;
-                f.FromSelectByPredicate("time_period", contains, x => x.Value.StartsWith(contains));
+                f.FromSelectStartsWith("time_period", contains);
                 return f.ToString();
             }).ConfigureAwait(false);
             return !string.IsNullOrEmpty(source) ? Parse(source) : null;

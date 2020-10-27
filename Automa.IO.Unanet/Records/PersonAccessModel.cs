@@ -70,7 +70,7 @@ namespace Automa.IO.Unanet.Records
                f.Checked["includeNONE"] = (accessOrgs & AccessOrgs.None) == AccessOrgs.None;
                f.Checked["includeLEGAL_ENTITY"] = (accessOrgs & AccessOrgs.SelectedLegalEntities) == AccessOrgs.SelectedLegalEntities;
                f.Checked["includeSELECTED"] = (accessOrgs & AccessOrgs.SelectedOrganizations) == AccessOrgs.SelectedOrganizations;
-               f.FromMultiSelect("orgs", orgKeys);
+               f.FromMultiSelectAsValues("orgs", orgKeys);
                // access type
                f.Checked["access_person"] = (accessTypes & AccessTypes.Person) == AccessTypes.Person;
                f.Checked["access_project"] = (accessTypes & AccessTypes.Project) == AccessTypes.Project;

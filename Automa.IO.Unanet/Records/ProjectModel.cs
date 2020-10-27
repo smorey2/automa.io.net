@@ -319,7 +319,7 @@ namespace Automa.IO.Unanet.Records
         {
             var _ = new ChangedFields(ManageFlags.ProjectChanged);
             bespoke?.Invoke(s);
-            if (ManageRecordBase(s.key, s.XCF, 0, out var cf, out var add, out  var last2))
+            if (ManageRecordBase(s.key, s.XCF, 0, out var cf, out var add, out var last2))
                 return (_.Changed(), last2);
             var organizations = Unanet.Lookups.CostCenters.Value;
             var (r, last) = await una.SubmitManageAsync(add ? HttpMethod.Post : HttpMethod.Put, "projects",
@@ -368,7 +368,7 @@ namespace Automa.IO.Unanet.Records
                 //if (add || cf.Contains("pcl")) f.FromSelect("xxxx", _._(s.pay_code_list, nameof(s.pay_code_list)));
                 if (add || cf.Contains("dpc"))
                     if (s.default_pay_code != null) f.FromSelect("default_paycode", _._(s.default_pay_code, nameof(s.default_pay_code)));
-                    else f.FromSelectByPredicate("default_paycode", _._(s.default_pay_code, nameof(s.default_pay_code)), x => true);
+                    else f.FromSelectByPredicate("default_paycode", _._(s.default_pay_code, nameof(s.default_pay_code)), (x, v) => true);
                 if (add || cf.Contains("tla")) f.Checked["taskLevelAssignment"] = _._(s.task_level_assignment, nameof(s.task_level_assignment)) == "Y";
                 if (add || cf.Contains("pp")) f.Values["probability"] = _._(s.probability_percent, nameof(s.probability_percent));
                 //
@@ -427,7 +427,7 @@ namespace Automa.IO.Unanet.Records
                 if (add || cf.Contains("pabv")) f.Checked["bvOpen"] = _._(s.proj_access_billing_viewer, nameof(s.proj_access_billing_viewer)) == "Y";
                 if (add || cf.Contains("lbtf")) f.Checked["limitBillToFunded"] = _._(s.limit_bill_to_funded, nameof(s.limit_bill_to_funded)) == "Y";
                 if (add || cf.Contains("lrtf")) f.Checked["limitRevToFunded"] = _._(s.limit_rev_to_funded, nameof(s.limit_rev_to_funded)) == "Y";
-                if (add || cf.Contains("pg")) f.FromSelectByPredicate("postingGroup", _._(s.posting_group, nameof(s.posting_group)), x => x.Value.StartsWith(s.posting_group));
+                if (add || cf.Contains("pg")) f.FromSelectStartsWith("postingGroup", _._(s.posting_group, nameof(s.posting_group)));
                 //
                 //if (add || cf.Contains("tnepr")) f.Values["xxx"] = _._(s.ts_non_emp_po_required, nameof(s.ts_non_emp_po_required));
                 //if (add || cf.Contains("enepr")) f.Values["xxx"] = _._(s.exp_non_emp_po_required, nameof(s.exp_non_emp_po_required));

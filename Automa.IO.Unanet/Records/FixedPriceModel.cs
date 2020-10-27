@@ -143,7 +143,7 @@ namespace Automa.IO.Unanet.Records
                 }
                 //if (add || cf.Contains("poc")) f.Values["xxxx"] = _._(s.project_org_code, nameof(s.project_org_code));
                 //if (add || cf.Contains("pc")) f.Values["xxxx"] = _._(s.project_code, nameof(s.project_code));
-                if (add || cf.Contains("tn")) f.FromSelectByPredicate("task", _._(s.task_name, nameof(s.task_name)), x => x.Value.StartsWith(s.task_name));
+                if (add || cf.Contains("tn")) f.FromSelectStartsWith("task", _._(s.task_name, nameof(s.task_name)));
                 var description = _._(s.description, nameof(s.description));
                 var description2 = !string.IsNullOrEmpty(_._(s.external_system_code, nameof(s.external_system_code))) ? $"{description},{s.external_system_code}" : description;
                 if (add || cf.Contains("esc") || cf.Contains("d") || cf.Contains("bind")) f.Values["description"] = description;
