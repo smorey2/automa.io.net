@@ -94,7 +94,7 @@
         public string LegalEntity => "75-00-DEG-00 - Digital Evolution Group, LLC";
         public (string, string) DefaultOrg => ("2845", "75-00-DEG-00");
         public string WipAcct => "1420";
-        public string[] LaborAccts => new[] { "5108", "6400", "6920" };
+        public string[] LaborAccts => new[] { "5108", "6400", "6920", "8310", "6409" };
 
         // EXPORTS
         public (string, string) location_master => ("818", "DEG_ Location - Master.csv");
