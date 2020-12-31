@@ -298,7 +298,7 @@ namespace Automa.IO.Unanet
                     }
                     catch (WebException e)
                     {
-                        Logger($"Retry{attempt}: {e.Message}");
+                        if (attempt > 6) Logger($"Retry{attempt}: {e.Message}");
                         if (e.Message.Contains("500"))
                             continue;
                         break; // throw;
