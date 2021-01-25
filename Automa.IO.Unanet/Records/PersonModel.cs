@@ -115,6 +115,8 @@ namespace Automa.IO.Unanet.Records
         //
         public string vendor_invoice_person { get; set; }
         public string po_form_title { get; set; }
+        public string person_items_enabled { get; set; }
+        public string person_subcontractor { get; set; }
 
         public static Task<(bool success, string message, bool hasFile, object tag)> ExportFileAsync(UnanetClient una, string sourceFolder, string legalEntity = null)
         {
@@ -245,6 +247,8 @@ namespace Automa.IO.Unanet.Records
                     //
                     vendor_invoice_person = x[90],
                     po_form_title = x[91],
+                    person_items_enabled = x[92],
+                    person_subcontractor = x[93],
                 }, 1).ToList();
         }
 
@@ -260,11 +264,10 @@ namespace Automa.IO.Unanet.Records
                 XAttribute("hd", x.hire_date), XAttribute("pc3", x.payment_currency), XAttribute("cs", x.cost_structure), XAttribute("ce", x.cost_element), XAttribute("ul", x.unlock), XAttribute("l", x.location),
                 XAttribute("et", x.employee_type), XAttribute("hv", x.hide_vat), XAttribute("lre", x.leave_request_emails), XAttribute("tu", x.tbd_user), XAttribute("tv", x.time_vendor), XAttribute("ev", x.expense_vendor),
                 XAttribute("phd", x.payroll_hire_date), XAttribute("pm", x.payroll_marital_status), XAttribute("pfe", x.payroll_federal_exemptions), XAttribute("pstc", x.payroll_sui_tax_code), XAttribute("pswi", x.payroll_state_worked_in), XAttribute("pis", x.payroll_immigration_status), XAttribute("pec", x.payroll_eeo_code), XAttribute("pmp", x.payroll_medical_plan), XAttribute("plrcd", x.payroll_last_rate_change_date), XAttribute("plrc", x.payroll_last_rate_change),
-                // NEW
                 XAttribute("ppaa", x.person_purchase_approval_amt), XAttribute("ppe", x.person_purchase_email),
                 XAttribute("pagt", x.person_approval_grp_timesheet), XAttribute("pagl", x.person_approval_grp_leave), XAttribute("pager", x.person_approval_grp_exp_rep), XAttribute("pager2", x.person_approval_grp_exp_req), XAttribute("pagp", x.person_approval_grp_po), XAttribute("pagp2", x.person_approval_grp_pr), XAttribute("pagv", x.person_approval_grp_vi),
                 XAttribute("u11", x.user11), XAttribute("u12", x.user12), XAttribute("u13", x.user13), XAttribute("u14", x.user14), XAttribute("u15", x.user15), XAttribute("u16", x.user16), XAttribute("u17", x.user17), XAttribute("u18", x.user18), XAttribute("u19", x.user19), XAttribute("u20", x.user20),
-                XAttribute("vip", x.vendor_invoice_person), XAttribute("pft", x.po_form_title)
+                XAttribute("vip", x.vendor_invoice_person), XAttribute("pft", x.po_form_title), XAttribute("pie", x.person_items_enabled), XAttribute("ps", x.person_subcontractor)
             )).ToArray()).ToString();
             if (syncFileA == null)
                 return xml;
@@ -424,6 +427,8 @@ namespace Automa.IO.Unanet.Records
                 //
                 //if (add || cf.Contains("vip")) f.Checked["xxxx"] = _._(s.vendor_invoice_person, nameof(s.vendor_invoice_person)) == "Y";
                 //if (add || cf.Contains("pft")) f.Values["xxxx"] = _._(s.po_form_title, nameof(s.po_form_title));
+                //if (add || cf.Contains("pie")) f.Checked["xxxx"] = _._(s.person_items_enabled, nameof(s.person_items_enabled)) == "Y";
+                //if (add || cf.Contains("ps")) f.Values["xxxx"] = _._(s.person_subcontractor, nameof(s.person_subcontractor));
 
                 f.Add("button_save", "action", null);
                 // edit rate row for effective_date|exempt_status|costStructLabor|bill_rate|cost_rate

@@ -101,15 +101,15 @@
         public (string, string) labor_category_master => ("814", "DEG_ Labor Category - Master.csv");
 
         // Organization
-        public (string, string) organization => ("1107", "Organization.csv");
-        public (string, string) customer_profile => ("1090", "Customer Profile.csv");
+        public (string, string) organization => ("1172", "Organization.csv");
+        public (string, string) customer_profile => ("1155", "Customer Profile.csv");
         public (string, string) vendor_profile => ("1084", "DEG_ Vendor Profile.csv");
         public (string, string) organization_access => ("1015", "DEG_ Organization Access.csv");
-        public (string, string) organization_address => ("1109", "Organization Address.csv");
-        public (string, string) organization_contact => ("1110", "Organization Contact.csv");
-        public (string, string) organization_contact_address => ("1111", "Organization Contact Address.csv");
-        public (string, string) organization_contact_email => ("1112", "Organization Contact Email.csv");
-        public (string, string) organization_contact_phone => ("1113", "Organization Contact Phone.csv");
+        public (string, string) organization_address => ("1174", "Organization Address.csv");
+        public (string, string) organization_contact => ("1175", "Organization Contact.csv");
+        public (string, string) organization_contact_address => ("1176", "Organization Contact Address.csv");
+        public (string, string) organization_contact_email => ("1177", "Organization Contact Email.csv");
+        public (string, string) organization_contact_phone => ("1178", "Organization Contact Phone.csv");
 
         // Project
         public (string, string) project => ("810", "DEG_ Project.csv");
@@ -117,14 +117,14 @@
         public (string, string) fixed_price_item => ("873", "DEG_ Fixed Price Item.csv");
         public (string, string) fixed_price_item_post => ("874", "DEG_ Fixed Price Item [post].csv");
         public (string, string) assignment => ("812", "DEG_ Assignment.csv");
-        public (string, string) project_administrator => ("1120", "Project Administrators.csv");
+        public (string, string) project_administrator => ("1185", "Project Administrators.csv");
         public (string, string) labor_category_project => ("817", "DEG_ Labor Category - Project.csv");
-        public (string, string) project_invoice_setup => ("1122", "Project Invoice Setup.csv");
+        public (string, string) project_invoice_setup => ("1187", "Project Invoice Setup.csv");
 
         // Person
-        public (string, string) person => ("811", "DEG_ Person.csv");
-        public (string, string) alternate => ("1086", "Alternate.csv");
-        public (string, string) approval_group => ("1087", "Approval Group.csv");
+        public (string, string) person => ("1199", "DEG_ Person.csv");
+        public (string, string) alternate => ("1151", "Alternate.csv");
+        public (string, string) approval_group => ("1152", "Approval Group.csv");
 
         // Time/Invoice
         public (string, string) time => ("819", "DEG_ Time.csv");
