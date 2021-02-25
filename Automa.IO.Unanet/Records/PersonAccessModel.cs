@@ -38,7 +38,8 @@ namespace Automa.IO.Unanet.Records
         [Flags]
         public enum AccessOrgs
         {
-            All = 0x0001,
+            All = All_ | None | SelectedLegalEntities | SelectedOrganizations,
+            All_ = 0x0001,
             None = 0x0002,
             SelectedLegalEntities = 0x0004,
             SelectedOrganizations = 0x0008,
@@ -46,7 +47,7 @@ namespace Automa.IO.Unanet.Records
 
         const int TimeoutInSeconds = 1200; // 20 minutes
 
-        public static Task<(bool success, string message, bool hasFile, object tag)> ExportFileAsync(UnanetClient una, string sourceFolder, AccessOrgs accessOrgs = AccessOrgs.All, string[] orgs = null, AccessTypes accessTypes = AccessTypes.All, string[] roles = null)
+        public static Task<(bool success, string message, bool hasFile, object tag)> ExportFileAsync(UnanetClient una, string sourceFolder, AccessOrgs accessOrgs, string[] orgs = null, AccessTypes accessTypes = AccessTypes.All, string[] roles = null)
         {
             var filePath = Path.Combine(sourceFolder, una.Options.organization_access.file);
             if (File.Exists(filePath))
@@ -147,7 +148,7 @@ namespace Automa.IO.Unanet.Records
             if (ManageRecordBase(null, s.XCF, 1, out var cf, out var add, out var last2))
                 return (_.Changed(), last2);
             if (add)
-                return (_, "role missing");
+                return (_, "key field missing, please check export critieria");
             var (r, last) = await una.SubmitSubManageAsync("0", HttpMethod.Get, "people/orgaccess/edit", null,
                 $"personkey={s.usernameKey}&oapkey={s.key}", null,
                 (z, f) =>

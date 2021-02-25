@@ -104,7 +104,7 @@
         public (string, string) organization => ("1172", "Organization.csv");
         public (string, string) customer_profile => ("1155", "Customer Profile.csv");
         public (string, string) vendor_profile => ("1084", "DEG_ Vendor Profile.csv");
-        public (string, string) organization_access => ("1015", "DEG_ Organization Access.csv");
+        public (string, string) organization_access => ("1203", "DEG_ Organization Access.csv");
         public (string, string) organization_address => ("1174", "Organization Address.csv");
         public (string, string) organization_contact => ("1175", "Organization Contact.csv");
         public (string, string) organization_contact_address => ("1176", "Organization Contact Address.csv");
@@ -128,7 +128,7 @@
 
         // Time/Invoice
         public (string, string) time => ("819", "DEG_ Time.csv");
-        public (string, string) invoice => ("724", "Invoice Export.csv");
+        public (string, string) invoice => ("1205", "Invoice Export.csv");
 
         // IMPORTS
         public (string, string) credit_card_generic => ("GenericCreditCardImport", @"C:\GenericCreditCard.csv");
